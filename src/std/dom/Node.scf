@@ -1,1 +1,384 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
 
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Node {
+	
+	std::js::Object jsObject;
+
+	static void* getJsCallback(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (callback == nullptr){
+			constwrite "		return null;\n";
+		} else {
+			constwrite
+				"		var f = _getFunctionById(callback);\n"
+				"		return function(e){\n\t\t\t";
+							constwrite std::dom::Node::eventCallCallback;
+							constwrite "(f, e);\n"
+				"		};\n";
+		}
+	}
+	
+	static void eventCallCallback(void* callback,
+		void* eventObject){
+		std::dom::Event event;
+		event.jsObject.setJsObject(eventObject);
+		std::dom::Event* eventPtr = &event;
+		std::ApplicationInstance aexcl app;
+		constwrite
+			"		var callStart = _objectsToCallStart;\n"
+			"		app = _appObject;\n"
+			"		callback(eventPtr, app);\n"
+			"		if (callStart === 0) _callObjects();\n";
+	}
+	
+	void debug(bool recursive){
+		std::DString text;
+		getDebug(recursive, &text);
+		text.debug();
+	}
+
+	void getDebug(bool recursive, std::DString* text){
+		unsigned int nodeType = getNodeType();
+		switch (nodeType){
+			case std::dom::NodeTypes::none :
+				text->addCString("none\n");
+				break;
+			case std::dom::NodeTypes::element :
+				text->addCString("element: ");
+				std::dom::Element::getTagName(this, text);
+				if (recursive){
+					unsigned int len = getChildNodesLength();
+					if (len > 0){
+						text->addCString("\nChild nodes (");
+						text->addUint(len,
+							std::NumberBases::decimal);
+						text->addCString("):\n");
+						std::dom::Node node;
+						getFirstChild(&node);
+						while (!node.isNull()){
+							node.getDebug(true, text);
+							node.getNextSibling(&node);
+						}
+					}
+				}
+				text->addCString("\n");
+				break;
+			case std::dom::NodeTypes::attribute :
+				text->addCString("attribute\n");
+				break;
+			case std::dom::NodeTypes::text :
+				text->addCString("text (");
+				text->addUint(
+					std::dom::CharacterData::getLength(this),
+					std::NumberBases::decimal);
+				text->addCString("): '");
+				std::dom::CharacterData::getData(this, text);
+				text->addCString("'\n");
+				break;
+			case std::dom::NodeTypes::cdataSection :
+				text->addCString("cdataSection\n");
+				break;
+			case std::dom::NodeTypes::entityReference :
+				text->addCString("entityReference\n");
+				break;
+			case std::dom::NodeTypes::entity :
+				text->addCString("entity\n");
+				break;
+			case std::dom::NodeTypes::processingInstruction :
+				text->addCString("processingInstruction\n");
+				break;
+			case std::dom::NodeTypes::comment :
+				text->addCString("comment\n");
+				break;
+			case std::dom::NodeTypes::document :
+				text->addCString("document\n");
+				break;
+			case std::dom::NodeTypes::documentType :
+				text->addCString("documentType\n");
+				break;
+			case std::dom::NodeTypes::documentFragment :
+				text->addCString("documentFragment\n");
+				break;
+			case std::dom::NodeTypes::notation :
+				text->addCString("notation\n");
+				break;
+		}
+	}
+	
+	/* Public member functions. */
+	
+	void getParentNode(std::dom::Node* node){
+		if (isNull() || node == nullptr) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* getObject;
+		constwrite "	getObject = nodeObject.parentNode;\n";
+		node->jsObject.setJsObject(getObject);
+	}
+	
+	void getFirstChild(std::dom::Node* node){
+		if (isNull() || node == nullptr) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* getObject;
+		constwrite "	getObject = nodeObject.firstChild;\n";
+		node->jsObject.setJsObject(getObject);
+	}
+	
+	void getLastChild(std::dom::Node* node){
+		if (isNull() || node == nullptr) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* getObject;
+		constwrite "	getObject = nodeObject.lastChild;\n";
+		node->jsObject.setJsObject(getObject);
+	}
+	
+	void getPreviousSibling(std::dom::Node* node){
+		if (isNull() || node == nullptr) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* getObject;
+		constwrite "	getObject = nodeObject.previousSibling;\n";
+		node->jsObject.setJsObject(getObject);
+	}
+	
+	void getNextSibling(std::dom::Node* node){
+		if (isNull() || node == nullptr) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* getObject;
+		constwrite "	getObject = nodeObject.nextSibling;\n";
+		node->jsObject.setJsObject(getObject);
+	}
+	
+	/* Inserts at the end if before is nullptr. */
+	void insertBefore(std::dom::Node* node, std::dom::Node* before){
+		if (isNull() || isNullStatic(node)) {return;}
+		void* parentObject = jsObject.getJsObject();
+		void* nodeObject = node->jsObject.getJsObject();
+		void* beforeObject;
+		if (before != nullptr){
+			beforeObject = before->jsObject.getJsObject();
+		} else {
+			constwrite "		beforeObject = null;\n";
+		}
+		constwrite "	parentObject.insertBefore("
+			"nodeObject, beforeObject);\n";
+	}
+	
+	void removeChild(std::dom::Node* node){
+		if (isNull() || isNullStatic(node)) {return;}
+		void* parentObject = jsObject.getJsObject();
+		void* nodeObject = node->jsObject.getJsObject();
+		constwrite "	parentObject.removeChild("
+			"nodeObject);\n";
+	}
+	
+	void appendChild(std::dom::Node* node){
+		if (isNull() || isNullStatic(node)) {return;}
+		void* parentObject = jsObject.getJsObject();
+		void* nodeObject = node->jsObject.getJsObject();
+		constwrite "	parentObject.appendChild(nodeObject);\n";
+	}
+	
+	void replaceChild(std::dom::Node* newNode,
+		std::dom::Node* node){
+		if (isNull() || isNullStatic(newNode) ||
+			isNullStatic(node)) {return;}
+		void* parentObject = jsObject.getJsObject();
+		void* newObject = newNode->jsObject.getJsObject();
+		void* nodeObject = node->jsObject.getJsObject();
+		constwrite "	parentObject.replaceChild("
+			"newObject, nodeObject);\n";
+	}
+	
+	unsigned int getChildNodesLength(){
+		if (isNull()) {return 0;}
+		void* nodeObject = jsObject.getJsObject();
+		unsigned int len;
+		constwrite "	len = nodeObject.childNodes.length;\n";
+		return len;
+	}
+	
+	void getChildNode(std::dom::Node* node,
+		unsigned int i){
+		if (isNull() || node == nullptr) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* getObject;
+		constwrite "	getObject = nodeObject.childNodes[i];\n";
+		node->jsObject.setJsObject(getObject);
+	}
+	
+	unsigned int getNodeType(){
+		if (isNull()){
+			return std::dom::NodeTypes::none;
+		}
+		void* nodeObject = jsObject.getJsObject();
+		unsigned int type;
+		constwrite "	type = nodeObject.nodeType;\n";
+		return type;
+	}
+	
+	void scrollIntoView(){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		constwrite "	nodeObject.scrollIntoView();\n";
+	}
+	
+	void setContentEditable(bool editable){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		constwrite
+			"	nodeObject.contentEditable = editable;\n";
+	}
+
+	void setOnMouseDown(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.onmousedown = jsCallback;\n";
+	}
+
+	void setOnClick(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.onclick = jsCallback;\n";
+	}
+
+	void setOnChange(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.onchange = jsCallback;\n";
+	}
+
+	void setOnKeyDown(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.onkeydown = jsCallback;\n";
+	}
+
+	void setOnCut(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.oncut = jsCallback;\n";
+	}
+
+	void setOnCopy(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.oncopy = jsCallback;\n";
+	}
+
+	void setOnPaste(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.onpaste = jsCallback;\n";
+	}
+	
+	bool isNull(){
+		return jsObject.isNull();
+	}
+	
+	static bool isNullStatic(
+		std::dom::Node* node){
+		return node == nullptr ||
+			node->jsObject.isNull();
+	}
+
+	void set(std::dom::Node* node){
+		std::js::Object* src;
+		if (node != nullptr){
+			src = &node->jsObject;
+		} else {
+			src = nullptr;
+		}
+		jsObject.copyFromObject(src);
+	}
+	
+	bool isSameNode(std::dom::Node* node){
+		std::js::Object* src;
+		if (node != nullptr){
+			src = &node->jsObject;
+		} else {
+			src = nullptr;
+		}
+		return jsObject.equals(src);
+	}
+	
+}
