@@ -1,0 +1,269 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class String {
+
+	/* Number of chars excluding the ending 0. */
+	unsigned int length;
+	unsigned char[] data;
+
+	String(){
+		length = 0;
+		data = nullptr;
+	}
+
+	~String(){
+		delete[] data;
+	}
+
+	unsigned char[] insertLength(unsigned int len,
+		unsigned int start){
+		unsigned int previousLength = length;
+		if (start > previousLength) {return nullptr;}
+		unsigned char[] previousData = data;
+		if (len == 0) {return previousData;}
+		unsigned int newLength = previousLength + len;
+		unsigned char[] newData = new unsigned char[
+			 newLength + 1];
+		std::Memory::copy(previousData, 0, newData, 0, start);
+		std::Memory::copy(previousData, start,
+			newData, start + len, previousLength - start);
+		newData[newLength] = 0;
+		delete[] previousData;
+		data = newData;
+		length = newLength;
+		return newData;
+	}
+
+	void debug(){
+		unsigned int len = length;
+		void* stringObject = std::js::String::decode(&data[0], len);
+		constwrite "	alert('length: ' + len + ' ' + stringObject);\n";
+	}
+
+	void setJsArray(void* array){
+		unsigned int len;
+		constwrite "len = array.byteLength;";
+		setLength(len);
+		std::Memory::copyJsArray(array, 0, data, 0, len);
+	}
+
+	/* Public member functions. */
+
+	void setCString(unsigned char[] cStr){
+		setSubstring(cStr, 0,
+			std::CString::length(cStr, 0));
+	}
+	
+	void setString(std::String* str){
+		setSubstring(str->data, 0, str->length);
+	}
+	
+	void setStringView(std::StringView* str){
+		setSubstring(str->data,
+			str->start, str->length);
+	}
+
+	/* Should work even if the regions overlap. */
+	void setSubstring(unsigned char[] cStr,
+		unsigned int start, unsigned int len){
+		unsigned char[] previousData = data;
+		unsigned char[] newData = new unsigned char[len + 1];
+		std::Memory::copy(cStr, start, newData, 0, len);
+		newData[len] = 0;
+		delete[] previousData;
+		data = newData;
+		length = len;
+	}
+
+	void erase(unsigned int start, unsigned int len){
+		unsigned int previousLength = length;
+		if (start >= previousLength) {return;}
+		unsigned char[] previousData = data;
+		if (start + len > previousLength){
+			len = previousLength - start;
+		}
+		unsigned int newLength = previousLength - len;
+		unsigned char[] newData = new unsigned char[
+			 newLength + 1];
+		std::Memory::copy(previousData, 0, newData, 0, start);
+		std::Memory::copy(previousData, start + len,
+			newData, start, previousLength - start - len);
+		newData[newLength] = 0;
+		delete[] previousData;
+		data = newData;
+		length = newLength;
+	}
+
+	void move(std::String* src){
+		if (src == this || src == nullptr) {return;}
+		length = src->length;
+		delete[] data;
+		data = src->data;
+		src->length = 0;
+		src->data = nullptr;
+	}
+
+	/* From the starting position until the end of the string. */
+	unsigned int indexOfChar(
+		unsigned char c, unsigned int start){
+		unsigned int len = length;
+		if (start >= len) {return 0;}
+		return std::Memory::indexOfUchar(
+			c, data, start, len - start);
+	}
+
+	/* From the end of the string until
+		and including the ending position. */
+	unsigned int indexOfCharReverse(
+		unsigned char c, unsigned int end){
+		unsigned int len = length;
+		if (end >= len) {return 0;}
+		return std::Memory::indexOfUcharReverse(
+			c, data, end, len - end);
+	}
+
+	unsigned int indexOf(
+		unsigned char[] str, unsigned int i,
+		unsigned int len, unsigned int start){
+		unsigned int max = length;
+		if (start >= max) {return 0;}
+		return std::Memory::indexOf(str, i, len,
+			data, start, max - start);
+	}
+
+	unsigned int indexOfReverse(
+		unsigned char[] str, unsigned int i,
+		unsigned int len, unsigned int end){
+		unsigned int max = length;
+		if (end >= max) {return 0;}
+		return std::Memory::indexOfReverse(str, i, len,
+			data, end, max - end);
+	}
+
+	void clear(){
+		length = 0;
+		delete[] data;
+		data = nullptr;
+	}
+
+	void insertSubstring(
+		unsigned char[] src, unsigned int i,
+		unsigned int len, unsigned int start){
+		unsigned char[] newData = insertLength(len, start);
+		if (newData != nullptr){
+			std::Memory::copy(src, i, newData, start, len);
+		}
+	}
+
+	void insertUint(unsigned int i,
+		unsigned int start, unsigned char base){
+		unsigned int len = std::CString::uintLength(
+			i, base);
+		unsigned char[] newData = insertLength(len, start);
+		if (newData != nullptr){
+			std::CString::setUintEnd(
+				i, newData, start + len - 1, base);
+		}
+	}
+
+	void reverseSubstring(unsigned int start,
+		unsigned int len){
+		unsigned int max = length;
+		if (start >= max) {return;}
+		max = max - start;
+		if (max < len) {len = max;}
+		std::Memory::reverse(
+			data, start, len);
+	}
+
+	void setLength(unsigned int len){
+		delete[] data;
+		unsigned char[] newData = new unsigned char[len + 1];
+		newData[len] = 0;
+		data = newData;
+		length = len;
+	}
+
+	void replace(unsigned char[] src, unsigned int i,
+		unsigned int len, unsigned int start){
+		unsigned int dataLen = length;
+		if (start >= dataLen) {return;}
+		if (start + len > dataLen){
+			len = dataLen - start;
+		}
+		std::Memory::copy(src, i, data, start, len);
+	}
+
+	char compare(std::String* str){
+		return std::Memory::compareRange(data, 0,
+			length, str->data, 0, str->length);
+	}
+
+}

@@ -67,19 +67,117 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-async class ApplicationInstance {
+class DBuffer {
 
-	Main main;
-	std::fs::FileSystem fileSystem;
+	/* Number of chars excluding the ending 0. */
+	unsigned int size;
+	unsigned int capacity;
+	unsigned char[] data;
 
-	async void run(){
-		main.main(this);
+	DBuffer(){
+		size = 0;
+		capacity = 0;
+		data = nullptr;
 	}
-	
-	void getWindow(std::bom::Window* appWindow){
-		void* jsObject;
-		constwrite "	jsObject = window;\n";
-		appWindow->jsObject.setJsObject(jsObject);
+
+	~DBuffer(){
+		delete[] data;
 	}
-	
+
+	void* getJsBlob(){
+		unsigned char[] start = data;
+		unsigned int len = size;
+		void* blob;
+		constwrite "	blob = new Blob([\n"
+			"new Uint8Array(_memory, start, len)]);\n";
+		return blob;
+	}
+
+	void addSize(unsigned int len, bool copy, bool del){
+		unsigned int previousSize = size;
+		unsigned int newSize = previousSize + len;
+		unsigned int newCapacity = capacity;
+		if (newCapacity < newSize){
+			unsigned char[] newData;
+			if (newCapacity == 0){
+				newCapacity = newSize;
+				newData = new unsigned char[newCapacity];
+			} else {
+				newCapacity = newCapacity * 2;
+				if (newCapacity < newSize) {newCapacity = newSize;}
+				unsigned char[] previousData = data;
+				newData = new unsigned char[newCapacity];
+				if (copy){
+					std::Memory::copy(previousData, 0,
+						newData, 0, previousSize);
+				}
+				if (del) {delete[] previousData;}
+			}
+			data = newData;
+			capacity = newCapacity;
+		}
+		size = newSize;
+	}
+
+	void addU8s(unsigned char[] chars,
+		unsigned int start, unsigned int len){
+		addSize(len, true, true);
+		std::Memory::copy(chars, start, data, size - len, len);
+	}
+
+	void addU8(unsigned char setChar){
+		addSize(1, true, true);
+		data[size - 1] = setChar;
+	}
+
+	void addU16BE(unsigned short setShort){
+		addSize(2, true, true);
+		std::Memory::setU16BE(data, size - 2, setShort);
+	}
+
+	void addU16LE(unsigned short setShort){
+		addSize(2, true, true);
+		std::Memory::setU16LE(data, size - 2, setShort);
+	}
+
+	void addU32BE(unsigned int setInt){
+		addSize(4, true, true);
+		std::Memory::setU32BE(data, size - 4, setInt);
+	}
+
+	void addU32LE(unsigned int setInt){
+		addSize(4, true, true);
+		std::Memory::setU32LE(data, size - 4, setInt);
+	}
+
+	void getU8s(unsigned int start,
+		unsigned char[] chars, unsigned int i,
+		unsigned int len){
+		std::Memory::copy(data, start, chars, i, len);
+	}
+
+	unsigned char getU8(unsigned int start){
+		return data[start];
+	}
+
+	unsigned short getU16BE(unsigned int start){
+		return std::Memory::getU16BE(data, start);
+	}
+
+	unsigned short getU16LE(unsigned int start){
+		return std::Memory::getU16LE(data, start);
+	}
+
+	unsigned int getU32BE(unsigned int start){
+		return std::Memory::getU32BE(data, start);
+	}
+
+	unsigned int getU32LE(unsigned int start){
+		return std::Memory::getU32LE(data, start);
+	}
+
+	void clear(){
+		size = 0;
+	}
+
 }

@@ -67,19 +67,56 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-async class ApplicationInstance {
+class StringView {
+	unsigned char[] data;
+	unsigned int start;
+	unsigned int length;
 
-	Main main;
-	std::fs::FileSystem fileSystem;
+	StringView(){
+		clear();
+	}
 
-	async void run(){
-		main.main(this);
+	void debug(){
+		unsigned int len = length;
+		void* stringObject =
+			std::js::String::decode(&data[start], len);
+		constwrite "	alert('length: ' + len +
+			' ' + stringObject);\n";
 	}
 	
-	void getWindow(std::bom::Window* appWindow){
-		void* jsObject;
-		constwrite "	jsObject = window;\n";
-		appWindow->jsObject.setJsObject(jsObject);
+	/* Public member functions. */
+
+	void setSubstring(unsigned char[] str,
+		unsigned int i, unsigned int len){
+		data = str;
+		start = i;
+		length = len;
+	}
+
+	void setCString(unsigned char[] str){
+		setSubstring(str, 0,
+			std::CString::length(str, 0));
 	}
 	
+	void setStringView(std::StringView* str){
+		setSubstring(str->data, str->start, str->length);
+	}
+	
+	char compareCString(
+		unsigned char[] str, unsigned int i){
+		return std::CString::compareSubstring(data, start,
+			length, str, i);
+	}
+	
+	char compareString(std::String* str){
+		return std::Memory::compareRange(data, start,
+			length, str->data, 0, str->length);
+	}
+
+	void clear(){
+		data = nullptr;
+		start = 0;
+		length = 0;
+	}
+
 }

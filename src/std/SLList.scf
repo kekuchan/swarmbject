@@ -67,19 +67,80 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-async class ApplicationInstance {
+/* Singly linked list */
+class SLList {
+	void* next;
 
-	Main main;
-	std::fs::FileSystem fileSystem;
-
-	async void run(){
-		main.main(this);
+	SLList(){
+		next = nullptr;
 	}
-	
-	void getWindow(std::bom::Window* appWindow){
-		void* jsObject;
-		constwrite "	jsObject = window;\n";
-		appWindow->jsObject.setJsObject(jsObject);
+
+	/* If the element is already part of the list, then it must be
+		removed before calling this function.
+		The back ptr can be nullptr. */
+	static void pushFront(void* element, void** front,
+		void** back, std::SLList*(void*) getList){
+		void* frontElement = *front;
+		if (frontElement == nullptr){
+			*front = element;
+			if (back != nullptr){
+				*back = element;
+			}
+		} else {
+			std::SLList* list = getList(element);
+			list->next = frontElement;
+			*front = element;
+		}
+	}
+
+	/* If the element is already part of the list, then it must be
+		removed before calling this function.
+		The back ptr can be nullptr. */
+	static void pushBack(void* element, void** front,
+		void** back, std::SLList*(void*) getList){
+		void* backElement;
+		if (back != nullptr){
+			backElement = *back;
+			*back = element;
+		} else {
+			backElement = *front;
+		}
+		if (backElement == nullptr){
+			*front = element;
+		} else {
+			std::SLList* list = getList(backElement);
+			void* nextElement = list->next;
+			while (nextElement != nullptr){
+				backElement = nextElement;
+				list = getList(backElement);
+			}
+			list->next = element;
+		}
+	}
+
+	static void popFront(void** front,
+		void** back, std::SLList*(void*) getList){
+		void* frontElement = *front;
+		if (frontElement != nullptr){
+			std::SLList* list = getList(frontElement);
+			void* nextElement = list->next;
+			if (nextElement == nullptr && back != nullptr){
+				*back = nullptr;
+			}
+			*front = nextElement;
+			list->next = nullptr;
+		}
+	}
+
+	static unsigned int getSize(void* frontElement,
+		std::SLList*(void*) getList){
+		unsigned int size = 0;
+		while (frontElement != nullptr){
+			size = size + 1;
+			std::SLList* list = getList(frontElement);
+			frontElement = list->next;
+		}
+		return size;
 	}
 	
 }

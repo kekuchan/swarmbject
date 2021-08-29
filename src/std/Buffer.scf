@@ -67,19 +67,114 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-async class ApplicationInstance {
+class Buffer {
 
-	Main main;
-	std::fs::FileSystem fileSystem;
+	unsigned int size;
+	unsigned char[] data;
 
-	async void run(){
-		main.main(this);
+	Buffer(){
+		size = 0;
+		data = nullptr;
+	}
+
+	~Buffer(){
+		delete[] data;
+	}
+
+	void setSize(unsigned int len){
+		unsigned int copySize = size;
+		if (copySize == len) {return;}
+		unsigned char[] previousData = data;
+		if (len > 0){
+			unsigned char[] newData = new unsigned char[len];
+			if (len < copySize) {copySize = len;}
+			std::Memory::copy(previousData, 0, newData, 0, copySize);
+			data = newData;
+		} else {
+			data = nullptr;
+		}
+		delete[] previousData;
+		size = len;
+	}
+
+	void setU8s(unsigned int start,
+		unsigned char[] chars, unsigned int i,
+		unsigned int len){
+		std::Memory::copy(chars, i, data, start, len);
+	}
+
+	void setU8(unsigned int start,
+		unsigned char setChar){
+		data[start] = setChar;
+	}
+
+	void setU16BE(unsigned int start,
+		unsigned short setShort){
+		std::Memory::setU16BE(data, start, setShort);
+	}
+
+	void setU16LE(unsigned int start,
+		unsigned short setShort){
+		std::Memory::setU16LE(data, start, setShort);
+	}
+
+	void setU32BE(unsigned int start,
+		unsigned int setInt){
+		std::Memory::setU32BE(data, start, setInt);
+	}
+
+	void setU32LE(unsigned int start,
+		unsigned int setInt){
+		std::Memory::setU32LE(data, start, setInt);
+	}
+
+	void getU8s(unsigned int start,
+		unsigned char[] chars, unsigned int i,
+		unsigned int len){
+		std::Memory::copy(data, start, chars, i, len);
+	}
+
+	unsigned char getU8(unsigned int start){
+		return data[start];
+	}
+
+	unsigned short getU16BE(unsigned int start){
+		return std::Memory::getU16BE(data, start);
+	}
+
+	unsigned short getU16LE(unsigned int start){
+		return std::Memory::getU16LE(data, start);
+	}
+
+	unsigned int getU32BE(unsigned int start){
+		return std::Memory::getU32BE(data, start);
+	}
+
+	unsigned int getU32LE(unsigned int start){
+		return std::Memory::getU32LE(data, start);
 	}
 	
-	void getWindow(std::bom::Window* appWindow){
-		void* jsObject;
-		constwrite "	jsObject = window;\n";
-		appWindow->jsObject.setJsObject(jsObject);
+	void debug(){
+		unsigned char[] chars = data;
+		unsigned int len = size;
+		unsigned int i = 0;
+		void* str;
+		constwrite "	str = '';\n";
+		while (i < len){
+			unsigned char bufferChar = chars[i];
+			constwrite "		str += ', ' + bufferChar;\n";
+			if (bufferChar > 32 && bufferChar < 127){
+				constwrite "			str += ' (' +\n"
+					"				String.fromCharCode(bufferChar) + ')';\n";
+			}
+			i = i + 1;
+		}
+		constwrite "	alert(str);\n";
 	}
 	
+	void clear(){
+		size = 0;
+		delete[] data;
+		data = nullptr;
+	}
 }
