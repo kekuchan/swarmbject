@@ -3,6 +3,8 @@
 SWARMBJECT is a high level programming language and a graphical
 development environment for it, including a compiler.
 
+The name SWARMBJECT indicates a swarm of objects.
+
 *For newcommers into programming:* computer devices have a
 main component, designed to execute instructions called a CPU.
 A sequence of instructions is called a code, creating a program.
@@ -103,7 +105,10 @@ Create a folder for the tutorial with "Browse", "/",
 "New folder", name it "tut", and choose "Create".
 In the same way create a folder named "src" ("/tut/",
 "New folder", Name: "src", "Create"). Upload the 
-downloaded std file to it ("/tut/src/", "Upload" the file). 
+downloaded "std.saf" file to it ("/tut/src/",
+"Upload"). ".saf" is a SWARMBJECT archive file,
+a custom, but very simple format to pack multiple
+files and folders into a single file.
 Now create a file named "Main.scf"
 ("/tut/src/", "New file", Name: "Main.scf",
 "Create"). Tap or click on "Main.scf",
