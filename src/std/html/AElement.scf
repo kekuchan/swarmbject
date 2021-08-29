@@ -67,56 +67,26 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Element {
+class AElement {
 
-	static unsigned int getOffsetLeft(
+	static void create(
+		std::dom::Node* documentNode,
 		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int offsetLeft;
-		constwrite "	offsetLeft = nodeObject.offsetLeft;\n";
-		return offsetLeft;
+		if (documentNode->isNull()) {return;}
+		void* getObject;
+		constwrite "	getObject = "
+			"document.createElement('A');\n";
+		node->jsObject.setJsObject(getObject);
 	}
-
-	static unsigned int getOffsetTop(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int offsetTop;
-		constwrite "	offsetTop = nodeObject.offsetTop;\n";
-		return offsetTop;
-	}
-
-	static unsigned int getOffsetHeight(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int offsetHeight;
-		constwrite "	offsetHeight = nodeObject.offsetHeight;\n";
-		return offsetHeight;
-	}
-
-	static unsigned int getOffsetWidth(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int offsetWidth;
-		constwrite "	offsetWidth = nodeObject.offsetWidth;\n";
-		return offsetWidth;
-	}
-
-	static void getStyle(std::dom::Node* node,
-		std::css::Declaration* decl){
-		if (node->isNull() || decl == nullptr) {return;}
-		void* getObject = node->jsObject.getJsObject();
-		constwrite "	getObject = getObject.style;\n";
-		decl->jsObject.setJsObject(getObject);
-	}
-
-	static void removeChildren(std::dom::Node* node){
+	
+	static void setDownload(
+		std::dom::Node* node, unsigned char[] text,
+		unsigned int start, unsigned int len){
 		if (node->isNull()) {return;}
 		void* nodeObject = node->jsObject.getJsObject();
-		constwrite "	nodeObject.innerHTML = '';\n";
+		void* textObject = std::js::String::decode(
+			&text[start], len);
+		constwrite "	nodeObject.download = textObject;\n";
 	}
 
 }
