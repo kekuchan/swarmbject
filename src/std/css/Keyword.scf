@@ -67,8 +67,17 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Value {
+class Keyword : std::css::Value {
 
-	unsigned char type;
+	unsigned char keyword;
+
+	Keyword(){
+		type = std::css::ValueTypes::keyword;
+	}
+	
+	std::css::Value* set(unsigned char value){
+		keyword = value;
+		return (std::css::Value*)this;
+	}
 
 }

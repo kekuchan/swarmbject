@@ -1,0 +1,418 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Declaration {
+
+	std::js::Object jsObject;
+	
+	void* getLengthText(
+		std::css::Value* value){
+		void* textObject;
+		if (value != nullptr && value->type ==
+			std::css::ValueTypes::shortValue){
+			textObject = 
+				(std::css::Short*)value->getJsString();
+		} else {
+			constwrite "		textObject = '';\n";
+		}
+		return textObject;
+	}
+	
+	void* getBorderStyle(std::css::Value* value){
+		void* textObject;
+		constwrite "	textObject = '';\n";
+		if (value != nullptr && value->type ==
+			std::css::ValueTypes::keyword){
+			switch ((std::css::Keyword*)value->keyword){
+				case std::css::BorderStyles::solid :
+					constwrite "	textObject = 'solid';\n";
+					break;
+			}
+		}
+		return textObject;
+	}
+	
+	void* getMarginText(std::css::Value* value){
+		void* textObject;
+		constwrite "	textObject = '';\n";
+		if (value != nullptr){
+			switch (value->type){
+				case std::css::ValueTypes::keyword :
+					switch ((std::css::Keyword*)value->keyword){
+						case std::css::MarginTypes::auto :
+							constwrite "	textObject = 'auto';\n";
+							break;
+					}
+					break;
+				case std::css::ValueTypes::shortValue :
+					textObject = 
+						(std::css::Short*)value->getJsString();
+					break;
+			}
+		}
+		return textObject;
+	}
+	
+	/* Public member functions. */
+	
+	bool isNull(){
+		return jsObject.isNull();
+	}
+	
+	void setAlign(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject;
+		constwrite "	textObject = '';\n";
+		if (value != nullptr && value->type ==
+			std::css::ValueTypes::keyword){
+			switch ((std::css::Keyword*)value->keyword){
+				case std::css::AlignTypes::middle :
+					constwrite "		textObject = 'middle';\n";
+					break;
+			}
+		}
+		constwrite "	style.align = textObject;\n";
+	}
+	
+	void setBackgroundColor(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject;
+		if (value != nullptr && value->type ==
+			std::css::ValueTypes::color){
+			textObject = 
+				(std::css::RGB*)value->getJsString();
+		} else {
+			constwrite "		textObject = '';\n";
+		}
+		constwrite "	style.backgroundColor = textObject;\n";
+	}
+	
+	void setBorderWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.borderWidth = textObject;\n";
+	}
+	
+	void setBorderBottomWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.borderBottomWidth = textObject;\n";
+	}
+	
+	void setBorderLeftWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.borderLeftWidth = textObject;\n";
+	}
+	
+	void setBorderRightWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.borderRightWidth = textObject;\n";
+	}
+	
+	void setBorderTopWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.borderTopWidth = textObject;\n";
+	}
+	
+	void setBorderStyle(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getBorderStyle(value);
+		constwrite "	style.borderStyle = textObject;\n";
+	}
+	
+	void setBorderBottomStyle(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getBorderStyle(value);
+		constwrite "	style.borderBottomStyle = textObject;\n";
+	}
+	
+	void setBorderLeftStyle(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getBorderStyle(value);
+		constwrite "	style.borderLeftStyle = textObject;\n";
+	}
+	
+	void setBorderRightStyle(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getBorderStyle(value);
+		constwrite "	style.borderRightStyle = textObject;\n";
+	}
+	
+	void setBorderTopStyle(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getBorderStyle(value);
+		constwrite "	style.borderTopStyle = textObject;\n";
+	}
+	
+	void setDisplay(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject;
+		constwrite "	textObject = '';\n";
+		if (value != nullptr && value->type ==
+			std::css::ValueTypes::keyword){
+			switch ((std::css::Keyword*)value->keyword){
+				case std::css::DisplayTypes::none :
+					constwrite "	textObject = 'none';\n";
+					break;
+				case std::css::DisplayTypes::block :
+					constwrite "	textObject = 'block';\n";
+					break;
+			}
+		}
+		constwrite "	style.display = textObject;\n";
+	}
+	
+	void setFontSize(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.fontSize = textObject;\n";
+	}
+	
+	void setHeight(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.height = textObject;\n";
+	}
+	
+	void setMinHeight(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.minHeight = textObject;\n";
+	}
+	
+	void setWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.width = textObject;\n";
+	}
+	
+	void setLineHeight(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.lineHeight = textObject;\n";
+	}
+
+	void setMargin(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getMarginText(value);
+		constwrite "	style.margin = textObject;\n";
+	}
+
+	void setMarginBottom(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getMarginText(value);
+		constwrite "	style.marginBottom = textObject;\n";
+	}
+
+	void setMarginLeft(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getMarginText(value);
+		constwrite "	style.marginLeft = textObject;\n";
+	}
+
+	void setMarginRight(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getMarginText(value);
+		constwrite "	style.marginRight = textObject;\n";
+	}
+
+	void setMarginTop(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getMarginText(value);
+		constwrite "	style.marginTop = textObject;\n";
+	}
+	
+	void setOverflow(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject;
+		constwrite "	textObject = '';\n";
+		if (value != nullptr && value->type ==
+			std::css::ValueTypes::keyword){
+			switch ((std::css::Keyword*)value->keyword){
+				case std::css::OverflowTypes::auto :
+					constwrite "	textObject = 'auto';\n";
+					break;
+			}
+		}
+		constwrite "	style.overflow = textObject;\n";
+	}
+
+	void setPadding(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.padding = textObject;\n";
+	}
+
+	void setPaddingBottom(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.paddingBottom = textObject;\n";
+	}
+
+	void setPaddingLeft(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.paddingLeft = textObject;\n";
+	}
+
+	void setPaddingRight(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.paddingRight = textObject;\n";
+	}
+
+	void setPaddingTop(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.paddingTop = textObject;\n";
+	}
+	
+	void setTabSize(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite
+			"	style.tabSize = textObject;\n"
+			"	style.MozTabSize = textObject;\n";
+	}
+	
+	void setTextAlign(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject;
+		constwrite "	textObject = '';\n";
+		if (value != nullptr && value->type ==
+			std::css::ValueTypes::keyword){
+			switch ((std::css::Keyword*)value->keyword){
+				case std::css::TextAlignTypes::left :
+					constwrite "	textObject = 'left';\n";
+					break;
+				case std::css::TextAlignTypes::right :
+					constwrite "	textObject = 'right';\n";
+					break;
+				case std::css::TextAlignTypes::center :
+					constwrite "	textObject = 'center';\n";
+					break;
+				case std::css::TextAlignTypes::justify :
+					constwrite "	textObject = 'justify';\n";
+					break;
+			}
+		}
+		constwrite "	style.textAlign = textObject;\n";
+	}
+	
+	void setWhiteSpace(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject;
+		constwrite "	textObject = '';\n";
+		if (value != nullptr && value->type ==
+			std::css::ValueTypes::keyword){
+			switch ((std::css::Keyword*)value->keyword){
+				case std::css::WhiteSpaceTypes::nowrap :
+					constwrite "	textObject = 'nowrap';\n";
+					break;
+			}
+		}
+		constwrite "	style.whiteSpace = textObject;\n";
+	}
+	
+}

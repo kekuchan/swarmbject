@@ -67,8 +67,24 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Value {
+class RGB : std::css::Value {
 
-	unsigned char type;
+	std::color::RGB color;
+	
+	RGB(){
+		type = std::css::ValueTypes::color;
+	}
+	
+	void* getJsString(){
+		void* textObject;
+		constwrite "	textObject = 'rgb(' + ";
+		constwrite color.red;
+		constwrite " + ', ' + ";
+		constwrite color.green;
+		constwrite " + ', ' + ";
+		constwrite color.blue;
+		constwrite " + ')';\n";
+		return textObject;
+	}
 
 }

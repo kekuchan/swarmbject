@@ -67,8 +67,78 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Value {
+class Short : std::css::Value {
 
-	unsigned char type;
+	unsigned char unit;
+	short number;
+
+	Short(){
+		type = std::css::ValueTypes::shortValue;
+	}
+
+	std::css::Value* set(
+		short value, unsigned char unitType){
+		number = value;
+		unit = unitType;
+		return (std::css::Value*)this;
+	}
+
+	void* getJsString(){
+		void* textObject;
+		constwrite "	textObject = '' + ";
+		constwrite number;
+		constwrite ";\n";
+		switch (unit){
+			case std::css::Units::em :
+				constwrite "		textObject += 'em';\n";
+				break;
+			case std::css::Units::ex :
+				constwrite "		textObject += 'ex';\n";
+				break;
+			case std::css::Units::ch :
+				constwrite "		textObject += 'ch';\n";
+				break;
+			case std::css::Units::rem :
+				constwrite "		textObject += 'rem';\n";
+				break;
+			case std::css::Units::vw :
+				constwrite "		textObject += 'vw';\n";
+				break;
+			case std::css::Units::vh :
+				constwrite "		textObject += 'vh';\n";
+				break;
+			case std::css::Units::vmin :
+				constwrite "		textObject += 'vmin';\n";
+				break;
+			case std::css::Units::vmax :
+				constwrite "		textObject += 'vmax';\n";
+				break;
+			case std::css::Units::cm :
+				constwrite "		textObject += 'cm';\n";
+				break;
+			case std::css::Units::mm :
+				constwrite "		textObject += 'mm';\n";
+				break;
+			case std::css::Units::Q :
+				constwrite "		textObject += 'Q';\n";
+				break;
+			case std::css::Units::in :
+				constwrite "		textObject += 'in';\n";
+				break;
+			case std::css::Units::pt :
+				constwrite "		textObject += 'pt';\n";
+				break;
+			case std::css::Units::pc :
+				constwrite "		textObject += 'pc';\n";
+				break;
+			case std::css::Units::px :
+				constwrite "		textObject += 'px';\n";
+				break;
+			case std::css::Units::percentage :
+				constwrite "		textObject += '%';\n";
+				break;
+		}
+		return textObject;
+	}
 
 }

@@ -67,8 +67,44 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Value {
+enum Units {
 
-	unsigned char type;
+	em,
+	ex,
+	ch,
+	rem,
 
+	vw,
+	vh,
+	vmin,
+	vmax,
+
+	cm,
+	mm,
+	Q,
+	in,
+	pt,
+	pc,
+	px,
+
+	percentage,
+
+	integer
+
+	/* In comment as not yet usable.
+	deg,
+	grad,
+	rad,
+	turn,
+	
+	s,
+	ms,
+	
+	Hz,
+	kHz,
+	
+	dpi,
+	dpcm,
+	dppx,
+	*/
 }
