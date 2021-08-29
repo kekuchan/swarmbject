@@ -67,16 +67,12 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Type {
-
-	unsigned char type;
+class FunctionParameter : lexical::Variable {
 	
-	static lexical::Type* create(
-		unsigned char type){
-		lexical::Type* lexicalType =
-			new lexical::Type;
-		lexicalType->type = type;
-		return lexicalType;
+	FunctionParameter(){
+		type = lexical::Types::functionParameter;
+		dataType = nullptr;
+		offset = -1;
 	}
 
 }

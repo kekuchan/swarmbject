@@ -67,16 +67,61 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Type {
-
-	unsigned char type;
+class Variable : lexical::Type {
+	data::Type* dataType;
+	std::String name;
+	int offset;
 	
-	static lexical::Type* create(
-		unsigned char type){
-		lexical::Type* lexicalType =
-			new lexical::Type;
-		lexicalType->type = type;
-		return lexicalType;
+	static char cmpName(void* i, void* j){
+		return ((lexical::Variable*)i)->name.compare(
+			&((lexical::Variable*)j)->name);
+	}
+
+	static char cmpString(void* i, void* j){
+		return ((std::StringView*)i)->compareString(
+			&((lexical::Variable*)j)->name);
+	}
+	
+	unsigned char getSpecifiers(){
+		if (dataType->type == data::Types::specifiersT){
+			return ((data::Specifiers*)dataType)->specifiers;
+		}
+		return 0;
+	}
+	
+	bool isAptr(){
+		return (getSpecifiers() &
+			data::SpecifierTypes::isAptr) != 0;
+	}
+	
+	bool isAlock(){
+		return (getSpecifiers() &
+			data::SpecifierTypes::isAlock) != 0;
+	}
+	
+	bool isAexcl(){
+		return (getSpecifiers() &
+			data::SpecifierTypes::isAexcl) != 0;
+	}
+	
+	bool isStatic(){
+		return (getSpecifiers() &
+			data::SpecifierTypes::isStatic) != 0;
+	}
+	
+	bool isConstexpr(){
+		return (getSpecifiers() &
+			data::SpecifierTypes::isConstexpr) != 0;
+	}
+	
+	bool isConst(){
+		return (getSpecifiers() &
+			data::SpecifierTypes::isConst) != 0;
+	}
+	
+	bool isConstant(){
+		return (getSpecifiers() &
+			data::Specifiers::constSpecifiers) != 0;
 	}
 
 }

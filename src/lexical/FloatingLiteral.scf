@@ -67,16 +67,27 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Type {
-
-	unsigned char type;
+class FloatingLiteral : lexical::Type {
+	float number;
 	
-	static lexical::Type* create(
-		unsigned char type){
-		lexical::Type* lexicalType =
-			new lexical::Type;
-		lexicalType->type = type;
-		return lexicalType;
+	static lexical::FloatingLiteral* create(float f){
+		lexical::FloatingLiteral* floatingLiteral =
+			new lexical::FloatingLiteral;
+		floatingLiteral->type = lexical::Types::floatingLiteral;
+		floatingLiteral->number = f;
+		return floatingLiteral;
+	}
+
+	static char cmp(void* i, void* j){
+		return std::Memory::compareFloat(
+			((lexical::FloatingLiteral*)i)->number,
+			((lexical::FloatingLiteral*)j)->number);
+	}
+
+	static char cmpFloat(void* i, void* j){
+		return std::Memory::compareFloat(
+			*((float*)i),
+			((lexical::FloatingLiteral*)j)->number);
 	}
 
 }

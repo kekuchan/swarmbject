@@ -67,16 +67,93 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Type {
-
-	unsigned char type;
+class MemberFunction : lexical::Type {
+	unsigned int cursor;
+	unsigned char specifiers;
+	data::Type* dataType;
+	std::String name;
+	data::ClassType* parentClass;
+	std::PtrDArray parameters;
+	lexical::BlockStatement* block;
+	int functionId;
 	
-	static lexical::Type* create(
-		unsigned char type){
-		lexical::Type* lexicalType =
-			new lexical::Type;
-		lexicalType->type = type;
-		return lexicalType;
+	static lexical::MemberFunction* create(
+		unsigned int setCursor,
+		std::StringView* string, data::ClassType* parent){
+		lexical::MemberFunction* memberFunction =
+			new lexical::MemberFunction;
+		memberFunction->type = lexical::Types::memberFunction;
+		memberFunction->cursor = setCursor;
+		memberFunction->specifiers = 0;
+		memberFunction->dataType = nullptr;
+		memberFunction->name.setStringView(string);
+		memberFunction->parentClass = parent;
+		memberFunction->block = nullptr;
+		memberFunction->functionId = -1;
+		return memberFunction;
+	}
+	
+	static char cmpName(void* i, void* j){
+		return std::CString::compare(
+			((lexical::MemberFunction*)i)->name.data, 0,
+			((lexical::MemberFunction*)j)->name.data, 0);
+	}
+
+	static char cmpString(void* i, void* j){
+		return ((std::StringView*)i)->compareString(
+			&((lexical::MemberFunction*)j)->name);
+	}
+	
+	bool isStatic(){
+		return (specifiers &
+			lexical::FunctionSpecifierTypes::isStatic) != 0;
+	}
+	
+	void setStatic(){
+		specifiers = specifiers |
+			lexical::FunctionSpecifierTypes::isStatic;
+	}
+	
+	bool isAsync(){
+		return (specifiers &
+			lexical::FunctionSpecifierTypes::isAsync) != 0;
+	}
+	
+	void setAsync(){
+		specifiers = specifiers |
+			lexical::FunctionSpecifierTypes::isAsync;
+	}
+	
+	bool needStack(){
+		return (specifiers &
+			lexical::FunctionSpecifierTypes::needStack) != 0;
+	}
+	
+	void setNeedStack(){
+		specifiers = specifiers |
+			lexical::FunctionSpecifierTypes::needStack;
+	}
+	
+	bool asyncHasAexcl(){
+		return (specifiers &
+			lexical::FunctionSpecifierTypes::asyncHasAexcl) != 0;
+	}
+	
+	void setAsyncHasAexcl(){
+		specifiers = specifiers |
+			lexical::FunctionSpecifierTypes::asyncHasAexcl;
+	}
+	
+	lexical::FunctionParameter* getParameter(
+		std::StringView* name){
+		return (lexical::FunctionParameter*)
+			(parameters.find(name,
+				lexical::FunctionParameter::cmpString));
+	}
+	
+	void insertParameter(
+		lexical::FunctionParameter* parameter){
+		parameters.pushBack(parameter);
 	}
 
 }

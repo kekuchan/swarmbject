@@ -67,16 +67,27 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Type {
-
-	unsigned char type;
+class CharacterLiteral : lexical::Type {
+	unsigned char character;
 	
-	static lexical::Type* create(
-		unsigned char type){
-		lexical::Type* lexicalType =
-			new lexical::Type;
-		lexicalType->type = type;
-		return lexicalType;
+	static lexical::CharacterLiteral* create(
+		unsigned char literal){
+		lexical::CharacterLiteral* characterLiteral =
+			new lexical::CharacterLiteral;
+		characterLiteral->type = lexical::Types::characterLiteral;
+		characterLiteral->character = literal;
+		return characterLiteral;
 	}
 
+	static char cmp(void* i, void* j){
+		return std::Memory::compareUchar(
+			((lexical::CharacterLiteral*)i)->character,
+			((lexical::CharacterLiteral*)j)->character);
+	}
+
+	static char cmpUchar(void* i, void* j){
+		return std::Memory::compareUchar(
+			*((unsigned char*)i),
+			((lexical::CharacterLiteral*)j)->character);
+	}
 }

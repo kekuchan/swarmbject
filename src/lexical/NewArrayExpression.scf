@@ -67,16 +67,13 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Type {
-
-	unsigned char type;
+class NewArrayExpression : lexical::Type {
+	data::Type* dataType;
+	lexical::Type* operand;
 	
-	static lexical::Type* create(
-		unsigned char type){
-		lexical::Type* lexicalType =
-			new lexical::Type;
-		lexicalType->type = type;
-		return lexicalType;
+	NewArrayExpression(){
+		type = lexical::Types::newArray;
+		dataType = nullptr;
+		operand = nullptr;
 	}
-
 }

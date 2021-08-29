@@ -67,16 +67,15 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Type {
-
-	unsigned char type;
+class VariableDeclaration : lexical::Type {
+	lexical::LocalVariable* variable;
 	
-	static lexical::Type* create(
-		unsigned char type){
-		lexical::Type* lexicalType =
-			new lexical::Type;
-		lexicalType->type = type;
-		return lexicalType;
+	static lexical::VariableDeclaration* create(
+		lexical::LocalVariable* localVariable){
+		lexical::VariableDeclaration* declaration =
+			new lexical::VariableDeclaration;
+		declaration->type = lexical::Types::variableDeclaration;
+		declaration->variable = localVariable;
+		return declaration;
 	}
-
 }

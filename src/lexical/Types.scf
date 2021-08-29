@@ -67,16 +67,64 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Type {
-
-	unsigned char type;
-	
-	static lexical::Type* create(
-		unsigned char type){
-		lexical::Type* lexicalType =
-			new lexical::Type;
-		lexicalType->type = type;
-		return lexicalType;
-	}
-
+enum Types {
+	nullptrLiteral,
+	thisLiteral,
+	trueLiteral,
+	falseLiteral,
+	characterLiteral,
+	stringLiteral,
+	integerLiteral,
+	floatingLiteral,
+	parenthesized,
+	localVariable,
+	functionParameter,
+	dataMember,
+	memberFunction,
+	subscript,
+	functionCall,
+	classMember,
+	memberPointer,
+	cast,
+	indirection,
+	addressOf,
+	plus,
+	minus,
+	logicalNegation,
+	bitwiseComplement,
+	newExpression,
+	newArray,
+	newAsync,
+	deleteStatement,
+	deleteArray,
+	multiplication,
+	division,
+	modulus,
+	addition,
+	substraction,
+	leftShift,
+	rightShift,
+	lessThan,
+	greaterThan,
+	lessThanOrEqual,
+	greaterThanOrEqual,
+	equalTo,
+	notEqualTo,
+	bitwiseAnd,
+	bitwiseExclusiveOr,
+	bitwiseInclusiveOr,
+	logicalAnd,
+	logicalOr,
+	assignment,
+	block,
+	variableDeclaration,
+	constwriteStatement,
+	returnStatement,
+	ifStatement,
+	whileStatement,
+	breakStatement,
+	continueStatement,
+	switchStatement,
+	caseLabel,
+	defaultLabel
 }

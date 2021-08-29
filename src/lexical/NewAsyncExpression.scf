@@ -67,16 +67,15 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Type {
-
-	unsigned char type;
+class NewAsyncExpression : lexical::Type {
+	data::Type* dataType;
+	lexical::Type* instance;
+	lexical::Type* thread;
 	
-	static lexical::Type* create(
-		unsigned char type){
-		lexical::Type* lexicalType =
-			new lexical::Type;
-		lexicalType->type = type;
-		return lexicalType;
+	NewAsyncExpression(){
+		type = lexical::Types::newAsync;
+		dataType = nullptr;
+		instance = nullptr;
+		thread = nullptr;
 	}
-
 }

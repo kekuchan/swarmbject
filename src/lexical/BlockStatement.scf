@@ -67,16 +67,30 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Type {
+class BlockStatement : lexical::Type {
+	std::PtrDArray variables;
+	std::PtrDArray statements;
 
-	unsigned char type;
+	BlockStatement() {
+		type = lexical::Types::block;
+	}
+
+	void insertVariable(
+		lexical::LocalVariable* localVariable){
+		variables.insertSorted(localVariable,
+			lexical::Variable::cmpName);
+	}
+
+	lexical::LocalVariable* getVariable(
+		std::StringView* name){
+		return (lexical::LocalVariable*)
+			(variables.findSorted(name,
+				lexical::Variable::cmpString));
+	}
 	
-	static lexical::Type* create(
-		unsigned char type){
-		lexical::Type* lexicalType =
-			new lexical::Type;
-		lexicalType->type = type;
-		return lexicalType;
+	void insertStatement(
+		lexical::Type* statement){
+		statements.pushBack(statement);
 	}
 
 }

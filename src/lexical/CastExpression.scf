@@ -67,16 +67,18 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Type {
-
-	unsigned char type;
+class CastExpression : lexical::Type {
+	data::Type* dataType;
+	lexical::Type* operand;
 	
-	static lexical::Type* create(
-		unsigned char type){
-		lexical::Type* lexicalType =
-			new lexical::Type;
-		lexicalType->type = type;
-		return lexicalType;
+	static lexical::CastExpression* create(
+		data::Type* castType){
+		lexical::CastExpression* castExpression =
+			new lexical::CastExpression;
+		castExpression->type = lexical::Types::cast;
+		castExpression->dataType = castType;
+		castExpression->operand = nullptr;
+		return castExpression;
 	}
 
 }
