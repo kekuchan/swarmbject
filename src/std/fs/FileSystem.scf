@@ -1,0 +1,944 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class FileSystem {
+	
+	std::js::Object database;
+	std::fs::Operation* queueStart;
+	std::fs::Operation* queueEnd;
+	unsigned int cursorId;
+	unsigned int substringStart;
+	unsigned int substringEnd;
+	unsigned int newEntryId;
+	unsigned int moveIntoFolderId;
+	unsigned int toDelete;
+	bool create;
+	unsigned int error;
+	
+	/* Public data members */
+	std::fs::GUI gui;
+
+	FileSystem(){
+		queueStart = nullptr;
+		queueEnd = nullptr;
+		cursorId = 1;
+		substringStart = 0;
+		substringEnd = 0;
+		toDelete = 0;
+		/* Placeholder operation, to make sure that no other operation
+			can start until the database is opened. */
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = openDB;
+		pushTofileSystemQueue(operation);
+	}
+
+	static void openDB(std::fs::FileSystem* fileSystem,
+		void* transaction){
+		constwrite
+			"	var openDBRequest = "
+					"window.indexedDB.open('FileSystem', 1);\n"
+			"	openDBRequest.onerror = ";
+					constwrite openDBOnError;
+					constwrite ";\n"
+			"	openDBRequest.onsuccess = ";
+					constwrite openDBOnSuccess;
+					constwrite ";\n"
+			"	openDBRequest.onupgradeneeded = ";
+					constwrite openDBOnUpgrade;
+					constwrite ";\n";
+	}
+
+	static void openDBOnError(void* e){
+		constwrite "\talert('openDBOnError');\n";
+	}
+
+	static void openDBOnSuccess(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "\tapp = _appObject;\n";
+		std::js::Object* database = &app.fileSystem.database;
+		if (database->isNull()){
+			void* databaseObject;
+			constwrite "\t\tdatabaseObject = e.target.result;\n";
+			database->setJsObject(databaseObject);
+			app.fileSystem.popFromfileSystemQueue();
+		}
+	}
+
+	static void openDBOnUpgrade(void* e){
+		void* databaseObject;
+		constwrite
+			"	databaseObject = e.target.result;\n"
+			"	var entries = databaseObject.createObjectStore(\n"
+			"		'entries', { autoIncrement : true });\n"
+				/* Create root folder. */
+			"	entries.add(new ArrayBuffer(8));\n"
+			"	var transaction = e.target.transaction;\n"
+			"	transaction.oncomplete = ";
+		constwrite std::fs::FileSystem::onObjectStoreCreated;
+		constwrite ";\n";
+		std::ApplicationInstance aexcl app;
+		constwrite "\tapp = _appObject;\n";
+		app.fileSystem.database.setJsObject(databaseObject);
+	}
+
+	static void onObjectStoreCreated(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "\tapp = _appObject;\n";
+		app.fileSystem.popFromfileSystemQueue();
+	}
+
+	/* Deletes the front operation,
+		and executes the next if there is. */
+	void popFromfileSystemQueue(){
+		std::fs::Operation* front = queueStart;
+		std::SLList::popFront(
+			(void**)&queueStart,
+			(void**)&queueEnd,
+			std::fs::Operation::getList);
+		delete front;
+		cursorId = 1;
+		substringStart = 0;
+		substringEnd = 0;
+		front = queueStart;
+		if (front != nullptr){
+			void* transaction;
+			constwrite "		transaction = null;\n";
+			front->callStart(this, transaction);
+		}
+	}
+
+	/* Insert the operation and executes it if
+		there are no other pending operations. */
+	void pushTofileSystemQueue(std::fs::Operation* back){
+		std::SLList::pushBack((void*)back,
+			(void**)&queueStart,
+			(void**)&queueEnd,
+			std::fs::Operation::getList);
+		
+		if (queueStart == back){
+			void* transaction;
+			constwrite "		transaction = null;\n";
+			back->callStart(this, transaction);
+		}
+	}
+
+	static bool isFolderPath(
+		unsigned char[] path, unsigned int len){
+		return len > 0 && path[len - 1] == '/';
+	}
+
+	/* Gets the next folder or file name from the path until the
+		0 character is reached. */
+	void setFileSystemSubstring(){
+		unsigned char[] data = queueStart->path.data;
+		unsigned int start = substringEnd;
+		/* Skip leading '/' characters */
+		while (data[start] == '/'){
+			start = start + 1;
+		}
+		unsigned int end = start;
+		while (data[end] != 0){
+			if (data[end] == '/'){
+				substringStart = start;
+				substringEnd = end;
+				return;
+			}
+			end = end + 1;
+		}
+		substringStart = start;
+		substringEnd = end;
+	}
+	
+	static void callbackOpenFolder(std::fs::Folder* folder){
+		std::ApplicationInstance aexcl app;
+		constwrite "\t\tapp = _appObject;\n";
+		std::fs::FileSystem* fileSystem = &app.fileSystem;
+		std::fs::Operation* front = fileSystem->queueStart;
+		void(std::ApplicationInstance, std::fs::Folder*) call =
+			(void(std::ApplicationInstance, std::fs::Folder*))
+			(front->callback);
+		if (call != nullptr){		
+			if (folder != nullptr){
+				folder->path.move(&front->path);
+			}
+			call(app, folder);
+		}
+		fileSystem->popFromfileSystemQueue();
+	}
+
+	static void doOpenFolder(std::fs::FileSystem* fileSystem,
+		void* transaction){
+		std::fs::Operation* front = fileSystem->queueStart;
+		bool start;
+		constwrite "	start = (transaction === null);\n";
+		if (start){
+			transaction = fileSystem->createTransaction(
+				front->mode != std::fs::OpenFileModes::readBinary);
+		} else if (fileSystem->error > 0){
+			return callbackOpenFolder(nullptr);
+		}
+		fileSystem->setFileSystemSubstring();
+		if (front->path.length == fileSystem->substringEnd){
+			if (front->callback != nullptr){
+				getEntry(transaction,
+					fileSystem->cursorId, callOpenFolder);
+			} else {
+				fileSystem->popFromfileSystemQueue();
+			}
+		} else {
+			getEntry(transaction,
+				fileSystem->cursorId, onOpenFolder);
+		}
+	}
+
+	void* createTransaction(bool readwrite){
+		void* databaseObject = database.getJsObject();
+		create = readwrite;
+		error = 0;
+		constwrite
+			"	return databaseObject.transaction(\n"
+			"		'entries', readwrite ? 'readwrite' : 'readonly');\n";
+	}
+	
+	static void getEntry(void* transaction,
+		unsigned int id, void(void*) callback){
+		constwrite
+			"	transaction.objectStore('entries').get(id).\n"
+			"		onsuccess = _getFunctionById(callback);\n";
+	}
+
+	static void callOpenFolder(void* e){
+		std::fs::Folder folder;
+		void* content;
+		constwrite "		content = new DataView(e.target.result);\n";
+		folder.set(content);
+		callbackOpenFolder(&folder);
+	}
+
+	static void onOpenFolder(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::FileSystem* fileSystem = &app.fileSystem;
+		std::fs::Operation* front = fileSystem->queueStart;
+		unsigned char[] data = front->path.data;
+		void* content;
+		constwrite "	content = new DataView(e.target.result);\n";
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		unsigned int offset = std::fs::Folder::getEntryOffset(
+			content, data, fileSystem->substringStart,
+			fileSystem->substringEnd - fileSystem->substringStart);
+		if (offset != 0){
+			if (std::fs::Folder::getEntryType(content, offset) ==
+				std::fs::EntryTypes::folder){
+				fileSystem->cursorId = std::fs::Folder::getEntryId(
+					content, offset);
+			} else {fileSystem->error = 1;}
+			front->callStart(fileSystem, transaction);
+		} else if (fileSystem->create){
+			constwrite
+				"		transaction.objectStore('entries')\n"
+				"			.add(new ArrayBuffer(8)).onsuccess =\n"
+				"				";
+			constwrite addEntryOnSuccess;
+			constwrite ";\n";
+		} else {
+			fileSystem->error = 1;
+			front->callStart(fileSystem, transaction);
+		}
+	}
+	
+	static void addEntryOnSuccess(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "\tapp = _appObject;\n";
+		std::fs::FileSystem* fileSystem = &app.fileSystem;
+		unsigned int id;
+		constwrite "\tid = e.target.result;\n";
+		fileSystem->newEntryId = id;
+		void* transaction;
+		constwrite "\ttransaction = e.target.transaction;\n";
+		getEntry(transaction, fileSystem->cursorId, insertEntry);
+	}
+	
+	static void insertEntry(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::FileSystem* fileSystem = &app.fileSystem;
+		std::fs::Operation* front = fileSystem->queueStart;
+		unsigned char[] data = front->path.data;
+		void* content;
+		constwrite "	content = new DataView(e.target.result);\n";
+		unsigned int id = fileSystem->newEntryId;
+		unsigned int type;
+		if (front->path.length == fileSystem->substringEnd ||
+			data[fileSystem->substringEnd] != '/'){
+			type = std::fs::EntryTypes::file;
+		} else {
+			type = std::fs::EntryTypes::folder;
+		}
+		content = std::fs::Folder::insertEntry(content,
+			data, fileSystem->substringStart,
+			fileSystem->substringEnd - fileSystem->substringStart,
+			id, type);
+		unsigned int folderId = fileSystem->cursorId;
+		fileSystem->cursorId = id;
+		constwrite
+			"	e.target.transaction.objectStore('entries')\n"
+			"		.put(content.buffer, folderId).onsuccess =\n"
+			"			";
+		constwrite putEntryOnSuccess;
+		constwrite ";\n";
+	}
+
+	static void putEntryOnSuccess(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "\tapp = _appObject;\n";
+		std::fs::FileSystem* fileSystem = &app.fileSystem;
+		void* transaction;
+		constwrite "\ttransaction = e.target.transaction;\n";
+		fileSystem->queueStart->callStart(fileSystem, transaction);
+	}
+
+	static bool isFilePath(unsigned char[] path, unsigned int len){
+		return len != 0 && path[len - 1] != '/';
+	}
+	
+	void callbackOpenFile(std::fs::Operation* front){
+		void(std::ApplicationInstance, std::fs::File*) call =
+			(void(std::ApplicationInstance, std::fs::File*))
+			(front->callback);
+		if (call != nullptr){
+			std::ApplicationInstance aexcl app;
+			constwrite "\t\tapp = _appObject;\n";
+			if (error == 0){
+				std::fs::File file;
+				file.path.move(&front->path);
+				file.fileObject.move(&front->fileObject);
+				file.mode = front->mode;
+				call(app, &file);
+			} else {
+				call(app, nullptr);
+			}
+		}
+		popFromfileSystemQueue();
+	}
+
+	static void doOpenFile(std::fs::FileSystem* fileSystem,
+		void* transaction){
+		std::fs::Operation* front = fileSystem->queueStart;
+		bool start;
+		constwrite "	start = (transaction === null);\n";
+		if (start){
+			bool create;
+			switch (front->mode){
+				case std::fs::OpenFileModes::readBinary:
+				case std::fs::OpenFileModes::readUpdateBinary:
+					create = false;
+					break;
+				default:
+					create = true;
+					break;
+			}
+			transaction = fileSystem->createTransaction(
+				create);
+		} else if (fileSystem->error > 0){
+			return fileSystem->callbackOpenFile(front);
+		}
+		if (front->path.length == fileSystem->substringEnd){
+			fileSystem->callbackOpenFile(front);
+		} else {
+			fileSystem->setFileSystemSubstring();
+			if (front->path.length == fileSystem->substringEnd){
+				getEntry(transaction,
+					fileSystem->cursorId, onOpenFileFolder);
+			} else {
+				getEntry(transaction,
+					fileSystem->cursorId, onOpenFolder);
+			}
+		}
+	}
+
+	static void onOpenFileFolder(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::FileSystem* fileSystem = &app.fileSystem;
+		std::fs::Operation* front = fileSystem->queueStart;
+		unsigned char[] data = front->path.data;
+		void* content;
+		constwrite "	content = new DataView(e.target.result);\n";
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		unsigned int offset = std::fs::Folder::getEntryOffset(
+			content, data, fileSystem->substringStart,
+			fileSystem->substringEnd - fileSystem->substringStart);
+		if (offset != 0){
+			if (std::fs::Folder::getEntryType(content, offset) ==
+				std::fs::EntryTypes::file){
+				unsigned int id = std::fs::Folder::getEntryId(
+					content, offset);
+				if (front->fileObject.isNull()){
+					if (front->callback != nullptr &&
+						front->mode !=
+							std::fs::OpenFileModes::writeBinary &&
+						front->mode !=
+							std::fs::OpenFileModes::writeUpdateBinary){
+						fileSystem->cursorId = id;
+						getEntry(transaction, id, onOpenFile);
+					} else {
+						front->callStart(fileSystem, transaction);
+					}
+				} else {
+					void* storedFile = front->fileObject.getJsObject();
+					constwrite
+						"				transaction.objectStore('entries')\n"
+						"					.put(storedFile.buffer, id).onsuccess =\n"
+						"						";
+					constwrite putEntryOnSuccess;
+					constwrite ";\n";
+				}
+			} else {
+				fileSystem->error = 1;
+				front->callStart(fileSystem, transaction);
+			}
+		} else if (fileSystem->create){
+			void* storedFile;
+			if (front->fileObject.isNull()){
+				constwrite
+					"			storedFile = new Uint8Array(new ArrayBuffer(0));\n";
+			} else {
+				storedFile = front->fileObject.getJsObject();
+			}
+			constwrite
+				"		transaction.objectStore('entries')\n"
+				"			.add(storedFile.buffer).onsuccess =\n"
+				"				";
+			constwrite addEntryOnSuccess;
+			constwrite ";\n";
+		} else {
+			fileSystem->error = 1;
+			front->callStart(fileSystem, transaction);
+		}
+	}
+	
+	static void onOpenFile(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::FileSystem* fileSystem = &app.fileSystem;
+		std::fs::Operation* front = fileSystem->queueStart;
+		void* content;
+		constwrite "	content = new Uint8Array(e.target.result);\n";
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		front->fileObject.setJsObject(content);
+		front->callStart(fileSystem, transaction);
+	}
+
+	void saveFile(std::fs::File* file,
+		void(std::ApplicationInstance, std::String*) callback){
+		unsigned int len = file->path.length;
+		unsigned char[] path = file->path.data;
+		if (!isFilePath(path, len)) {return;}
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = doSaveFile;
+		operation->path.setSubstring(path, 0, len);
+		operation->callback = (void())callback;
+		operation->fileObject.copyFromObject(&file->fileObject);
+		pushTofileSystemQueue(operation);
+	}
+	
+	void callbackPath(std::fs::Operation* front){
+		void(std::ApplicationInstance, std::String*) call =
+			(void(std::ApplicationInstance, std::String*))
+			(front->callback);
+		if (call != nullptr){
+			std::ApplicationInstance aexcl app;
+			constwrite "\t\tapp = _appObject;\n";
+			call(app, &front->path);
+		}
+		popFromfileSystemQueue();
+	}
+
+	static void doSaveFile(std::fs::FileSystem* fileSystem,
+		void* transaction){
+		std::fs::Operation* front = fileSystem->queueStart;
+		bool start;
+		constwrite "	start = (transaction === null);\n";
+		if (start){
+			transaction = fileSystem->createTransaction(true);
+		} else if (fileSystem->error > 0){
+			return fileSystem->callbackPath(front);
+		}
+		unsigned int id = fileSystem->cursorId;
+		if (front->path.length == fileSystem->substringEnd){
+			fileSystem->callbackPath(front);
+		} else {
+			fileSystem->setFileSystemSubstring();
+			if (front->path.length == fileSystem->substringEnd){
+				getEntry(transaction,
+					fileSystem->cursorId, onOpenFileFolder);
+			} else {
+				getEntry(transaction,
+					fileSystem->cursorId, onOpenFolder);
+			}
+		}
+	}
+
+	bool isSubPath(unsigned char[] src, unsigned char[] dst){
+		unsigned char srcChar = src[0];
+		unsigned char dstChar = dst[0];
+		unsigned int i = 0;
+		while (srcChar == dstChar){
+			if (srcChar == 0) {return true;}
+			i = i + 1;
+			srcChar = src[i];
+			dstChar = dst[i];
+		}
+		return (srcChar == 0 || dstChar == 0);
+	}
+
+	void callbackMove(std::fs::Operation* front,
+		unsigned int end, unsigned int len){
+		void(std::ApplicationInstance,
+			unsigned char[], unsigned int) call =
+			(void(std::ApplicationInstance, unsigned char[],
+				unsigned int))(front->callback);
+		if (call != nullptr){
+			std::String *path = &front->path;
+			std::ApplicationInstance aexcl app;
+			constwrite "		app = _appObject;\n";
+			unsigned char[] data = front->path.data;
+			call(app, data, end);
+		}
+		popFromfileSystemQueue();
+	}
+
+	static void doMove(std::fs::FileSystem* fileSystem,
+		void* transaction){
+		std::fs::Operation* front = fileSystem->queueStart;
+		std::String* path = &front->path;
+		unsigned int len = path->length;
+		unsigned char endOffset;
+		if (isFolderPath(path->data, len)) {endOffset = 1;}
+		else {endOffset = 0;}
+		unsigned int end = fileSystem->substringEnd + endOffset;
+		bool start;
+		constwrite "	start = (transaction === null);\n";
+		if (start){
+			transaction = fileSystem->createTransaction(true);
+		} else if (fileSystem->error > 0){
+			return fileSystem->callbackMove(front, end, len);
+		}
+		if (len == end){
+			fileSystem->setMoveDst(path);
+			getEntry(transaction,
+				fileSystem->moveIntoFolderId, insertEntry);
+		} else if (path->data[end] == 0){
+			fileSystem->callbackMove(front, end, len);
+		} else {
+			fileSystem->setFileSystemSubstring();
+			end = fileSystem->substringEnd + endOffset;
+			if (end != len){
+				unsigned char pathChar = path->data[end];
+				if (pathChar == 0){
+					fileSystem->moveIntoFolderId = fileSystem->cursorId;
+					fileSystem->cursorId = 1;
+					fileSystem->substringStart = end + 1;
+					fileSystem->substringEnd = end + 1;
+					fileSystem->setFileSystemSubstring();
+					end = fileSystem->substringEnd + endOffset;
+				}
+				if (end != len){
+					getEntry(transaction,
+						fileSystem->cursorId, onOpenFolder);
+					return;
+				}
+			}
+			getEntry(transaction,
+				fileSystem->cursorId, onMoveSrc);
+		}
+	}
+
+	void setMoveDst(std::String* path){
+		substringEnd = std::Memory::indexOfUcharReverse(
+			0, path->data, 0, substringEnd) - 1;
+		if (isFolderPath(path->data, path->length)){
+			substringEnd = substringEnd - 1;
+		}
+		substringStart = std::Memory::indexOfUcharReverse(
+			'/', path->data, 0, substringEnd);
+		cursorId = moveIntoFolderId;
+	}
+
+	static void onMoveSrc(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::FileSystem* fileSystem = &app.fileSystem;
+		std::fs::Operation* front = fileSystem->queueStart;
+		std::String* path = &front->path;
+		void* content;
+		constwrite "	content = new DataView(e.target.result);\n";
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		unsigned int len = fileSystem->substringEnd -
+			fileSystem->substringStart;
+		unsigned int offset = std::fs::Folder::getEntryOffset(
+			content, path->data, fileSystem->substringStart, len);
+		bool isFolder = isFolderPath(path->data, path->length);
+		if (offset != 0){
+			unsigned char entryType =
+				std::fs::Folder::getEntryType(content, offset);
+			if ((isFolder && entryType ==
+					std::fs::EntryTypes::folder)
+				|| (!isFolder && entryType ==
+					std::fs::EntryTypes::file)){
+				unsigned int id = fileSystem->cursorId;
+				fileSystem->newEntryId = std::fs::Folder::getEntryId(
+					content, offset);
+				void* newContent = std::fs::Folder::deleteEntry(
+					content, offset, len);
+				constwrite
+					"			transaction.objectStore('entries')\n"
+					"				.put(newContent.buffer, id).onsuccess =\n"
+					"					";
+				constwrite putEntryOnSuccess;
+				constwrite ";\n";
+			} else {
+				fileSystem->error = 1;
+				front->callStart(fileSystem, transaction);
+			}
+		} else {
+			fileSystem->setMoveDst(path);
+			unsigned int contentSize;
+			if (isFolder){
+				contentSize = 8;
+			} else {contentSize = 0;}
+			constwrite
+				"		transaction.objectStore('entries')\n"
+				"			.add(new ArrayBuffer(contentSize)).onsuccess =\n"
+				"				";
+			constwrite addEntryOnSuccess;
+			constwrite ";\n";
+		}
+	}
+
+	static void doDeleteFile(std::fs::FileSystem* fileSystem,
+		void* transaction){
+		std::fs::Operation* front = fileSystem->queueStart;
+		bool start;
+		constwrite "	start = (transaction === null);\n";
+		if (start){
+			transaction = fileSystem->createTransaction(true);
+		} else if (fileSystem->error > 0){
+			return fileSystem->callbackPath(front);
+		}
+		unsigned int id = fileSystem->cursorId;
+		fileSystem->setFileSystemSubstring();
+		if (front->path.length == fileSystem->substringEnd){
+			getEntry(transaction, id, onDeleteFileFolder);
+		} else {
+			getEntry(transaction, id, onOpenFolder);
+		}
+	}
+
+	static void onDeleteFileFolder(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::FileSystem* fileSystem = &app.fileSystem;
+		std::fs::Operation* front = fileSystem->queueStart;
+		std::String* path = &front->path;
+		void* content;
+		constwrite "	content = new DataView(e.target.result);\n";
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		unsigned int len = fileSystem->substringEnd -
+			fileSystem->substringStart;
+		unsigned int offset = std::fs::Folder::getEntryOffset(
+			content, path->data, fileSystem->substringStart, len);
+		if (offset != 0){
+			bool isFolder = isFolderPath(path->data, path->length);
+			unsigned char entryType =
+				std::fs::Folder::getEntryType(content, offset);
+			if ((isFolder && entryType ==
+					std::fs::EntryTypes::folder)
+				|| (!isFolder && entryType ==
+					std::fs::EntryTypes::file)){
+				unsigned int entryId = std::fs::Folder::getEntryId(
+					content, offset);
+				unsigned int id = fileSystem->cursorId;
+				void* newContent = std::fs::Folder::deleteEntry(
+					content, offset, len);
+				constwrite
+					"			transaction.objectStore('entries')\n"
+					"				.put(newContent.buffer, id);\n";
+				if (isFolder){
+					/* Works, since requests on the transaction are
+						processed in order by the specification. */
+					getEntry(transaction, entryId, onOpenDeleteFolder);
+				}
+				constwrite
+					"			transaction.objectStore('entries')\n"
+					"				.delete(entryId);\n"
+					"			transaction.oncomplete = ";
+				constwrite onDeleted;
+				constwrite ";\n";
+			} else {
+				fileSystem->error = 1;
+				front->callStart(fileSystem, transaction);
+			}
+		} else {
+			void* e;
+			constwrite "		e = null;\n";
+			onDeleted(e);
+		}
+	}
+
+	static void onDeleted(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "\tapp = _appObject;\n";
+		std::fs::FileSystem* fileSystem = &app.fileSystem;
+		fileSystem->callbackPath(fileSystem->queueStart);
+	}
+
+	static void doDeleteFolder(std::fs::FileSystem* fileSystem,
+		void* transaction){
+		std::fs::Operation* front = fileSystem->queueStart;
+		bool start;
+		constwrite "	start = (transaction === null);\n";
+		if (start){
+			transaction = fileSystem->createTransaction(true);
+		} else if (fileSystem->error > 0){
+			return fileSystem->callbackPath(front);
+		}
+		fileSystem->setFileSystemSubstring();
+		unsigned int id = fileSystem->cursorId;
+		if (front->path.length ==
+			fileSystem->substringEnd + 1){
+			getEntry(transaction, id, onDeleteFileFolder);
+		} else {
+			getEntry(transaction, id, onOpenFolder);
+		}
+	}
+
+	static void onOpenDeleteFolder(void* e){
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		void* content;
+		constwrite "	content = new DataView(e.target.result);\n";
+		unsigned int j;
+		constwrite
+			"	j = content.getUint32(0) * 4;\n";
+		unsigned int i = 4;
+		while (i <= j){
+			unsigned int offset;
+			constwrite
+				"		offset = content.getUint32(i);\n";
+			unsigned int id =
+				std::fs::Folder::getEntryId(content, offset);
+			unsigned int type =
+				std::fs::Folder::getEntryType(content, offset);
+			if (type == std::fs::EntryTypes::folder){
+				getEntry(transaction, id, onOpenDeleteFolder);
+			}
+			constwrite
+				"		transaction.objectStore('entries')\n"
+				"			.delete(id);\n";
+			i = i + 4;
+		}
+	}
+	
+	static void onOpenCursor(void* e){
+		bool cursor;
+		constwrite "cursor = e.target.result;";
+		if (cursor){
+			constwrite
+				"alert(cursor.primaryKey);\n"
+				"cursor.continue();\n";
+			return;
+		}
+		constwrite "alert('-');\n";
+	}
+	
+	static void doDebugList(std::fs::FileSystem* fileSystem,
+		void* transaction){
+		transaction = fileSystem->createTransaction(false);
+		constwrite
+			"	transaction.objectStore('entries')\n"
+			"		.openCursor().onsuccess = ";
+		constwrite onOpenCursor;
+		constwrite ";\n";
+	}
+	
+	void debugList(){
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = doDebugList;
+		pushTofileSystemQueue(operation);
+	}
+
+	/* Public member functions */
+
+	unsigned char openFolder(unsigned char[] path,
+		void(std::ApplicationInstance, std::fs::Folder*) callback,
+		bool write){
+		unsigned int len = std::CString::length(path, 0);
+		if (!isFolderPath(path, len)) {return 1;}
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = doOpenFolder;
+		operation->path.setSubstring(path, 0, len);
+		operation->callback = (void())callback;
+		if (write){
+			operation->mode =
+				std::fs::OpenFileModes::writeBinary;
+		} else {
+			operation->mode =
+				std::fs::OpenFileModes::readBinary;
+		}
+		pushTofileSystemQueue(operation);
+		return 0;
+	}
+	
+	unsigned char openFile(unsigned char[] path,
+		void(std::ApplicationInstance, std::fs::File*) callback,
+		unsigned char mode){
+		if (mode > std::fs::
+			OpenFileModes::appendUpdateBinary) {return 1;}
+		unsigned int len = std::CString::length(path, 0);
+		if (!isFilePath(path, len)) {return 1;}
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = doOpenFile;
+		operation->path.setSubstring(path, 0, len);
+		operation->callback = (void())callback;
+		operation->mode = mode;
+		pushTofileSystemQueue(operation);
+		return 0;
+	}
+
+	unsigned char moveFolder(unsigned char[] src, unsigned char[] dst,
+		void(std::ApplicationInstance, unsigned char[],
+		unsigned int) callback){
+		unsigned int srcLen = std::CString::length(src, 0);
+		unsigned int dstLen = std::CString::length(dst, 0);
+		if (!isFolderPath(src, srcLen) ||
+			!isFolderPath(dst, dstLen) ||
+			isSubPath(src, dst)) {return 1;}
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = doMove;
+		/* Pack both path to the same string,
+			separated with the 0 character. */
+		operation->path.setLength(dstLen + 1 + srcLen);
+		operation->path.replace(dst, 0, dstLen + 1, 0);
+		operation->path.replace(src, 0, srcLen, dstLen + 1);
+		operation->callback = (void())callback;
+		pushTofileSystemQueue(operation);
+		return 0;
+	}
+
+	unsigned char moveFile(unsigned char[] src, unsigned char[] dst,
+		void(std::ApplicationInstance, unsigned char[],
+			unsigned int) callback){
+		unsigned int srcLen = std::CString::length(src, 0);
+		unsigned int dstLen = std::CString::length(dst, 0);
+		if (!isFilePath(src, srcLen) ||
+			!isFilePath(dst, dstLen)) {return 1;}
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = doMove;
+		/* Pack both path to the same string,
+			separated with the 0 character. */
+		operation->path.setLength(dstLen + 1 + srcLen);
+		operation->path.replace(dst, 0, dstLen + 1, 0);
+		operation->path.replace(src, 0, srcLen, dstLen + 1);
+		operation->callback = (void())callback;
+		pushTofileSystemQueue(operation);
+		return 0;
+	}
+
+	unsigned char deleteFile(unsigned char[] path,
+		void(std::ApplicationInstance, std::String*) callback){
+		unsigned int len = std::CString::length(path, 0);
+		if (!isFilePath(path, len)){return 1;}
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = doDeleteFile;
+		operation->path.setSubstring(path, 0, len);
+		operation->callback = (void())callback;
+		pushTofileSystemQueue(operation);
+		return 0;
+	}
+
+	unsigned char deleteFolder(unsigned char[] path,
+		void(std::ApplicationInstance, std::String*) callback){
+		unsigned int len = std::CString::length(path, 0);
+		if (!isFolderPath(path, len) || len == 1) {return 1;}
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = doDeleteFolder;
+		operation->path.setSubstring(path, 0, len);
+		operation->callback = (void())callback;
+		pushTofileSystemQueue(operation);
+		return 0;
+	}
+
+}

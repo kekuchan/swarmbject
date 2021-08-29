@@ -1,0 +1,308 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Folder {
+
+	std::String path;
+	std::js::Object folderObject;
+	unsigned int iterator;
+
+	unsigned char constexpr idOffset = 0;
+	unsigned char constexpr typeOffset = 4;
+	unsigned char constexpr nameOffset = typeOffset + 1;
+
+	Folder(){
+		iterator = 0;
+	}
+	
+	void set(void* content){
+		folderObject.setJsObject(content);
+		start();
+	}
+	
+	static void debugContent(void* content){
+		constwrite
+			"	var entries = content.getUint32(0);\n"
+			"	var string = 'Entries: ' + entries;\n"
+			"	for (var i = 4; i <= (entries * 4); i += 4){\n"
+			"		var offset = content.getUint32(i);\n"
+			"		string += '\\nOffset: ' + offset +\n"
+			"			' id: ' + content.getUint32(offset) + ' ' +\n"
+			"			' type: ' + content.getUint8(offset + ";
+								constwrite typeOffset;
+							constwrite ") + ' ';\n"
+			"		offset += ";
+						constwrite nameOffset;
+						constwrite ";\n"
+			"		while (true){\n"
+			"			var nameChar = content.getUint8(offset);\n"
+			"			if (nameChar === 0) break;\n"
+			"			string += String.fromCharCode(nameChar);\n"
+			"			++offset;\n"
+			"		}\n"
+			"	}\n"
+			"	alert(string);\n";
+	}
+	
+	static unsigned int getEntryId(void* folderContent,
+		unsigned int offset){
+		unsigned int id;
+		constwrite
+			"	id = folderContent.getUint32(offset + ";
+					constwrite idOffset;
+					constwrite ");\n";
+		return id;
+	}
+	
+	static unsigned char getEntryType(void* folderContent,
+		unsigned int offset){
+		unsigned char type;
+		constwrite
+			"	type = folderContent.getUint8(offset + ";
+					constwrite typeOffset;
+					constwrite ");\n";
+		return type;
+	}
+
+	static unsigned int getEntryOffset(
+		void* folderContent, unsigned char[] string,
+		unsigned int start, unsigned int len){
+		unsigned int entries;
+		constwrite "	entries = folderContent.getUint32(0);\n";
+		unsigned int i = 4;
+		unsigned int offset;
+		unsigned char nameChar;
+		unsigned int j = entries * 4;
+		while (i <= j){
+			constwrite "		offset = folderContent.getUint32(i);\n";
+			int cmp = std::Memory::compareJsSubView(
+				folderContent, offset + nameOffset,
+				string, start, len);
+			if (cmp < 0){
+				i = i + 4;
+				continue;
+			} else if (cmp == 0){
+				constwrite "			nameChar = "
+					"folderContent.getUint8(offset + ";
+						constwrite nameOffset;
+						constwrite " + len);\n";
+				if (nameChar == 0) {return offset;}
+			}
+			break;
+		}
+		return 0;
+	}
+
+	static void* insertEntry(
+		void* folderContent, unsigned char[] string,
+		unsigned int start, unsigned int len,
+		unsigned int id, unsigned char type){
+		unsigned int entries;
+		constwrite "	entries = folderContent.getUint32(0);\n";
+		unsigned int i = 4;
+		unsigned int offset;
+		unsigned char nameChar;
+		unsigned int j = entries * 4;
+		while (i <= j){
+			constwrite "		offset = folderContent.getUint32(i);\n";
+			int cmp = std::Memory::compareJsSubView(
+				folderContent, offset + nameOffset,
+				string, start, len);
+			if (cmp >= 0) {break;}
+			i = i + 4;
+		}
+		unsigned int contentLen;
+		constwrite "	contentLen = folderContent.byteLength;\n";
+		void* newContent;
+		constwrite
+			"	newContent = new DataView(new ArrayBuffer(\n"
+			"		contentLen + 4 + ";
+					constwrite nameOffset;
+					constwrite " + len + 1));\n"
+			"	newContent.setUint32(0, entries + 1);\n"
+			"	newContent.setUint32(i, contentLen + 4);\n"
+			"	newContent.setUint32(contentLen + 4 +";
+					constwrite idOffset;
+					constwrite ", id);\n"
+			"	newContent.setUint8(contentLen + 4 +";
+					constwrite typeOffset;
+					constwrite ", type);\n";
+		while (j >= i){
+			constwrite
+				"		newContent.setUint32(j + 4,\n"
+				"			folderContent.getUint32(j) + 4);\n";
+			j = j - 4;
+		}
+		while (j >= 4){
+			constwrite
+				"		newContent.setUint32(j,\n"
+				"			folderContent.getUint32(j) + 4);\n";
+			j = j - 4;
+		}
+		i = entries * 4 + 4;
+		std::js::DataView::copyViews(
+			folderContent, newContent, i, i + 4, contentLen - i);
+		std::Memory::setJsView(string, start, newContent,
+			contentLen + 4 + nameOffset, len);
+		return newContent;
+	}
+
+	static void* deleteEntry(void* folderContent,
+		unsigned int offset, unsigned int len){
+		unsigned int entries;
+		constwrite "	entries = folderContent.getUint32(0);\n";
+		unsigned int contentLen;
+		constwrite "	contentLen = folderContent.byteLength;\n";
+		void* newContent;
+		constwrite
+			"	newContent = new DataView(new ArrayBuffer(\n"
+			"		contentLen - 4 - ";
+					constwrite nameOffset;
+					constwrite " - len - 1));\n"
+			"	newContent.setUint32(0, entries - 1);\n";
+		unsigned int deletedOffset = offset;
+		unsigned int deleteOffset = 4;
+		unsigned int j = entries * 4;
+		while (j >= 4){
+			constwrite
+				"		offset = folderContent.getUint32(j);\n";
+			if (offset > deletedOffset){
+				constwrite
+					"		newContent.setUint32(j - deleteOffset,\n"
+					"			offset - 4 - ";
+								constwrite nameOffset;
+								constwrite " - len - 1);\n";
+			} else if (offset < deletedOffset){
+				constwrite
+					"		newContent.setUint32(j - deleteOffset,\n"
+					"			offset - 4);\n";
+			} else {
+				deleteOffset = 0;
+			}
+			j = j - 4;
+		}
+		unsigned int i = entries * 4 + 4;
+		std::js::DataView::copyViews(folderContent, newContent,
+			i, i - 4, deletedOffset - i);
+		offset = deletedOffset + nameOffset + len + 1;
+		std::js::DataView::copyViews(folderContent, newContent,
+			offset, deletedOffset - 4, contentLen - offset);
+		return newContent;
+	}
+	
+	/* Public member functions */
+	
+	unsigned int entries(){
+		void* content = folderObject.getJsObject();
+		unsigned int len;
+		constwrite "	len = content.getUint32(0);";
+		return len;
+	}
+	
+	void next(){
+		unsigned int i = iterator + 4;
+		if (i > 4){
+			unsigned int len = entries() * 4;
+			if (i <= len) {iterator = i;}
+			else {iterator = 0;}
+		}
+	}
+	
+	void start(){
+		if (entries() != 0) {iterator = 4;}
+	}
+	
+	unsigned char getType(){
+		unsigned int i = iterator;
+		if (i == 0){
+			return std::fs::EntryTypes::none;
+		}
+		void* content = folderObject.getJsObject();
+		unsigned int offset;
+		constwrite "	offset = content.getUint32(i);";
+		return getEntryType(content, offset);
+	}
+	
+	void getName(std::DString* name){
+		unsigned int i = iterator;
+		if (i == 0) {return;}
+		void* content = folderObject.getJsObject();
+		unsigned int offset = nameOffset;
+		constwrite "	offset += content.getUint32(i);";
+		unsigned int j = offset;
+		while (true){
+			unsigned char nameChar;
+			constwrite "		nameChar = content.getUint8(j);";
+			if (nameChar == 0) {break;}
+			j = j + 1;
+		}
+		name->addJsSubview(content, offset, j - offset);
+	}
+
+}

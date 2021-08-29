@@ -1,0 +1,1004 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class GUI {
+
+	std::dom::Node browseContainer;
+	std::DString path;
+	unsigned char bools;
+	std::js::Object loadedFile;
+	unsigned int folderCursor;
+	std::DBuffer folderContent;
+	void(std::ApplicationInstance, std::DString*) call;
+	bool fileSelection;
+
+	unsigned char constexpr operationPending = 1;
+	unsigned char constexpr menuChanged = operationPending << 1;
+	unsigned char constexpr pathChanged = menuChanged << 1;
+
+	GUI(){
+		std::ApplicationInstance aexcl app;
+		constwrite "		app = _appObject;\n";
+		std::bom::Window appWindow;
+		app.getWindow(&appWindow);
+		std::dom::Node document;
+		appWindow.getDocumentNode(&document);
+		std::html::DivElement::create(
+			&document, &browseContainer);
+		std::css::Declaration style;
+		std::html::Element::getStyle(
+			&browseContainer, &style);
+		std::css::Keyword keyword;
+		std::css::Short len;
+		style.setTextAlign(keyword.set(
+			std::css::TextAlignTypes::center));
+		style.setFontSize(len.set(
+			30, std::css::Units::px));
+		std::dom::Node element;
+		std::dom::Node textNode;
+		addRow(&document, &element, &textNode, "Cancel", 6);
+		path.addChar('/');
+		addRow(&document, &element,
+			&textNode, path.data, path.length);
+		std::html::Element::getStyle(
+			&element, &style);
+		style.setBorderBottomWidth(len.set(
+			2, std::css::Units::px));
+		style.setBorderBottomStyle(keyword.set(
+			std::css::BorderStyles::solid));
+	}
+
+	void cancel(){
+		std::dom::Node element;
+		browseContainer.getParentNode(&element);
+		element.removeChild(&browseContainer);
+	}
+
+	static void onClickCancel(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			gui->cancel();
+			gui->call(app, nullptr);
+		}
+	}
+
+	static void list(std::ApplicationInstance aexcl app,
+		std::fs::Folder* folder){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if (folder == nullptr){
+			return gui->cancelPath(app);
+		}
+		std::DString name;
+		std::bom::Window appWindow;
+		app.getWindow(&appWindow);
+		std::dom::Node document;
+		appWindow.getDocumentNode(&document);
+	
+		std::dom::Node element;
+		std::dom::Node textNode;
+	
+		gui->browseContainer.getFirstChild(&element);
+		if ((gui->bools & menuChanged) != 0){
+			element.setOnClick(onClickCancel);
+			element.getNextSibling(&element);
+			element.setOnClick(onClickFolderPath);
+			gui->removeRows(&element);
+			if ((gui->bools & pathChanged) != 0){
+				element.getFirstChild(&element);
+				std::dom::CharacterData::setData(
+					&element, gui->path.data, 0, gui->path.length);
+			}
+			gui->addRow(&document, &element, &textNode, "..", 2);
+			element.setOnClick(onClickBrowseBack);
+		} else {
+			element.getNextSibling(&element);
+			if ((gui->bools & pathChanged) != 0){
+				element.getFirstChild(&element);
+				std::dom::CharacterData::setData(
+					&element, gui->path.data, 0, gui->path.length);
+				element.getParentNode(&element);
+			}
+			element.getNextSibling(&element);
+			gui->removeRows(&element);
+		}
+		
+		bool folders = true;
+		while (true){
+			switch (folder->getType()){
+				case std::fs::EntryTypes::folder:
+					if (!folders){
+						folder->next();
+						continue;
+					}
+					break;
+				case std::fs::EntryTypes::file:
+					if (folders){
+						folder->next();
+						continue;
+					}
+					break;
+				default:
+					if (folders){
+						folders = false;
+						folder->start();
+						continue;
+					} else {
+						gui->bools = 0;
+						return;
+					}
+			}
+			name.clear();
+			folder->getName(&name);
+			if (folders) {name.addChar('/');}
+			gui->addRow(&document, &element,
+				&textNode, name.data, name.length);
+			element.setOnClick(onClickBrowseNode);
+			folder->next();
+		}
+	}
+
+	void removeRows(std::dom::Node* start){
+		std::dom::Node node;
+		start->getNextSibling(&node);
+		while (!node.isNull()){
+			browseContainer.removeChild(&node);
+			start->getNextSibling(&node);
+		}
+	}
+
+	void addRow(std::dom::Node* document,
+		std::dom::Node* element,
+		std::dom::Node* textNode,
+		unsigned char[] text,
+		unsigned int len){
+		std::html::DivElement::create(
+			document, element);
+		std::dom::Text::create(
+			document, textNode, text, 0, len);
+		element->appendChild(textNode);
+		std::css::Declaration style;
+		std::html::Element::getStyle(
+			element, &style);
+		std::css::Keyword keyword;
+		std::css::Short len;
+		style.setMarginLeft(keyword.set(
+			std::css::MarginTypes::auto));
+		style.setMarginRight(&keyword);
+		style.setMarginTop(len.set(
+			0, std::css::Units::px));
+		style.setMarginBottom(&len);
+		style.setBorderBottomWidth(len.set(
+			1, std::css::Units::px));
+		style.setBorderBottomStyle(keyword.set(
+			std::css::BorderStyles::solid));
+		browseContainer.appendChild(element);
+	}
+
+	static void onClickFolderPath(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			std::dom::Node element;
+			gui->browseContainer.getFirstChild(&element);
+			element.getNextSibling(&element);
+			element.setOnClick(onClickCancelFolder);
+			gui->removeRows(&element);
+
+			std::bom::Window appWindow;
+			app.getWindow(&appWindow);
+			std::dom::Node document;
+			appWindow.getDocumentNode(&document);
+			std::dom::Node textNode;
+			
+			if (!gui->fileSelection){
+				gui->addRow(&document, &element, &textNode, "Select", 6);
+				element.setOnClick(onClickSelect);
+			}
+			gui->addRow(&document, &element, &textNode, "New folder", 10);
+			element.setOnClick(onClickNewFolder);
+			gui->addRow(&document, &element, &textNode, "New file", 8);
+			element.setOnClick(onClickNewFile);
+			gui->addRow(&document, &element, &textNode, "Upload file", 11);
+			element.setOnClick(onClickUploadFile);
+			if (gui->path.length > 1){
+				gui->addRow(&document, &element, &textNode, "Delete", 6);
+				element.setOnClick(onClickDelete);
+				gui->addRow(&document, &element, &textNode, "Move", 4);
+				element.setOnClick(onClickMove);
+			}
+			gui->addRow(&document, &element, &textNode, "Download", 8);
+			element.setOnClick(onClickDownloadFolder);
+			gui->addRow(&document, &element, &textNode, "Upload", 6);
+			element.setOnClick(onClickUploadFolder);
+		}
+	}
+	
+	static void onClickDownloadFolder(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		onClickDownload(app, true);
+	}
+
+	static void onClickCancelFolder(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			gui->bools = operationPending | menuChanged;
+			app.fileSystem.openFolder(gui->path.data,
+				list, false);
+		}
+	}
+
+	static void onClickNewFolder(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			std::dom::Node element;
+			gui->browseContainer.getFirstChild(&element);
+			element.getNextSibling(&element);
+			gui->removeRows(&element);
+
+			std::bom::Window appWindow;
+			app.getWindow(&appWindow);
+			std::dom::Node document;
+			appWindow.getDocumentNode(&document);
+			std::dom::Node node;
+
+			gui->addRow(&document, &element, &node, "Name: ", 6);
+			std::html::InputElement::create(
+				&document, &node);
+			element.appendChild(&node);
+			gui->addRow(&document, &element, &node, "Create", 6);
+			element.setOnClick(onClickCreateFolder);
+		}
+	}
+
+	static void onClickCreateFolder(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			std::dom::Node element;
+			e->getTarget(&element);
+			element.getPreviousSibling(&element);
+			element.getLastChild(&element);
+			std::html::InputElement::getValue(
+				&element, &gui->path);
+			gui->path.addChar('/');
+			gui->bools = operationPending;
+			app.fileSystem.openFolder(gui->path.data,
+				onFolderCreated, true);
+		}
+	}
+	
+	static void onFolderCreated(std::ApplicationInstance aexcl app,
+		std::fs::Folder* folder){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if (folder == nullptr){
+			return gui->cancelPath(app);
+		}
+		gui->bools = operationPending | menuChanged | pathChanged;
+		app.fileSystem.openFolder(gui->path.data, list, false);
+	}
+
+	static void onClickNewFile(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			std::dom::Node element;
+			gui->browseContainer.getFirstChild(&element);
+			element.getNextSibling(&element);
+			gui->removeRows(&element);
+
+			std::bom::Window appWindow;
+			app.getWindow(&appWindow);
+			std::dom::Node document;
+			appWindow.getDocumentNode(&document);
+			std::dom::Node node;
+
+			gui->addRow(&document, &element, &node, "Name: ", 6);
+			std::html::InputElement::create(
+				&document, &node);
+			element.appendChild(&node);
+			gui->addRow(&document, &element, &node, "Create", 6);
+			element.setOnClick(onClickCreateFile);
+		}
+	}
+
+	static void onClickCreateFile(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			std::dom::Node element;
+			e->getTarget(&element);
+			element.getPreviousSibling(&element);
+			element.getLastChild(&element);
+			std::DString src;
+			src.setDString(&gui->path);
+			std::html::InputElement::getValue(
+				&element, &src);
+			gui->bools = operationPending;
+			app.fileSystem.openFile(src.data, onFileCreated,
+				std::fs::OpenFileModes::writeBinary);
+		}
+	}
+	
+	static void onFileCreated(std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		gui->bools = operationPending | menuChanged;
+		app.fileSystem.openFolder(gui->path.data, list, false);
+	}
+
+	static void onClickBrowseBack(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			std::DString* path = &gui->path;
+			unsigned int len = path->length;
+			if (len > 1){
+				backtrackPath(path);
+				gui->bools = operationPending | pathChanged;
+				app.fileSystem.openFolder(path->data, list, false);
+			}
+		}
+	}
+
+	static void onClickBrowseNode(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			std::dom::Node node;
+			e->getTarget(&node);
+			node.getFirstChild(&node);
+			std::DString* path = &gui->path;
+			std::dom::CharacterData::getData(
+				&node, path);
+			unsigned int len = path->length;
+			if (path->data[len - 1] == '/'){
+				gui->bools = operationPending | pathChanged;
+				app.fileSystem.openFolder(path->data, list, false);
+			} else {
+				gui->browseContainer.getFirstChild(&node);
+				node.getNextSibling(&node);
+				node.setOnClick(onClickCancelFile);
+				gui->removeRows(&node);
+				node.getFirstChild(&node);
+				std::dom::CharacterData::setData(
+					&node, gui->path.data, 0, gui->path.length);
+
+				std::bom::Window appWindow;
+				app.getWindow(&appWindow);
+				std::dom::Node document;
+				appWindow.getDocumentNode(&document);
+				std::dom::Node textNode;
+
+				if (gui->fileSelection){
+					gui->addRow(&document, &node, &textNode, "Select", 6);
+					node.setOnClick(onClickSelect);
+				}
+				gui->addRow(&document, &node, &textNode, "Move", 4);
+				node.setOnClick(onClickMove);
+				gui->addRow(&document, &node, &textNode, "Download", 8);
+				node.setOnClick(onClickDownloadFile);
+				gui->addRow(&document, &node, &textNode, "Delete", 6);
+				node.setOnClick(onClickDelete);
+			}
+		}
+	}
+
+	static void onClickDelete(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			std::dom::Node element;
+			gui->browseContainer.getFirstChild(&element);
+			element.getNextSibling(&element);
+			gui->removeRows(&element);
+
+			std::bom::Window appWindow;
+			app.getWindow(&appWindow);
+			std::dom::Node document;
+			appWindow.getDocumentNode(&document);
+			std::dom::Node node;
+
+			unsigned char[] string;
+			if (gui->path.data[gui->path.length - 1] == '/'){
+				string = "Delete folder?";
+			} else {
+				string = "Delete file?";
+			}
+			gui->addRow(&document, &element, &node, string,
+				std::CString::length(string, 0));
+			gui->addRow(&document, &element, &node, "Yes", 3);
+			element.setOnClick(onClickYesDelete);
+		}
+	}
+	
+	static void onClickYesDelete(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			gui->bools = operationPending;
+			if (gui->path.data[gui->path.length - 1] == '/'){
+				app.fileSystem.deleteFolder(
+					gui->path.data, onDeleted);
+			} else {
+				app.fileSystem.deleteFile(
+					gui->path.data, onDeleted);
+			}
+		}
+	}
+	
+	static void onDeleted(std::ApplicationInstance aexcl app,
+		std::String* path){
+		app.fileSystem.gui.cancelPath(app);
+	}
+	
+	static void onMoved(std::ApplicationInstance aexcl app,
+		unsigned char[] src, unsigned int dst){
+		app.fileSystem.gui.cancelPath(app);
+	}
+	
+	void cancelPath(std::ApplicationInstance aexcl app){
+		backtrackPath(&path);
+		bools = operationPending | menuChanged | pathChanged;
+		app.fileSystem.openFolder(path.data, list, false);
+	}
+
+	static void onClickMove(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			std::dom::Node element;
+			gui->browseContainer.getFirstChild(&element);
+			element.getNextSibling(&element);
+			gui->removeRows(&element);
+
+			std::bom::Window appWindow;
+			app.getWindow(&appWindow);
+			std::dom::Node document;
+			appWindow.getDocumentNode(&document);
+			std::dom::Node node;
+
+			gui->addRow(&document, &element, &node, "Path: ", 6);
+			std::html::InputElement::create(
+				&document, &node);
+			std::html::InputElement::setValue(
+				&node, gui->path.data, 0, gui->path.length);
+			element.appendChild(&node);
+			gui->addRow(&document, &element, &node, "Move", 4);
+			element.setOnClick(onClickDoMove);
+		}
+	}
+	
+	static void onClickDoMove(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			std::dom::Node element;
+			e->getTarget(&element);
+			element.getPreviousSibling(&element);
+			element.getLastChild(&element);
+			std::DString src;
+			std::html::InputElement::getValue(
+				&element, &src);
+			gui->bools = operationPending;
+			if (gui->path.data[gui->path.length - 1] == '/'){
+				app.fileSystem.moveFolder(gui->path.data,
+					src.data, onMoved);
+			} else {
+				app.fileSystem.moveFile(gui->path.data,
+					src.data, onMoved);
+			}
+			gui->path.setDString(&src);
+			
+		}
+	}
+	
+	static void onClickCancelFile(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			gui->cancelPath(app);
+		}
+	}
+
+	static void onClickDownloadFile(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		onClickDownload(app, false);
+	}
+		
+	static void onClickDownload(
+		std::ApplicationInstance aexcl app, bool isFolder){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			std::dom::Node element;
+			gui->browseContainer.getFirstChild(&element);
+			element.setOnClick(onClickCancelDownload);
+			element.getNextSibling(&element);
+			element.setOnClick(onClickCancelDownload);
+			gui->removeRows(&element);
+			std::bom::Window appWindow;
+			app.getWindow(&appWindow);
+			std::dom::Node document;
+			appWindow.getDocumentNode(&document);
+			std::dom::Node node;
+			std::html::AElement::create(
+				&document, &element);
+			std::dom::Text::create(
+				&document, &node, "Download", 0, 8);
+			element.appendChild(&node);
+			std::css::Declaration style;
+			std::html::Element::getStyle(
+				&element, &style);
+			std::css::Keyword keyword;
+			std::css::Short len;
+			style.setDisplay(keyword.set(
+				std::css::DisplayTypes::block));
+			style.setMarginLeft(keyword.set(
+				std::css::MarginTypes::auto));
+			style.setMarginRight(&keyword);
+			style.setMarginTop(len.set(
+				0, std::css::Units::px));
+			style.setMarginBottom(&len);
+			style.setBorderBottomWidth(len.set(
+				1, std::css::Units::px));
+			style.setBorderBottomStyle(keyword.set(
+				std::css::BorderStyles::solid));
+			gui->bools = operationPending;
+			std::DString* path = &gui->path;
+			unsigned char[] data = path->data;
+			unsigned int length = path->length;
+			unsigned int start;
+			if (isFolder){
+				/* File format version. */
+				gui->folderContent.addU8(0);
+				if (length > 1){
+					start = std::Memory::indexOfUcharReverse(
+						'/', data, 0, length - 1);
+					path->trim(length - 1);
+					path->addSubstring(".saf", 0, 4);
+					std::html::AElement::setDownload(&element,
+						path->data, start, length - start + 3);
+					path->trim(length - 1);
+					path->addChar('/');
+					data = path->data;
+					gui->folderContent.addU8s(
+						data, start, length - start);
+				} else {
+					std::html::AElement::setDownload(
+						&element, "folder.saf", 0, 10);
+				}
+				gui->folderCursor = length;
+				app.fileSystem.openFolder(data,
+					onDownloadFolderOpened, false);
+			} else {
+				start = std::Memory::indexOfUcharReverse(
+					'/', data, 0, length - 1);
+				std::html::AElement::setDownload(&element,
+					data, start, length - start);
+				app.fileSystem.openFile(data,
+					onDownloadFileOpened,
+					std::fs::OpenFileModes::readBinary);
+			}
+			gui->browseContainer.appendChild(&element);
+		}
+	}
+
+	static void onDownloadFolderOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::Folder* folder){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if (folder == nullptr){
+			return gui->cancelPath(app);
+		}
+		std::DString* path = &gui->path;
+		std::String* folderPath = &folder->path;
+		unsigned char type;
+		std::DString name;
+		unsigned int len = path->length;
+		if (len > folderPath->length){
+			unsigned int nameStart = 
+				std::Memory::indexOfUcharReverse(
+					'/', path->data, 0, len - 1);
+			while (true){
+				type = folder->getType();
+				if (type == std::fs::EntryTypes::none) {break;}
+				name.clear();
+				folder->getName(&name);
+				folder->next();
+				if (std::CString::compare(name.data, 0,
+					path->data, nameStart) == 0) {break;}
+			}
+			path->erase(nameStart, len - nameStart);
+			len = path->length;
+		}
+		type = folder->getType();
+		if (type == std::fs::EntryTypes::none){
+			if (len == gui->folderCursor){
+				if (gui->folderCursor > 1){
+					gui->folderContent.addU8(0);
+				}
+				/* A placeholder character for cancelPath(). */
+				path->addChar('/');
+				gui->setDownloadLink(gui->folderContent.getJsBlob());
+				gui->folderContent.clear();
+			} else {
+				gui->folderContent.addU8(0);
+				path->data[len - 1] = 0;
+				unsigned int start =
+					std::Memory::indexOfUcharReverse(
+						'/', path->data, 0, len - 1);
+				unsigned int pathChar = path->data[start];
+				path->data[start] = 0;
+				app.fileSystem.openFolder(path->data,
+					onDownloadFolderOpened, false);
+				path->data[start] = pathChar;
+			}
+		} else {
+			folder->getName(path);
+			unsigned int nameLength = path->length - len + 1;
+			if (type == std::fs::EntryTypes::folder){
+				path->addChar('/');
+			}
+			gui->folderContent.addU8s(
+				path->data, len, nameLength);
+			if (type == std::fs::EntryTypes::folder){
+				app.fileSystem.openFolder(path->data,
+					onDownloadFolderOpened, false);
+			} else {
+				app.fileSystem.openFile(path->data,
+					onDownloadFolderFile,
+					std::fs::OpenFileModes::readBinary);
+			}
+		}
+	}
+
+	static void onDownloadFolderFile(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		unsigned int fileSize = file->getSize();
+		gui->folderContent.addU32LE(fileSize);
+		unsigned int bufferSize = gui->folderContent.size;
+		gui->folderContent.addSize(fileSize, true, true);
+		file->read(gui->folderContent.data, bufferSize, fileSize);
+		std::DString* path = &gui->path;
+		unsigned int start =
+			std::Memory::indexOfUcharReverse(
+				'/', path->data, 0, path->length - 1);
+		unsigned int pathChar = path->data[start];
+		path->data[start] = 0;
+		app.fileSystem.openFolder(path->data,
+			onDownloadFolderOpened, false);
+		path->data[start] = pathChar;
+	}
+	
+	static void onDownloadFileOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		app.fileSystem.gui.setDownloadLink(file->getJsBlob());
+	}
+	
+	void setDownloadLink(void* blobObject){
+		void* linkObject =
+			browseContainer.jsObject.getJsObject();
+		constwrite
+			"	linkObject = linkObject.lastChild;\n"
+			"	linkObject.href = URL.createObjectURL(blobObject);\n";
+		bools = 0;
+	}
+	
+	static void onClickCancelDownload(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & operationPending) == 0){
+			void* linkObject =
+				gui->browseContainer.jsObject.getJsObject();
+			constwrite "\t\twindow.URL.revokeObjectURL("
+				"linkObject.lastChild.href);\n";
+			gui->cancelPath(app);
+		}
+	}
+
+	static void onClickUploadFile(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		app.fileSystem.gui.onClickUpload(app, false);
+	}
+	
+	static void onClickUploadFolder(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		app.fileSystem.gui.onClickUpload(app, true);
+	}
+		
+	void onClickUpload(
+		std::ApplicationInstance aexcl app, bool isFolder){
+		if ((bools & operationPending) == 0){
+			std::dom::Node element;
+			browseContainer.getFirstChild(&element);
+			element.getNextSibling(&element);
+			removeRows(&element);
+
+			std::bom::Window appWindow;
+			app.getWindow(&appWindow);
+			std::dom::Node document;
+			appWindow.getDocumentNode(&document);
+			std::dom::Node node;
+
+			addRow(&document, &element, &node, "Upload: ", 8);
+			std::html::InputElement::create(
+				&document, &node);
+			std::html::InputElement::setType(
+				&node, std::html::InputTypes::file);
+			if (isFolder){
+				node.setOnChange(onChangeFolderUpload);
+			} else {
+				node.setOnChange(onChangeFileUpload);
+			}
+			element.appendChild(&node);
+		}
+	}
+	
+	static void onChangeFileUpload(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		app.fileSystem.gui.onChangeUpload(e, false);
+	}
+	
+	static void onChangeFolderUpload(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		app.fileSystem.gui.onChangeUpload(e, true);
+	}
+	
+	void onChangeUpload(
+		std::dom::Event* e, bool isFolder){
+		if ((bools & operationPending) == 0){
+			std::dom::Node element;
+			e->getTarget(&element);
+			void* inputObject = element.jsObject.getJsObject();
+			constwrite
+				"			var file = inputObject.files[0];\n"
+				"			if (file){\n"
+				"				var fileReader = new FileReader();\n";
+			if (isFolder){
+				constwrite
+					"					fileReader.onload = ";
+				constwrite onLoadFolderUpload;
+				constwrite ";\n";
+			} else {
+				constwrite
+					"					fileReader.onload = ";
+				constwrite onLoadFileUpload;
+				constwrite ";\n";
+			}
+			bools = operationPending;
+			constwrite
+				"				fileReader.readAsArrayBuffer(file);\n"
+				"			}\n";
+		}
+	}
+
+	static void onLoadFileUpload(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		void* contentObject;
+		constwrite "	contentObject = new Uint8Array(e.target.result);\n";
+		gui->loadedFile.setJsObject(contentObject);
+		std::DString* path = &gui->path;
+		unsigned int start = path->length;
+		void* jsObject = gui->browseContainer.jsObject.getJsObject();
+		void* nameObject;
+		constwrite "	nameObject =\n"
+			"\tjsObject.lastChild.lastChild.files[0].name;\n";
+		path->addJsStr(nameObject);
+		app.fileSystem.openFile(path->data, onOpenUploadFile,
+			std::fs::OpenFileModes::writeBinary);
+		path->erase(start, path->length - start);
+	}
+
+	static void onOpenUploadFile(std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		void* jsObject = gui->loadedFile.getJsObject();
+		file->setContent(jsObject);
+		void* contentObject;
+		constwrite "\tcontentObject = null;\n";
+		gui->loadedFile.setJsObject(contentObject);
+		gui->bools = operationPending | menuChanged;
+		app.fileSystem.openFolder(gui->path.data, list, false);
+	}
+	
+	static void onLoadFolderUpload(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		void* contentObject;
+		constwrite "	contentObject = new DataView(e.target.result);\n";
+		gui->loadedFile.setJsObject(contentObject);
+		gui->folderCursor = 1;
+		gui->nextUpload(app);
+	}
+	
+	static void backtrackPath(std::DString* path){
+		unsigned int len = path->length;
+		unsigned int start =
+			std::Memory::indexOfUcharReverse(
+				'/', path->data, 0, len - 1);
+		path->erase(start, len - start);
+	}
+	
+	void nextUpload(std::ApplicationInstance aexcl app){
+		void* jsObject = loadedFile.getJsObject();
+		unsigned int i = folderCursor;
+		unsigned int j = i;
+		unsigned char pathChar;
+		while (true){
+			constwrite "		pathChar = jsObject.getUint8(j);\n";
+			if (pathChar == 0){
+				if (i == j){
+					backtrackPath(&path);
+					i = j + 1;
+					unsigned int fileLength;
+					constwrite "					fileLength = "
+						"jsObject.byteLength;\n";
+					if (i == fileLength){
+						void* contentObject;
+						constwrite "					contentObject = null;\n";
+						loadedFile.setJsObject(contentObject);
+						bools = operationPending | menuChanged;
+						app.fileSystem.openFolder(path.data, list, false);
+						return;
+					}
+				} else {
+					path.addJsSubview(jsObject, i, j - i);
+					app.fileSystem.openFile(path.data,
+						onFolderFileUpload,
+						std::fs::OpenFileModes::writeBinary);
+					break;
+				}
+			} else if (pathChar == '/'){
+				path.addJsSubview(jsObject, i, j - i + 1);
+				unsigned char nextChar;
+				constwrite "			nextChar = "
+					"jsObject.getUint8(j + 1);\n";
+				if (nextChar == 0){
+					app.fileSystem.openFolder(path.data,
+						onFolderUpload, true);
+					break;
+				}
+				i = j + 1;
+			}
+			j = j + 1;
+		}
+		folderCursor = j + 1;
+	}
+
+	static void onFolderFileUpload(std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		void* jsObject = gui->loadedFile.getJsObject();
+		unsigned int i = gui->folderCursor;
+		unsigned int len;
+		constwrite "	len = jsObject.getUint32(i, true);\n";
+		i = i + 4;
+		void* contentObject =
+			std::js::DataView::getUint8SubArray(
+				jsObject, i, len);
+		file->setContent(contentObject);
+		gui->folderCursor = i + len;
+		backtrackPath(&gui->path);
+		gui->nextUpload(app);
+	}
+	
+	static void onFolderUpload(std::ApplicationInstance aexcl app,
+		std::fs::Folder* folder){
+		app.fileSystem.gui.nextUpload(app);
+	}
+	
+	void showGUI(){
+		std::ApplicationInstance aexcl app;
+		constwrite "\tapp = _appObject;\n";
+		std::bom::Window appWindow;
+		app.getWindow(&appWindow);
+		std::dom::Node body;
+		appWindow.getDocumentNode(&body);
+		body.getFirstChild(&body);
+		body.getNextSibling(&body);
+		body.getFirstChild(&body);
+		body.getNextSibling(&body);
+		body.getNextSibling(&body);
+		body.appendChild(&browseContainer);
+		bools = operationPending | menuChanged | pathChanged;
+		unsigned int len = path.length;
+		unsigned int nameStart =
+			std::Memory::indexOfUcharReverse(
+				'/', path.data, 0, len);
+		path.erase(nameStart, len - nameStart);
+		app.fileSystem.openFolder(path.data, list, false);
+	}
+	
+	static void onClickSelect(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		gui->cancel();
+		gui->call(app, &gui->path);
+	}
+
+	/* Public member functions */
+
+	void select(
+		void(std::ApplicationInstance, std::DString*) callback,
+		bool isFile){
+		if (callback == nullptr) {return;}
+		call = callback;
+		fileSelection = isFile;
+		showGUI();
+	}
+
+}
