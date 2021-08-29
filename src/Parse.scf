@@ -1,0 +1,1948 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Parse {
+
+	static void onClickOnDoCompile(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		main->compileError = false;
+		std::dom::Node div;
+		main->compileContainer.getFirstChild(&div);
+		div.setOnClick(nullptr);
+		div.getNextSibling(&div);
+		div.setOnClick(nullptr);
+		div.getNextSibling(&div);
+		div.setOnClick(nullptr);
+		div.getNextSibling(&div);
+		std::dom::Node text;
+		div.getFirstChild(&text);
+		std::html::Element::removeChildren(&div);
+		div.appendChild(&text);
+		div.getNextSibling(&div);
+		div.setOnClick(nullptr);
+
+		if (main->nullptrLiteral == nullptr){
+			main->nullptrLiteral = lexical::Type::create(
+				lexical::Types::nullptrLiteral);
+			main->thisLiteral = lexical::Type::create(
+				lexical::Types::thisLiteral);
+			main->trueLiteral = lexical::Type::create(
+				lexical::Types::trueLiteral);
+			main->falseLiteral = lexical::Type::create(
+				lexical::Types::falseLiteral);
+			main->returnStatement =
+				lexical::UnaryOperator::create(
+					lexical::Types::returnStatement);
+			main->breakStatement = lexical::Type::create(
+				lexical::Types::breakStatement);
+			main->continueStatement = lexical::Type::create(
+				lexical::Types::continueStatement);
+			main->defaultLabel = lexical::Type::create(
+				lexical::Types::defaultLabel);
+			main->deleteStatement =
+				lexical::UnaryOperator::create(
+					lexical::Types::deleteStatement);
+
+			main->voidType = data::Type::create(
+				data::Types::voidT);
+			main->boolType = data::Type::create(
+				data::Types::boolT);
+			main->ucharType = data::Type::create(
+				data::Types::ucharT);
+			main->charType = data::Type::create(
+				data::Types::charT);
+			main->ushortType = data::Type::create(
+				data::Types::ushortT);
+			main->shortType = data::Type::create(
+				data::Types::shortT);
+			main->uintType = data::Type::create(
+				data::Types::uintT);
+			main->intType = data::Type::create(
+				data::Types::intT);
+			main->floatType = data::Type::create(
+				data::Types::floatT);
+			main->doubleType = data::Type::create(
+				data::Types::doubleT);
+
+			std::PtrArray* keywords = &main->keywords;
+			keywords->setSize(KeywordTypes::size);
+			unsigned char[][] data =
+				(unsigned char[][])(keywords->data);
+			data[KeywordTypes::aexclT] = "aexcl";
+			data[KeywordTypes::alockT] = "alock";
+			data[KeywordTypes::aptrT] = "aptr";
+			data[KeywordTypes::asyncT] = "async";
+			data[KeywordTypes::boolT] = "bool";
+			data[KeywordTypes::breakT] = "break";
+			data[KeywordTypes::caseT] = "case";
+			data[KeywordTypes::charT] = "char";
+			data[KeywordTypes::classT] = "class";
+			data[KeywordTypes::constT] = "const";
+			data[KeywordTypes::constexprT] = "constexpr";
+			data[KeywordTypes::constwriteT] = "constwrite";
+			data[KeywordTypes::continueT] = "continue";
+			data[KeywordTypes::defaultT] = "default";
+			data[KeywordTypes::deleteT] = "delete";
+			data[KeywordTypes::doubleT] = "double";
+			data[KeywordTypes::elseT] = "else";
+			data[KeywordTypes::enumT] = "enum";
+			data[KeywordTypes::falseT] = "false";
+			data[KeywordTypes::floatT] = "float";
+			data[KeywordTypes::ifT] = "if";
+			data[KeywordTypes::intT] = "int";
+			data[KeywordTypes::newT] = "new";
+			data[KeywordTypes::nullptrT] = "nullptr";
+			data[KeywordTypes::returnT] = "return";
+			data[KeywordTypes::shortT] = "short";
+			data[KeywordTypes::staticT] = "static";
+			data[KeywordTypes::switchT] = "switch";
+			data[KeywordTypes::thisT] = "this";
+			data[KeywordTypes::trueT] = "true";
+			data[KeywordTypes::unsignedT] = "unsigned";
+			data[KeywordTypes::voidT] = "void";
+			data[KeywordTypes::whileT] = "while";
+		} else {
+			clear(main);
+		}
+
+		std::StringView name;
+		Namespace* rootNs =
+			Namespace::create(&name, nullptr);
+		name.setSubstring("std", 0, 3);
+		Namespace* stdNs =
+			Namespace::create(&name, rootNs);
+		name.setSubstring("ApplicationInstance", 0, 19);
+		data::ClassType* classType =
+			data::ClassType::create(&name, stdNs);
+		stdNs->insertClass(classType);
+		rootNs->insertNamespace(stdNs);
+		main->rootNamespace = rootNs;
+		main->currentParseClass = classType;
+		main->currentParseDataMember = nullptr;
+		main->currentParseFunction = nullptr;
+		main->currentParseParameter = nullptr;
+		main->functionStatementEnd = true;
+		main->functionMaybeCast = false;
+		main->nestedBlocks = 0;
+		main->needAsyncStaticObject = false;
+
+		main->classOrMemberPath.trim(main->rootPath);
+		main->classOrMemberPath.addCString(
+			"src/std/ApplicationInstance.scf");
+		app.fileSystem.openFile(
+			main->classOrMemberPath.data,
+			parseApplicationInstance,
+			std::fs::OpenFileModes::readBinary);
+	}
+	
+	static void parseApplicationInstance(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		Main* main = &app.main;
+		main->savedClassType = main->currentParseClass;
+		continueParseApplicationInstance(app, file);
+	}
+	
+	static bool readAndParseClass(
+		std::ApplicationInstance aexcl app,
+		data::ClassType* classType,
+		std::fs::File* file,
+		void(std::ApplicationInstance,
+			std::fs::File*) onOpenFile){
+		Main* main = &app.main;
+		if (file == nullptr){
+			std::DString error;
+			error.addCString("Class: ");
+			error.addString(&classType->name);
+			error.addCString(" does not exists.");
+			logError(main, 0, &error);
+			return false;
+		}
+		unsigned int len = file->getSize();
+		std::String* code = &classType->code;
+		code->setLength(len);
+		file->read(code->data, 0, len);
+		parseClass(app, classType, onOpenFile);
+		return !main->compileError &&
+			main->currentParseClass !=
+				classType->base;
+	}
+	
+	static void continueParseApplicationInstance(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		Main* main = &app.main;
+		data::ClassType* classType =
+			main->currentParseClass;
+		if (!readAndParseClass(app, classType, file,
+			continueParseApplicationInstance)) {return;}
+		classType = main->savedClassType;
+		if (!classType->isAsync()){
+			logErrorCString(main, 0,
+				"The ApplicationInstance class has "
+				"to be declared as 'async'.");
+			return;
+		}
+		std::StringView name;
+		name.setCString("run");
+		lexical::MemberFunction* runFunction =
+			classType->getFunction(&name);
+		if (runFunction == nullptr){
+			logErrorCString(main, 0,
+				"The ApplicationInstance class has to "
+				"have a 'run' function member.");
+			return;
+		}
+		main->currentParseClass = nullptr;
+		main->currentParseFunction = runFunction;
+		lexical::BlockStatement* block =
+			new lexical::BlockStatement;
+		runFunction->block = block;
+		main->functionsToParse.pushBack(
+			runFunction);
+		if (parseFunctionUntilBlock(app)){
+			ParseBlock::parseExpressionStacks(app);
+		}
+	}
+	
+	static void parseClass(
+		std::ApplicationInstance aexcl app,
+		data::ClassType* classType,
+		void(std::ApplicationInstance,
+			std::fs::File*) onOpenFile){
+		Main* main = &app.main;
+		std::DString info;
+		info.addSubstring("Parsing class: ", 0, 15);
+		info.addString(&classType->name);
+		logInfoDString(main, &info, 1);
+		unsigned int compileCursor =
+			parseClassKeywords(main, classType, 0);
+		if (main->compileError) {return;}
+		compileCursor = Lexical::getNextToken(main,
+			classType, compileCursor);
+		if (main->tokenType != TokenTypes::identifier){
+			logErrorCString(main, compileCursor,
+				"The class name can not be a keyword, "
+				"and has to start with an english letter.");
+			return;
+		}
+		if (main->token.compareString(
+			&classType->name) != 0){
+			info.setCString("The class name '");
+			info.addString(&classType->name);
+			info.addCString("' was given "
+				"that is different than the file name.");
+			logError(main, compileCursor, &info);
+			return;
+		}
+		compileCursor = Lexical::getNextToken(main,
+			classType, compileCursor);
+		bool parseBase = false;
+		if (main->tokenType == TokenTypes::colon){
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+			data::ClassType* base = getClassDataType(
+				main, classType, compileCursor);
+			if (base == nullptr) {return;}
+			compileCursor = main->compileCursor;
+			classType->base = base;
+			if (main->currentParseClass == base){
+				parseBase = true;
+				main->currentParseClass = classType;
+				compileCursor = Lexical::getNextToken(main,
+					classType, compileCursor);
+			} else {
+				while (base != nullptr){
+					if (base == classType){
+						logErrorCString(main, compileCursor,
+							"Circular dependency.");
+						return;
+					}
+					base = base->base;
+				}
+			}
+		}
+
+		if (main->tokenType != TokenTypes::leftBrace){
+			logErrorCString(main, compileCursor,
+				"The block start '{' "
+				"character was not given after the class name.");
+			return;
+		}
+		if (classType->isEnum()){
+			if (classType->base != nullptr){
+				logErrorCString(main, compileCursor,
+					"Enum class can not have a base class.");
+				return;
+			}
+			compileCursor = parseEnum(main, classType,
+				compileCursor);
+		} else {
+			compileCursor = parseClassMembers(main, classType,
+				compileCursor);
+		}
+	
+		if (main->compileError) {return;}
+
+		compileCursor = Lexical::getNextToken(main,
+			classType, compileCursor);
+		if (main->tokenType != TokenTypes::empty){
+			logErrorCString(main, compileCursor,
+				"There can only be whitespace "
+				"or comment after the end of the class block.");
+			return;
+		}
+
+		if (parseBase){
+			main->currentParseClass = classType->base;
+			main->classOrMemberPath.trim(main->rootPath);
+			classType->base->getPath(
+				&main->classOrMemberPath);
+			app.fileSystem.openFile(
+				main->classOrMemberPath.data, onOpenFile,
+				std::fs::OpenFileModes::readBinary);
+			return;
+		}
+	}
+
+	static unsigned int parseEnum(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		compileCursor = Lexical::getNextToken(main,
+			classType, compileCursor);
+		if (main->tokenType ==
+			TokenTypes::rightBrace) {return compileCursor;}
+		unsigned int i = 0;
+		lexical::DataMember* dataMember;
+		while (true){
+			if (!checkMemberName(main, &main->token,
+				main->tokenType, classType, compileCursor)){
+				break;
+			}
+			dataMember = lexical::DataMember::create(
+				compileCursor, &main->token, classType);
+			dataMember->dataType =
+				main->uintType->getOrSetSpecifiers(
+					data::SpecifierTypes::isConstexpr);
+			dataMember->value =
+				Lexical::getIntegerLiteral(main, i);
+			i = i + 1;
+			classType->insertDataMember(dataMember);
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+			if (main->tokenType == TokenTypes::comma){
+				compileCursor = Lexical::getNextToken(main,
+					classType, compileCursor);
+				continue;
+			}
+			if (main->tokenType != TokenTypes::rightBrace){
+				logErrorCString(main, compileCursor,
+					"The enum block had no '}' character "
+					"at its end.");
+			}
+			break;
+		}
+		return compileCursor;
+	}
+		
+	static unsigned int ignoreWhitespaceAndComment(
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned char[] data = classType->code.data;
+		unsigned int len = classType->code.length;
+		unsigned char character;
+		while (compileCursor < len){
+			switch (data[compileCursor]){
+				case ' ':
+				case '\n':
+				case '\r':
+				case '\t':
+					compileCursor = compileCursor + 1;
+					continue;
+				case '/':
+					if (compileCursor + 1 < len){
+						switch (data[compileCursor + 1]){
+							case '/':
+								compileCursor =
+									ignoreSingleLineComment(
+										classType, compileCursor + 2);
+								continue;
+							case '*':
+								compileCursor =
+									ignoreMultiLineComment(
+										classType, compileCursor + 2);
+								continue;
+						}
+					}
+			}
+			break;
+		}
+		return compileCursor;
+	}
+
+	static unsigned int ignoreSingleLineComment(
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned char[] data = classType->code.data;
+		unsigned int len = classType->code.length;
+		unsigned char character;
+		while (compileCursor < len){
+			character = data[compileCursor];
+			compileCursor = compileCursor + 1;
+			switch (character){
+				case '\n':
+					break;
+				default:
+					continue;
+			}
+			break;
+		}
+		return compileCursor;
+	}
+
+	static unsigned int ignoreMultiLineComment(
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned char[] data = classType->code.data;
+		unsigned int len = classType->code.length;
+		unsigned char character;
+		while (compileCursor < len){
+			character = data[compileCursor];
+			switch (character){
+				case '*':
+					if (compileCursor + 1 < len &&
+						data[compileCursor + 1] == '/'){
+						compileCursor = compileCursor + 2;
+						break;
+					}
+					compileCursor = compileCursor + 1;
+					continue;
+				default:
+					compileCursor = compileCursor + 1;
+					continue;
+			}
+			break;
+		}
+		return compileCursor;
+	}
+	
+	static unsigned int parseClassKeywords(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		while (true){
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+			switch(main->tokenType){
+				case TokenTypes::asyncKeyword:
+					if (classType->isAsync()){
+						logErrorCString(main, compileCursor,
+							"The async keyword was already given.");
+						break;
+					}
+					classType->setAsync();
+					classType->setNeedNew();
+					continue;
+				case TokenTypes::classKeyword:
+					break;
+				case TokenTypes::enumKeyword:
+					if (classType->specifiers != 0){
+						logErrorCString(main, compileCursor,
+							"The enum keyword can not be used "
+								"with other specifiers.");
+						break;
+					}
+					classType->setEnum();
+					break;
+				default:
+					logErrorCString(main, compileCursor,
+						"The class keyword was not given.");
+					break;
+			}
+			break;
+		}
+		return compileCursor;
+	}
+
+	static void logErrorCString(Main* main,
+		unsigned int compileCursor,
+		unsigned char[] errorMessage){
+		std::DString info;
+		info.addCString(errorMessage);
+		logError(main, compileCursor, &info);
+	}
+
+	static void logError(Main* main,
+		unsigned int compileCursor,
+		std::DString* errorMessage){
+		data::ClassType* classType =
+			main->currentParseClass;
+		if (classType != nullptr){
+			if (classType->code.length != 0){
+				errorMessage->insertSubstring(": ", 0, 2, 0);
+			} else {
+				classType = nullptr;
+			}
+		} else {
+			std::String* name = nullptr;
+			lexical::DataMember* dataMember =
+				main->currentParseDataMember;
+			if (dataMember != nullptr){
+				name = &dataMember->name;
+				classType = dataMember->parentClass;
+			} else {
+				lexical::MemberFunction* memberFunction =
+					main->currentParseFunction;
+				if (memberFunction == nullptr){
+					memberFunction = ParseBlock::getFunctionToParse(main);
+				}
+				if (memberFunction != nullptr){
+					name = &memberFunction->name;
+					classType = memberFunction->parentClass;
+				}
+			}
+			if (name != nullptr){
+				errorMessage->insertSubstring(" ", 0, 1, 0);
+				unsigned int len = name->length;
+				errorMessage->insertSubstring(
+					name->data, 0, len, 1);
+				errorMessage->insertSubstring(
+					": ", 0, 2, 1 + len);
+			}
+		}
+		if (classType != nullptr){
+			unsigned int start;
+			if (compileCursor > 20){
+				start = compileCursor - 20;
+			} else {start = 0;}
+			std::DString info;
+			info.setCString("Error near ...");
+			info.addSubstring(classType->code.data, start,
+				compileCursor - start);
+			logInfoDString(main, &info, 1);
+			info.clear();
+			classType->getPath(&info);
+			errorMessage->insertSubstring(
+				info.data, 0, info.length, 0);
+		}
+		main->compileError = true;
+		logInfoDString(main, errorMessage, 1);
+		scrollLog(main);
+	}
+
+	static void logInfoCString(Main* main,
+		unsigned char[] infoMessage,
+		unsigned char type){
+		logInfo(main, infoMessage,
+			std::CString::length(infoMessage, 0), type);
+	}
+
+	static void logInfoDString(Main* main,
+		std::DString* infoMessage,
+		unsigned char type){
+		logInfo(main, infoMessage->data,
+			infoMessage->length, type);
+	}
+	
+	static void logInfo(Main* main,
+		unsigned char[] infoMessage, unsigned int len,
+		unsigned char type){
+		if (type == 0) {return;}
+		std::dom::Node logContainer;
+		main->compileContainer.getLastChild(
+			&logContainer);
+		logContainer.getPreviousSibling(&logContainer);
+		std::dom::Node node;
+		std::html::BrElement::create(
+			&main->document, &node);
+		logContainer.appendChild(&node);
+		std::dom::Text::create(&main->document,
+			&node, infoMessage, 0, len);
+		logContainer.appendChild(&node);
+	}
+
+	static unsigned int parseClassMembers(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned char[] data = classType->code.data;
+		unsigned int len = classType->code.length;
+		while (compileCursor < len){
+			compileCursor = ignoreWhitespaceAndComment(
+				classType, compileCursor);
+			if (compileCursor >= len){
+				break;
+			} else if (data[compileCursor] == '}'){
+				return compileCursor + 1;
+			} else {
+				compileCursor = parseClassMember(
+					main, classType, compileCursor);
+				if (main->compileError) {return compileCursor;}
+			}
+		}
+		logErrorCString(main, compileCursor,
+			"The class block had no '}' "
+			"character at its end.");
+		return compileCursor;
+	}
+	
+	static bool checkMemberName(Main* main,
+		std::StringView* name, unsigned int type,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		if (type != TokenTypes::identifier){
+			logErrorCString(main, compileCursor,
+				"A member name has to be given that can not "
+				"be a keyword, and has to start with an english letter.");
+			return false;
+		}
+		if (classType->getDataMember(name) != nullptr ||
+			classType->getFunction(name) != nullptr){
+			std::DString error;
+			error.setCString("The '");
+			error.addStringView(name);
+			error.addCString("' member was "
+				"already declared as a class member.");
+			logError(main, compileCursor, &error);
+			return false;
+		}
+		return true;
+	}
+	
+	static unsigned int parseClassMember(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned int savedCursor = compileCursor;
+		compileCursor = Lexical::getNextToken(main,
+			classType, compileCursor);
+		bool destructor = false;
+		if (main->tokenType == TokenTypes::bitwiseComplement){
+			destructor = true;
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+		}
+	
+		std::StringView previousToken;
+		previousToken.setStringView(&main->token);
+		unsigned int previousTokenType = main->tokenType;
+		
+		if (main->tokenType == TokenTypes::identifier){
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+			if (previousToken.compareString(
+				&classType->name) == 0 &&
+				main->tokenType != TokenTypes::asterisk){
+				if (!destructor){
+					previousToken.setCString("_constructor");
+					classType->setNeedCallConstructors();
+				} else {
+					previousToken.setCString("_destructor");
+					classType->setNeedCallDestructors();
+				}
+				if (classType->getFunction(
+					&previousToken) != nullptr){
+					std::DString error;
+					error.addCString("A ");
+					error.addSubstring(previousToken.data, 1,
+						previousToken.length - 1);
+					error.addCString(" was already given.");
+					logError(main, compileCursor, &error);
+					return compileCursor;
+				}
+				if (main->tokenType != TokenTypes::leftParenthesis){
+					std::DString error;
+					error.addCString("'(' has to be after the ");
+					error.addSubstring(previousToken.data, 1,
+						previousToken.length - 1);
+					error.addCString(" name.");
+					logError(main, compileCursor, &error);
+					return compileCursor;
+				}
+				compileCursor = Lexical::getNextToken(main,
+					classType, compileCursor);
+				if (main->tokenType != TokenTypes::rightParenthesis){
+					std::DString error;
+					error.addCString("The ");
+					error.addSubstring(previousToken.data, 1,
+						previousToken.length - 1);
+					error.addCString(" parameter list has to be empty.");
+					logError(main, compileCursor, &error);
+					return compileCursor;
+				}
+				compileCursor = Lexical::getNextToken(main,
+					classType, compileCursor);
+				if (main->tokenType != TokenTypes::leftBrace){
+					std::DString error;
+					error.addCString("The block start '{' character was "
+						"not given after the ");
+					error.addSubstring(previousToken.data, 1,
+						previousToken.length - 1);
+					error.addCString(" parameter list.");
+					logError(main, compileCursor, &error);
+					return compileCursor;
+				}
+				lexical::MemberFunction* memberFunction =
+					lexical::MemberFunction::create(
+						compileCursor, &previousToken, classType);
+				memberFunction->dataType = main->voidType;
+				lexical::BlockStatement* block =
+					new lexical::BlockStatement;
+				memberFunction->block = block;
+				classType->insertFunction(memberFunction);
+				main->functionsToParse.pushBack(
+					memberFunction);
+				return ignoreBlock(main, classType, compileCursor);
+			} else if (destructor){
+				logErrorCString(main, compileCursor,
+					"The destructor's name has to be the "
+					"same as the class' name.");
+				return compileCursor;
+			}
+		} else if (destructor){
+			logErrorCString(main,
+				compileCursor, "Destructor name not given.");
+			return compileCursor;
+		}
+	
+		while (true){
+			switch (main->tokenType){
+				case TokenTypes::error:
+					return compileCursor;
+				case TokenTypes::empty:
+					logErrorCString(main, compileCursor,
+						"The member declararion is not finished.");
+					return compileCursor;
+				case TokenTypes::semicolon:
+				case TokenTypes::assignment:
+					break;
+				case TokenTypes::leftParenthesis:
+					compileCursor = ignoreParameters(
+						main, classType, compileCursor);
+					if (main->compileError) {return compileCursor;}
+					compileCursor = Lexical::getNextToken(main,
+						classType, compileCursor);
+					if (main->tokenType ==
+						TokenTypes::leftBrace) {break;}
+					while (main->tokenType ==
+						TokenTypes::leftParenthesis){
+						compileCursor = ignoreParameters(
+							main, classType, compileCursor);
+						if (main->compileError) {return compileCursor;}
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+					}
+					if (main->tokenType == TokenTypes::identifier){
+						previousToken.setStringView(&main->token);
+						previousTokenType = main->tokenType;
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (main->tokenType == TokenTypes::leftParenthesis){
+							compileCursor = ignoreParameters(
+								main, classType, compileCursor);
+							if (main->compileError) {return compileCursor;}
+							compileCursor = Lexical::getNextToken(main,
+								classType, compileCursor);
+						}
+						break;
+					} else {
+						logErrorCString(main,
+							compileCursor, "Invalid class member.");
+						return compileCursor;
+					}
+				case TokenTypes::stringLiteral:
+					compileCursor = ignoreStringLiteral(main, classType,
+						compileCursor);
+					break;
+				case TokenTypes::characterLiteral:
+					compileCursor = ignoreCharacterLiteral(main, classType,
+						compileCursor);
+					break;
+				case TokenTypes::numberLiteral:
+					compileCursor = ignoreNumberLiteral(main, classType,
+						compileCursor);
+					break;
+				default:
+					previousToken.setStringView(&main->token);
+					previousTokenType = main->tokenType;
+					compileCursor = Lexical::getNextToken(main,
+						classType, compileCursor);
+					continue;
+			}
+			break;
+		}
+		if (!checkMemberName(main, &previousToken,
+			previousTokenType, classType, compileCursor)){
+			return compileCursor;
+		}
+	
+		switch (main->tokenType){
+			case TokenTypes::assignment:
+				compileCursor = ignoreAssignment(main,
+					classType, compileCursor);
+				if (main->compileError) {return compileCursor;}
+				/* No break. */
+			case TokenTypes::semicolon:
+				classType->insertDataMember(
+					lexical::DataMember::create(
+						savedCursor, &previousToken, classType));
+				break;
+			case TokenTypes::leftBrace:
+				classType->insertFunction(
+					lexical::MemberFunction::create(
+						savedCursor, &previousToken, classType));
+				compileCursor = ignoreBlock(
+					main, classType, compileCursor);
+				if (main->compileError) {return compileCursor;}
+				break;
+			default:
+				logErrorCString(main,
+					compileCursor, "Invalid class member.");
+				break;
+		}
+		return compileCursor;
+	}
+	
+	static unsigned int ignoreComment(
+		unsigned int compileCursor,
+		unsigned int len,
+		unsigned char[] data,
+		data::ClassType* classType){
+		if (compileCursor < len){
+			unsigned char character = data[compileCursor];
+			if (character == '/'){
+				compileCursor = ignoreSingleLineComment(
+					classType, compileCursor + 1);
+			} else if (character == '*'){
+				compileCursor = ignoreMultiLineComment(
+					classType, compileCursor + 1);
+			}
+		}
+		return compileCursor;
+	}
+
+	static unsigned int ignoreAssignment(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned char[] data = classType->code.data;
+		unsigned int len = classType->code.length;
+		unsigned char character;
+		while (compileCursor < len){
+			character = data[compileCursor];
+			compileCursor = compileCursor + 1;
+			switch (character){
+				case ';':
+					return compileCursor;
+				case '"':
+					compileCursor = ignoreStringLiteral(
+						main, classType, compileCursor);
+					break;
+				case '\'':
+					compileCursor = ignoreCharacterLiteral(
+						main, classType, compileCursor);
+					break;
+				case '/':
+					compileCursor = ignoreComment(
+						compileCursor, len, data, classType);
+					break;
+			}
+		}
+		logErrorCString(main, compileCursor,
+			"The member declararion is not finished.");
+		return compileCursor;
+	}
+
+	static unsigned int ignoreParameters(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned char[] data = classType->code.data;
+		unsigned int len = classType->code.length;
+		unsigned int brackets = 1;
+		unsigned char character;
+		while (compileCursor < len){
+			character = data[compileCursor];
+			compileCursor = compileCursor + 1;
+			switch (character){
+				case '(':
+					brackets = brackets + 1;
+					break;
+				case ')':
+					brackets = brackets - 1;
+					if (brackets == 0) {return compileCursor;}
+					break;
+				case '"':
+					compileCursor = ignoreStringLiteral(
+						main, classType, compileCursor);
+					break;
+				case '\'':
+					compileCursor = ignoreCharacterLiteral(
+						main, classType, compileCursor);
+					break;
+				case '/':
+					compileCursor = ignoreComment(
+						compileCursor, len, data, classType);
+					break;
+			}
+		}
+		logErrorCString(main, compileCursor,
+			"The parameter list had no ending ')'.");
+		return compileCursor;
+	}
+	
+	static unsigned int ignoreStringLiteral(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned char[] data = classType->code.data;
+		unsigned int len = classType->code.length;
+		unsigned char character;
+		while (compileCursor < len){
+			character = data[compileCursor];
+			compileCursor = compileCursor + 1;
+			switch (character){
+				case '"':
+					return compileCursor;
+				case '\\':
+					compileCursor = compileCursor + 1;
+					break;
+			}
+		}
+		logErrorCString(main, compileCursor,
+			"The string literal had no ending '\"'.");
+		return compileCursor;
+	}
+	
+	static unsigned int ignoreCharacterLiteral(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned char[] data = classType->code.data;
+		unsigned int len = classType->code.length;
+		unsigned char character;
+		while (compileCursor < len){
+			character = data[compileCursor];
+			compileCursor = compileCursor + 1;
+			switch (character){
+				case '\'':
+					return compileCursor;
+				case '\\':
+					compileCursor = compileCursor + 1;
+					break;
+			}
+		}
+		logErrorCString(main, compileCursor,
+			"The character literal had no ending '\"'.");
+		return compileCursor;
+	}
+	
+	static unsigned int ignoreBlock(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned int savedCursor = compileCursor;
+		unsigned char[] data = classType->code.data;
+		unsigned int len = classType->code.length;
+		unsigned char character;
+		unsigned int brackets = 1;
+		while (compileCursor < len){
+			character = data[compileCursor];
+			compileCursor = compileCursor + 1;
+			switch (character){
+				case '{':
+					brackets = brackets + 1;
+					break;
+				case '}':
+					brackets = brackets - 1;
+					if (brackets == 0) {return compileCursor;}
+					break;
+				case '"':
+					compileCursor = ignoreStringLiteral(
+						main, classType, compileCursor);
+					break;
+				case '\'':
+					compileCursor = ignoreCharacterLiteral(
+						main, classType, compileCursor);
+					break;
+				case '/':
+					compileCursor = ignoreComment(
+						compileCursor, len, data, classType);
+					break;
+			}
+		}
+		logErrorCString(main, savedCursor,
+			"The block had no ending '}'.");
+		return compileCursor;
+	}
+	
+	static unsigned int ignoreNumberLiteral(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned char[] data = classType->code.data;
+		unsigned int len = classType->code.length;
+		unsigned char character;
+		while (compileCursor < len){
+			character = data[compileCursor];
+			compileCursor = compileCursor + 1;
+			switch (character){
+				case 'b': case 'x': case 'X': case '.':
+				case '0': case '1': case '2': case '3':
+				case '4': case '5': case '6': case '7':
+				case '8': case '9':
+					continue;
+			}
+			break;
+		}
+		return compileCursor;
+	}
+
+	static unsigned char parseFunctionSpecifiers(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor,
+		lexical::MemberFunction* parseFunction){
+		unsigned char specifiers = 0;
+		while (true){
+			switch (main->tokenType){
+				case TokenTypes::staticKeyword:
+					if ((specifiers & lexical::
+						FunctionSpecifierTypes::isStatic) != 0){
+						logErrorCString(main, compileCursor,
+							"The 'static' specifier was already given.");
+						return 0;
+					}
+					specifiers = specifiers | lexical::
+						FunctionSpecifierTypes::isStatic;
+					break;
+				case TokenTypes::asyncKeyword:
+					if ((specifiers & lexical::
+						FunctionSpecifierTypes::isAsync) != 0){
+						logErrorCString(main, compileCursor,
+							"The 'async' specifier was already given.");
+						return 0;
+					}
+					specifiers = specifiers | lexical::
+						FunctionSpecifierTypes::isAsync;
+					break;
+				default:
+					main->compileCursor = compileCursor;
+					return specifiers;
+			}
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+		}
+	}
+
+	static bool parseFunctionUntilBlock(
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		lexical::MemberFunction* parseFunction =
+			main->currentParseFunction;
+		data::ClassType* classType =
+			parseFunction->parentClass;
+		std::DString info;
+		classType->getPath(&info);
+		info.addCString(": Parsing function until block: ");
+		info.addString(&parseFunction->name);
+		logInfoDString(main, &info, 1);
+		parseFunction->specifiers = parseFunctionSpecifiers(
+			main, classType, Lexical::getNextToken(main,
+				classType, parseFunction->cursor), parseFunction);
+		if (main->compileError) {return false;}
+		unsigned int compileCursor = main->compileCursor;
+		if (parseFunction->isAsync()){
+			if (!parseFunction->isStatic()){
+				if (!classType->isAsync()){
+					logErrorCString(main, compileCursor,
+						"Non-static async function in non-async class.");
+					return false;
+				}
+				parseFunction->setAsyncHasAexcl();
+			}
+			if (main->tokenType != TokenTypes::voidKeyword){
+				logErrorCString(main, compileCursor,
+					"Async function has to have a void return type.");
+				return false;
+			}
+		}
+		data::Type* dataType = getDataType(
+			app, classType, compileCursor);
+		if (dataType == nullptr) {return false;}
+		parseFunction->dataType = dataType;
+		compileCursor = main->compileCursor;
+		if (main->currentParseClass != nullptr){
+			parseFunction->cursor = compileCursor;
+			return false;
+		}
+		return parseFunctionName(app, classType, compileCursor);
+	}
+
+	static bool parseFunctionName(
+		std::ApplicationInstance aexcl app,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		Main* main = &app.main;
+		lexical::MemberFunction* parseFunction =
+			main->currentParseFunction;
+		data::Type* dataType = parseFunction->dataType;
+		if ((dataType->type == data::Types::classT) &&
+			!(data::ClassType*)dataType->isAsync()){
+			logErrorCString(main, compileCursor,
+				"Function declaration with a non-async class "
+				"return type is not supported.");
+			return false;
+		}
+		if (main->tokenType != TokenTypes::identifier ||
+			main->token.compareString(
+				&parseFunction->name) != 0){
+			logErrorCString(main, compileCursor,
+				"A function name has to be after its type.");
+			return false;
+		}
+		compileCursor = ignoreWhitespaceAndComment(
+			classType, compileCursor);
+		return parseFunctionParameters(app,
+			compileCursor + 1);
+	}
+
+	static data::ClassType* getClassDataType(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned int previousCursor;
+		std::StringView previousToken;
+		Namespace* compileNamespace =
+			main->rootNamespace;
+		while (true){
+			if (main->tokenType != TokenTypes::identifier){
+				logErrorCString(main,
+					compileCursor, "Type not given");
+				return nullptr;
+			}
+			previousToken.setStringView(&main->token);
+			previousCursor = compileCursor;
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+			if (main->tokenType != TokenTypes::scopeResolution){
+				data::ClassType* classDataType =
+					compileNamespace->getClass(
+						&previousToken);
+				if (classDataType == nullptr){
+					classDataType = data::ClassType::create(
+						&previousToken, compileNamespace);
+					compileNamespace->insertClass(classDataType);
+					main->currentParseClass = classDataType;
+					compileCursor = previousCursor;
+				}
+				main->compileCursor = compileCursor;
+				return classDataType;
+			}
+			Namespace* nextNameSpace =
+				compileNamespace->getNamespace(
+					&previousToken);
+			if (nextNameSpace == nullptr){
+				nextNameSpace = Namespace::create(
+					&previousToken, compileNamespace);
+				compileNamespace->insertNamespace(nextNameSpace);
+			}
+			compileNamespace = nextNameSpace;
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+		}
+	}
+
+	static data::Type* getDataType(
+		std::ApplicationInstance aexcl app,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		Main* main = &app.main;
+		data::Type* dataType = nullptr;
+		switch (main->tokenType){
+			case TokenTypes::voidKeyword:
+				dataType = main->voidType;
+				break;
+			case TokenTypes::boolKeyword:
+				dataType = main->boolType;
+				break;
+			case TokenTypes::charKeyword:
+				dataType = main->charType;
+				break;
+			case TokenTypes::unsignedKeyword:
+				compileCursor = Lexical::getNextToken(main,
+					classType, compileCursor);
+				switch (main->tokenType){
+					case TokenTypes::charKeyword:
+						dataType = main->ucharType;
+						break;
+					case TokenTypes::shortKeyword:
+						dataType = main->ushortType;
+						break;
+					case TokenTypes::intKeyword:
+						dataType = main->uintType;
+						break;
+					default:
+						logErrorCString(main, compileCursor,
+							"After the 'unsigned' keyword, only the "
+							"'char', 'short' or 'int' keywords can be used.");
+						return nullptr;
+				}
+				break;
+			case TokenTypes::shortKeyword:
+				dataType = main->shortType;
+				break;
+			case TokenTypes::intKeyword:
+				dataType = main->intType;
+				break;
+			case TokenTypes::floatKeyword:
+				dataType = main->floatType;
+				break;
+			case TokenTypes::doubleKeyword:
+				dataType = main->doubleType;
+				break;
+		}
+		if (dataType == nullptr){
+			dataType = getClassDataType(main,
+				classType, compileCursor);
+			if (dataType == nullptr){
+				return nullptr;
+			} else if (main->currentParseClass == dataType){
+				main->classOrMemberPath.trim(main->rootPath);
+				(data::ClassType*)dataType->getPath(
+					&main->classOrMemberPath);
+				app.fileSystem.openFile(
+					main->classOrMemberPath.data,
+					onClassOpenedToParse,
+					std::fs::OpenFileModes::readBinary);
+				return dataType;
+			}
+			compileCursor = main->compileCursor;
+		} else {
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+		}
+		return continueParseDataType(
+			app, dataType, classType, compileCursor);
+	}
+	
+	/* Find backwards from i the first function pointer type,
+			that has the given j parameter types. */
+	static unsigned int findFunctionPtrType(
+		data::Type*[] types, unsigned int i,
+		void*[] parameters, unsigned int j,
+		bool *create){
+		while (i > 0){
+			i = i - 1;
+			unsigned char type = types[i]->type;
+			if (type < data::Types::functionPointerT){
+				*create = true;
+				return i + 1;
+			} else if (type == data::Types::functionPointerT){
+				data::FunctionPointerType* pointerType =
+					(data::FunctionPointerType*)(types[i]);
+				void*[] src = pointerType->parameters.data;
+				unsigned int len = pointerType->parameters.size;
+				unsigned int k = 0;
+				while (k < j){
+					if (len <= k ||
+						src[k] > parameters[k]) {break;}
+					if (src[k] < parameters[k]){
+						*create = true;
+						return i + 1;
+					}
+					k = k + 1;
+				}
+				if (k == j){
+					*create = false;
+					return i;
+				}
+			}
+		}
+		*create = true;
+		return 0;
+	}
+	
+	static bool checkAsyncSpecifiers(
+		Main* main, data::Type* dataType,
+		unsigned int specifiers,
+		unsigned int compileCursor){
+		if ((specifiers &
+				data::Specifiers::asyncSpecifiers) != 0){
+			logErrorCString(main, compileCursor,
+				"Only one of the 'aptr', the 'alock' and "
+				"the 'aexcl' specifiers can be given "
+				"after a data type from an async class.");
+			return false;
+		}
+		if (dataType->type != data::Types::classT ||
+			!(data::ClassType*)dataType->isAsync()){
+			logErrorCString(main, compileCursor,
+				"The 'aptr', the 'alock' and the 'aexcl' specifiers "
+				"can only be given after a data type from an async class.");
+			return false;
+		}
+		return true;
+	}
+	
+	static data::Type* setSpecifiers(
+		Main* main, data::Type* dataType,
+		unsigned int specifiers,
+		unsigned int compileCursor){
+		if (specifiers != 0){
+			dataType = dataType->getOrSetSpecifiers(
+				specifiers);
+		}
+		if (dataType->type == data::Types::classT &&
+			(data::ClassType*)dataType->isAsync() &&
+			(specifiers &
+				data::Specifiers::asyncSpecifiers) != 0){
+			logErrorCString(main, compileCursor,
+				"Either the 'aptr', the 'alock' or the 'aexcl' specifier "
+				"has to be given after the data type from an async class.");
+			return nullptr;
+		}
+		return dataType;
+	}
+
+	static bool checkConstSpecifiers(
+		Main* main, data::Type* dataType,
+		unsigned int specifiers,
+		unsigned int compileCursor){
+		if ((specifiers & 
+				data::Specifiers::constSpecifiers) != 0){
+			logErrorCString(main, compileCursor,
+				"Only one of the 'static', the 'constexpr' and "
+				"the 'const' specifiers can be given.");
+			return false;
+		}
+		return true;
+	}
+
+	static data::Type* continueParseDataType(
+		std::ApplicationInstance aexcl app,
+		data::Type* dataType,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		Main* main = &app.main;
+		unsigned char specifiers = 0;
+		while (true){
+			switch (main->tokenType){
+				case TokenTypes::aptrKeyword:
+					if (!checkAsyncSpecifiers(
+						main, dataType, specifiers, compileCursor)){
+						return nullptr;
+					}
+					specifiers = specifiers |
+						data::SpecifierTypes::isAptr;
+					break;
+				case TokenTypes::alockKeyword:
+					if (!checkAsyncSpecifiers(
+						main, dataType, specifiers, compileCursor)){
+						return nullptr;
+					}
+					specifiers = specifiers |
+						data::SpecifierTypes::isAlock;
+					break;
+				case TokenTypes::aexclKeyword:
+					if (!checkAsyncSpecifiers(
+						main, dataType, specifiers, compileCursor)){
+						return nullptr;
+					}
+					specifiers = specifiers |
+						data::SpecifierTypes::isAexcl;
+					break;
+				case TokenTypes::staticKeyword:
+					if (!checkConstSpecifiers(
+						main, dataType, specifiers, compileCursor)){
+						return nullptr;
+					}
+					if (!dataType->isNumericType() &&
+						dataType->type != data::Types::boolT){
+						logErrorCString(main, compileCursor,
+							"Currently only integer, float and bool "
+							"typed 'static' is supported.");
+						return nullptr;
+					}
+					specifiers = specifiers |
+						data::SpecifierTypes::isStatic;
+					break;
+				case TokenTypes::constexprKeyword:
+					if (!checkConstSpecifiers(
+						main, dataType, specifiers, compileCursor)){
+						return nullptr;
+					}
+					if (!dataType->isNumericType() &&
+						dataType->type != data::Types::boolT){
+						logErrorCString(main, compileCursor,
+							"Currently only integer, float and bool "
+							"typed 'constexpr' is supported.");
+						return nullptr;
+					}
+					specifiers = specifiers |
+						data::SpecifierTypes::isConstexpr;
+					break;
+				case TokenTypes::constKeyword:
+					if (!checkConstSpecifiers(
+						main, dataType, specifiers, compileCursor)){
+						return nullptr;
+					}
+					specifiers = specifiers |
+						data::SpecifierTypes::isConst;
+					break;
+				case TokenTypes::leftBracket:
+					{
+						unsigned int savedCursor = compileCursor;
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (main->tokenType != TokenTypes::rightBracket){
+							/* Needed for new[size]. */
+							main->compileCursor = savedCursor;
+							main->tokenType = TokenTypes::leftBracket;
+							return dataType;
+						}
+					}
+					/* No break. */
+				case TokenTypes::asterisk:
+					dataType = setSpecifiers(
+						main, dataType, specifiers, compileCursor);
+					if (dataType == nullptr) {return nullptr;}
+					specifiers = 0;
+					dataType = dataType->getOrSetPtr(
+						main->tokenType != TokenTypes::asterisk);
+					break;
+				case TokenTypes::leftParenthesis:
+					{
+						dataType = setSpecifiers(
+							main, dataType, specifiers, compileCursor);
+						if (dataType == nullptr) {return nullptr;}
+						specifiers = 0;
+						unsigned int savedCursor = compileCursor - 1;
+						data::Type*[] types =
+							(data::Type*[])(dataType->types.data);
+						unsigned int len = dataType->types.size;
+						data::FunctionPointerType* pointerType;
+						bool create;
+						unsigned int i = findFunctionPtrType(
+							types, len, nullptr, 0, &create);
+						if (create){
+							pointerType =
+								data::FunctionPointerType::create(dataType);
+						} else {
+							pointerType = (data::FunctionPointerType*)
+								(types[i]);
+						}
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						unsigned int j = 0;
+						void*[] src;
+						while (main->tokenType != TokenTypes::rightParenthesis){
+							if (j > 0){
+								if (main->tokenType != TokenTypes::comma){
+									logErrorCString(main, compileCursor,
+										"',' has to be between the data types.");
+									if (create) {delete pointerType;}
+									return nullptr;
+								}
+								compileCursor = Lexical::getNextToken(main,
+									classType, compileCursor);
+							}
+							data::Type* parameterDataType = getDataType(
+								app, classType, compileCursor);
+							if (parameterDataType == nullptr){
+								if (create) {delete pointerType;}
+								return nullptr;
+							}
+							if (main->currentParseClass != nullptr){
+								main->compileCursor = savedCursor;
+								if (create) {delete pointerType;}
+								return dataType;
+							}
+							compileCursor = main->compileCursor;
+							if (create){
+								pointerType->parameters.pushBack(
+									parameterDataType);
+							} else {
+								/* As maybe it was changed. */
+								unsigned int newLen = dataType->types.size;
+								if (len != newLen){
+									types = (data::Type*[])
+										(dataType->types.data);
+									i = findFunctionPtrType(
+										types, i + newLen - len + 1,
+										pointerType->parameters.data, j, &create);
+									len = newLen;
+								}
+								while (true){
+									pointerType = (data::FunctionPointerType*)
+										(types[i]);
+									src = pointerType->parameters.data;
+									if (pointerType->parameters.size <= j ||
+										src[j] > parameterDataType){
+										i = findFunctionPtrType(
+											types, i, src, j, &create);
+										if (create) {break;}
+										continue;
+									}
+									if (src[j] < parameterDataType){
+										create = true;
+										i = i + 1;
+									}
+									break;
+								}
+								if (create){
+									pointerType =
+										data::FunctionPointerType::create(dataType);
+									unsigned int k = 0;
+									while (k < j){
+										pointerType->parameters.pushBack(
+											src[k]);
+										k = k + 1;
+									}
+									pointerType->parameters.pushBack(
+										parameterDataType);
+								}
+							}
+							j = j + 1;
+						}
+						src = pointerType->parameters.data;
+						if (create){
+							unsigned int newLen = dataType->types.size;
+							if (len != newLen){
+								types =
+									(data::Type*[])(dataType->types.data);
+								len = newLen;
+								i = findFunctionPtrType(types, i + newLen - len,
+									src, j, &create);
+								if (!create) {i = i + 1;}
+							}
+							dataType->types.insert(i,
+								pointerType, 1);
+						} else if (j != pointerType->parameters.size){
+							pointerType =
+								data::FunctionPointerType::create(dataType);
+							unsigned int k = 0;
+							while (k < j){
+								pointerType->parameters.pushBack(
+									src[k]);
+								k = k + 1;
+							}
+							dataType->types.insert(i + 1,
+								pointerType, 1);
+						}
+						dataType = pointerType;
+						break;
+					}
+				default:
+					dataType = setSpecifiers(
+						main, dataType, specifiers, compileCursor);
+					if (dataType == nullptr) {return nullptr;}
+					main->compileCursor = compileCursor;
+					return dataType;
+			}
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+		}
+	}
+
+	static void onClassOpenedToParse(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		Main* main = &app.main;
+		data::ClassType* classType = main->currentParseClass;
+		if (!readAndParseClass(app, classType, file,
+			onClassOpenedToParse)) {return;}
+		main->currentParseClass = nullptr;
+		lexical::DataMember* dataMember =
+			main->currentParseDataMember;
+		unsigned int compileCursor;
+		if (dataMember != nullptr){
+			classType = dataMember->parentClass;
+			compileCursor = Lexical::getNextToken(main,
+				classType, dataMember->cursor);
+			dataMember->dataType = continueParseDataType(
+				app, dataMember->dataType,
+				classType, compileCursor);
+			if (dataMember->dataType == nullptr) {return;}
+			compileCursor = main->compileCursor;
+			if (main->currentParseClass != nullptr){
+				dataMember->cursor = compileCursor;
+				return;
+			}
+			if (!ParseBlock::parseDataMemberName(main,
+				dataMember, compileCursor, false)) {return;}
+			main->currentParseDataMember = nullptr;
+		} else {
+			lexical::MemberFunction* parseFunction =
+				main->currentParseFunction;
+			lexical::FunctionParameter* parameter =
+				main->currentParseParameter;
+			if (parameter != nullptr){
+				classType = parseFunction->parentClass;
+				compileCursor = Lexical::getNextToken(main,
+					classType, parseFunction->cursor);
+				parameter->dataType = continueParseDataType(
+					app, parameter->dataType,
+					classType, compileCursor);
+				if (parameter->dataType == nullptr) {return;}
+				compileCursor = main->compileCursor;
+				if (main->currentParseClass != nullptr){
+					parseFunction->cursor = compileCursor;
+					return;
+				}
+				if (!parseFunctionParameter(main, parameter,
+					parseFunction, compileCursor)) {return;}
+				main->currentParseParameter = nullptr;
+				if (!parseFunctionParameters(app,
+					compileCursor)) {return;}
+			} else if (parseFunction != nullptr){
+				classType = parseFunction->parentClass;
+				compileCursor = Lexical::getNextToken(main,
+					classType, parseFunction->cursor);
+				parseFunction->dataType = continueParseDataType(
+					app, parseFunction->dataType,
+					classType, compileCursor);
+				if (parseFunction->dataType == nullptr) {return;}
+				compileCursor = main->compileCursor;
+				if (main->currentParseClass != nullptr){
+					parseFunction->cursor = compileCursor;
+					return;
+				}
+				if (!parseFunctionName(app,
+					classType, compileCursor)) {return;}
+			}
+		}
+		ParseBlock::parseExpressionStacks(app);
+	}
+
+	static bool parseParameterName(Main* main,
+		lexical::FunctionParameter* parameter,
+		unsigned int compileCursor){
+		if (main->tokenType != TokenTypes::identifier){
+			logErrorCString(main, compileCursor,
+				"Function parameter name not given.");
+			return false;
+		}
+		lexical::MemberFunction* parseFunction =
+			main->currentParseFunction;
+		std::StringView* name = &main->token;
+		if (parseFunction->getParameter(name) != nullptr){
+			std::DString error;
+			error.addCString("The '");
+			error.addStringView(name);
+			error.addCString("' parameter was "
+				"already declared.");
+			logError(main, compileCursor, &error);
+			return false;
+		}
+		parameter->name.setStringView(name);
+		parseFunction->insertParameter(parameter);
+		return true;
+	}
+
+	static bool needStack(data::Type* dataType){
+		return dataType->type == data::Types::classT &&
+			!(data::ClassType*)dataType->isAsync();
+	}
+
+	static bool parseFunctionParameter(
+		Main* main, lexical::FunctionParameter* parameter,
+		lexical::MemberFunction* parseFunction,
+		unsigned int compileCursor){
+		if (parameter->isAexcl()){
+			if (parseFunction->asyncHasAexcl()){
+				logErrorCString(main, compileCursor,
+					"An async function can have only 1 aexcl parameter.");
+				return false;
+			}
+			parseFunction->setAsyncHasAexcl();
+		}
+		if (!parseParameterName(main, parameter,
+			compileCursor)) {return false;}
+		if (needStack(parameter->dataType)){
+			logErrorCString(main, compileCursor,
+				"Function parameter with a non-async class "
+				"data type is currently not supported.");
+			return false;
+		}
+		return true;
+	}
+
+	static bool parseFunctionParameters(
+		std::ApplicationInstance aexcl app,
+		unsigned int compileCursor){
+		Main* main = &app.main;
+		lexical::MemberFunction* parseFunction =
+			main->currentParseFunction;
+		data::ClassType* classType =
+			parseFunction->parentClass;
+		while (true){
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+			if (main->tokenType == TokenTypes::rightParenthesis){
+				break;
+			} else if (main->tokenType == TokenTypes::comma){
+				compileCursor = Lexical::getNextToken(main,
+					classType, compileCursor);
+			}
+			if (main->compileError) {return false;}
+			lexical::FunctionParameter* parameter =
+				new lexical::FunctionParameter;
+			parameter->dataType = getDataType(
+				app, classType, compileCursor);
+			if (parameter->dataType == nullptr) {return false;}
+			compileCursor = main->compileCursor;
+			if (main->currentParseClass != nullptr){
+				main->currentParseParameter = parameter;
+				parseFunction->cursor = compileCursor;
+				return false;
+			}
+			if (!parseFunctionParameter(main, parameter,
+				parseFunction, compileCursor)) {return false;}
+		}
+		parseFunction->cursor = ignoreWhitespaceAndComment(
+			classType, compileCursor) + 1;
+		main->currentParseFunction = nullptr;
+		return true;
+	}
+	
+	static void clear(Main* main){
+		main->functionsToParse.clear();
+		main->functionExpressionStack.clear();
+		unsigned int i;
+		unsigned int len = main->dataMembersStack.size;
+		if (len > 0){
+			i = 0;
+			DataMemberStack*[] stacks = (DataMemberStack*[])
+				(main->dataMembersStack.data);
+			while (i < len){
+				DataMemberStack* dataMemberStack = stacks[i];
+				Lexical::maybeDeleteExpression(main,
+					(lexical::Type*)(dataMemberStack->
+						expressionStack.data[0]));
+				delete dataMemberStack;
+				i = i + 1;
+			}
+			main->dataMembersStack.clear();
+		}
+		/* Delete only the blocks first. */
+		deleteNamespace(main, main->rootNamespace, false);
+		deleteNamespace(main, main->rootNamespace, true);
+		deleteTypes(main->voidType);
+		deleteTypes(main->boolType);
+		deleteTypes(main->ucharType);
+		deleteTypes(main->charType);
+		deleteTypes(main->ushortType);
+		deleteTypes(main->shortType);
+		deleteTypes(main->uintType);
+		deleteTypes(main->intType);
+		deleteTypes(main->floatType);
+		deleteTypes(main->doubleType);
+		i = 0;
+		len = main->characterLiterals.size;
+		void*[] literals = main->characterLiterals.data;
+		while (i < len){
+			delete (lexical::CharacterLiteral*)(literals[i]);
+			i = i + 1;
+		}
+		main->characterLiterals.clear();
+		i = 0;
+		len = main->stringLiterals.size;
+		literals = main->stringLiterals.data;
+		while (i < len){
+			delete (lexical::StringLiteral*)(literals[i]);
+			i = i + 1;
+		}
+		main->stringLiterals.clear();
+		i = 0;
+		len = main->integerLiterals.size;
+		literals = main->integerLiterals.data;
+		while (i < len){
+			delete (lexical::IntegerLiteral*)(literals[i]);
+			i = i + 1;
+		}
+		main->integerLiterals.clear();
+		i = 0;
+		len = main->floatingLiterals.size;
+		literals = main->floatingLiterals.data;
+		while (i < len){
+			delete (lexical::FloatingLiteral*)(literals[i]);
+			i = i + 1;
+		}
+		main->floatingLiterals.clear();
+		main->staticMembers.clear();
+		main->classMemberName.clear();
+		main->classesStack.clear();
+	}
+	
+	static void deleteTypes(data::Type* dataType){
+		data::Type*[] dataTypes = (data::Type*[])
+			(dataType->types.data);
+		unsigned int i = 0;
+		unsigned int len = dataType->types.size;
+		while (i < len){
+			data::Type* type = dataTypes[i];
+			deleteTypes(type);
+			switch (type->type){
+				case data::Types::arrayT:
+					delete (data::ArrayType*)type;
+					break;
+				case data::Types::pointerT:
+				case data::Types::arrayPointerT:
+					delete (data::PointerType*)type;
+					break;
+				case data::Types::functionPointerT:
+					delete (data::FunctionPointerType*)type;
+					break;
+				case data::Types::specifiersT:
+					delete (data::Specifiers*)type;
+					break;
+				default:
+					delete type;
+					break;
+			}
+			i = i + 1;
+		}
+		dataType->types.clear();
+	}
+	
+	static void deleteNamespace(Main* main,
+		Namespace* compileNamespace, bool deletedBlock){
+		Namespace*[] namespaces = (Namespace*[])
+			(compileNamespace->namespaces.data);
+		unsigned int i = 0;
+		unsigned int len = compileNamespace->namespaces.size;
+		while (i < len){
+			deleteNamespace(main, namespaces[i], deletedBlock);
+			i = i + 1;
+		}
+		data::ClassType*[] classes = (data::ClassType*[])
+			(compileNamespace->classes.data);
+		len = compileNamespace->classes.size;
+		i = 0;
+		while (i < len){
+			data::ClassType* classType = classes[i];
+			lexical::MemberFunction*[] functions =
+				(lexical::MemberFunction*[])
+					(classType->functions.data);
+			unsigned int j = 0;
+			unsigned int membersLen =
+				classType->functions.size;
+			while (j < membersLen){
+				lexical::MemberFunction* compileFunction =
+					functions[j];
+				if (compileFunction->dataType != nullptr){
+					if (deletedBlock){
+						lexical::FunctionParameter*[] parameters =
+							(lexical::FunctionParameter*[])
+								(compileFunction->parameters.data);
+						unsigned int parametersLen =
+							compileFunction->parameters.size;
+						unsigned int k = 0;
+						while (k < parametersLen){
+							delete parameters[k];
+							k = k + 1;
+						}
+						delete compileFunction;
+					} else {
+						Lexical::maybeDeleteExpression(
+							main, compileFunction->block);
+					}
+				} else if (deletedBlock){
+					delete compileFunction;
+				}
+				j = j + 1;
+			}
+			if (deletedBlock){
+				lexical::DataMember*[] dataMembers =
+					(lexical::DataMember*[])
+						(classType->dataMembers.data);
+				membersLen = classType->dataMembers.size;
+				j = 0;
+				while (j < membersLen){
+					/* No need to delete its value as currently it can
+							only have cached values. */
+					delete dataMembers[j];
+					j = j + 1;
+				}
+				deleteTypes(classType);
+				delete classType;
+			}
+			i = i + 1;
+		}
+		if (deletedBlock) {delete compileNamespace;}
+	}
+	
+	static void scrollLog(Main* main){
+		std::dom::Node div;
+		main->compileContainer.getFirstChild(&div);
+		div.setOnClick(Main::onClickOnCancelCompile);
+		div.getNextSibling(&div);
+		div.setOnClick(Main::onClickOnCompilePath);
+		div.getNextSibling(&div);
+		div.setOnClick(onClickOnDoCompile);
+		div.getNextSibling(&div);
+		std::dom::Element::setScrollTop(
+			&div, std::dom::Element::
+				getScrollHeight(&div));
+		div.getNextSibling(&div);
+		div.setOnClick(Main::onClickOnRun);
+	}
+
+}

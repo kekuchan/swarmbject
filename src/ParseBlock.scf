@@ -1,0 +1,2980 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class ParseBlock {
+
+	static void parseExpressionStacks(
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		std::DString info;
+		unsigned int compileCursor;
+		data::ClassType* classType;
+		DataMemberStack* dataMemberStack;
+		lexical::Type* currentExpression;
+		while (true){
+			dataMemberStack = (DataMemberStack*)
+				(main->dataMembersStack.getBack());
+			if (dataMemberStack != nullptr){
+				std::PtrDArray* expressionStack =
+					&dataMemberStack->expressionStack;
+				main->expressionStack = expressionStack;
+				lexical::DataMember* dataMember =
+					(lexical::DataMember*)
+						(((lexical::BinaryOperator*)(
+							expressionStack->data[0]))->operand1);
+				classType = dataMember->parentClass;
+				info.clear();
+				classType->getPath(&info);
+				info.addCString(": Parsing data member assignment: ");
+				info.addString(&dataMember->name);
+				Parse::logInfoDString(main, &info, 1);
+				compileCursor = dataMember->cursor;
+				main->statementEnd = dataMemberStack->statementEnd;
+				main->maybeCast = dataMemberStack->maybeCast;
+				currentExpression = (lexical::Type*)
+					(expressionStack->getBack());
+			} else {
+				lexical::MemberFunction* functionToParse =
+					getFunctionToParse(main);
+				if (functionToParse != nullptr){
+					classType = functionToParse->parentClass;
+					compileCursor = functionToParse->cursor;
+					info.clear();
+					classType->getPath(&info);
+					info.addCString(": Parsing function block: ");
+					info.addString(&functionToParse->name);
+					Parse::logInfoDString(main, &info, 1);
+					std::PtrDArray* expressionStack =
+						&main->functionExpressionStack;
+					main->expressionStack = expressionStack;
+					currentExpression = (lexical::Type*)
+						(expressionStack->getBack());
+					if (currentExpression == nullptr){
+						currentExpression =
+							functionToParse->block;
+						expressionStack->pushBack(
+							currentExpression);
+						main->functionStatementEnd = true;
+						main->functionMaybeCast = false;
+					}
+					main->statementEnd = main->functionStatementEnd;
+					main->maybeCast = main->functionMaybeCast;
+				} else {break;}
+			}
+			main->currentExpression = currentExpression;
+			if (!doParse(app, classType,
+				compileCursor)) {return;}
+		}
+		info.setCString("finished parseing");
+		Parse::logInfoDString(main, &info, 1);/*
+		debugTypes(main);*/
+		std::StringView name;
+		name.setCString("std");
+		Namespace* stdNamespace =
+			main->rootNamespace->getNamespace(&name);
+		name.setCString("ApplicationInstance");
+		data::ClassType* appClass =
+			stdNamespace->getClass(&name);
+		name.setCString("run");
+		lexical::MemberFunction* runFunction =
+			appClass->getFunction(&name);
+		if (runFunction->isStatic() || !runFunction->isAsync() ||
+			runFunction->dataType != main->voidType){
+			Parse::logErrorCString(main, 0,
+				"The ApplicationInstance::run function to be "
+				"declared as 'async void'.");
+			return;
+		}
+		if (runFunction->parameters.size != 0){
+			Parse::logErrorCString(main, 0,
+				"The ApplicationInstance::run function "
+				"has to have no parameters.");
+			return;
+		}
+		js::Compile::compileToJs(app);
+	}
+	
+	static void debugTypes(Main* main){
+		std::DString info;
+		main->voidType->debug(&info, true);
+		Parse::logInfoDString(main, &info, 1);
+		info.clear();
+		main->boolType->debug(&info, true);
+		Parse::logInfoDString(main, &info, 1);
+		info.clear();
+		main->ucharType->debug(&info, true);
+		Parse::logInfoDString(main, &info, 1);
+		info.clear();
+		main->charType->debug(&info, true);
+		Parse::logInfoDString(main, &info, 1);
+		info.clear();
+		main->ushortType->debug(&info, true);
+		Parse::logInfoDString(main, &info, 1);
+		info.clear();
+		main->shortType->debug(&info, true);
+		Parse::logInfoDString(main, &info, 1);
+		info.clear();
+		main->uintType->debug(&info, true);
+		Parse::logInfoDString(main, &info, 1);
+		info.clear();
+		main->intType->debug(&info, true);
+		Parse::logInfoDString(main, &info, 1);
+		info.clear();
+		main->floatType->debug(&info, true);
+		Parse::logInfoDString(main, &info, 1);
+		info.clear();
+		main->doubleType->debug(&info, true);
+		Parse::logInfoDString(main, &info, 1);
+		info.clear();
+		main->rootNamespace->debug(&info, true);
+		Parse::logInfoDString(main, &info, 1);
+	}
+
+	static void debugExpressionStack(Main* main){
+		std::DString info;
+		info.addCString("expressionStack: ");
+		std::PtrDArray* expressionStack =
+			main->expressionStack;
+		lexical::Type*[] expressions =
+			(lexical::Type*[])(expressionStack->data);
+		unsigned int len = expressionStack->size;
+		unsigned int i = 0;
+		while (i < len){
+			info.addCString(Lexical::expressionTypeToString(
+				expressions[i]->type));
+			info.addChar(',');
+			i = i + 1;
+		}
+		Parse::logInfoDString(main, &info, 1);
+	}
+	
+	static bool isInSwitch(
+		std::PtrDArray* expressionStack){
+		unsigned int len = expressionStack->size;
+		return (len >= 2 && ((lexical::Type*)
+			(expressionStack->data[len - 2]))->type ==
+			lexical::Types::switchStatement);
+	}
+
+	static bool setVariableDeclaration(Main* main,
+		unsigned int compileCursor,
+		data::Type* dataType){
+		if (main->tokenType != TokenTypes::identifier){
+			Parse::logErrorCString(main, compileCursor,
+				"Variable name not given.");
+			return false;
+		}
+		lexical::Type* currentExpression =
+			main->currentExpression;
+		if (currentExpression->type !=
+			lexical::Types::block){
+			Parse::logErrorCString(main, compileCursor,
+				"Variable declaration has to be "
+				"directly in a block.");
+			return false;
+		}
+		std::PtrDArray* expressionStack =
+			main->expressionStack;
+		if (isInSwitch(expressionStack)){
+			Parse::logErrorCString(main, compileCursor,
+				"Variable declaration can not be "
+				"directly in a switch statement.");
+			return false;
+		}
+		lexical::BlockStatement* block =
+			(lexical::BlockStatement*)currentExpression;
+		if (block->getVariable(
+			&main->token) != nullptr){
+			std::DString error;
+			error.addChar('\'');
+			error.addStringView(&main->token);
+			error.addCString("' variable already declared in block.");
+			Parse::logError(main, compileCursor, &error);
+			return false;
+		}
+		lexical::LocalVariable* variable =
+			lexical::LocalVariable::create(&main->token);
+		variable->dataType = dataType;
+		if (Parse::needStack(dataType)){
+			variable->offset = 0;
+			getFunctionToParse(main)->setNeedStack();
+		}
+		block->insertVariable(variable);
+		lexical::VariableDeclaration* declaration =
+			lexical::VariableDeclaration::create(variable);
+		block->insertStatement(declaration);
+		main->currentExpression = declaration;
+		expressionStack->pushBack(declaration);
+		main->statementEnd = false;
+		return true;
+	}
+	
+	static lexical::MemberFunction* getFunctionToParse(
+		Main* main){
+		return 
+			(lexical::MemberFunction*)
+				(main->functionsToParse.getFront());
+	}
+	
+	static bool debugToken(unsigned char type){
+		std::DString info;
+		Lexical::tokenTypeToString(type, &info);
+		info.debug();
+		return false;
+	}
+
+	static bool doParse(
+		std::ApplicationInstance aexcl app,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		Main* main = &app.main;
+		compileCursor = Lexical::getNextToken(main,
+			classType, compileCursor);
+		unsigned char* tokenType = &main->tokenType;
+		while (true){/*
+			debugExpressionStack(main);*/
+			switch (*tokenType){
+				case TokenTypes::asyncKeyword:
+				case TokenTypes::classKeyword:
+				case TokenTypes::staticKeyword:
+					{
+						std::DString error;
+						error.addChar('\'');
+						error.addStringView(&main->token);
+						error.addCString("' keyword at invalid place.");
+						Parse::logError(main, compileCursor, &error);
+						return false;
+					}
+				case TokenTypes::voidKeyword:
+				case TokenTypes::boolKeyword:
+				case TokenTypes::unsignedKeyword:
+				case TokenTypes::charKeyword:
+				case TokenTypes::shortKeyword:
+				case TokenTypes::intKeyword:
+				case TokenTypes::floatKeyword:
+				case TokenTypes::doubleKeyword:
+					{
+						unsigned int savedCursor =
+							compileCursor - main->token.length;
+						data::Type* dataType = Parse::getDataType(
+							app, classType, compileCursor);
+						if (dataType == nullptr) {return false;}
+						if (main->currentParseClass != nullptr){
+							saveCursor(main, savedCursor,
+								main->dataMembersStack.size);
+							return false;
+						}
+						if (dataType == main->voidType){
+							if (main->maybeCast){
+								Parse::logErrorCString(main, compileCursor,
+									"Casting to void data type.");
+							} else {
+								Parse::logErrorCString(main, compileCursor,
+									"Variable can not be of void data type.");
+							}
+							return false;
+						}
+						compileCursor = main->compileCursor;
+						if (main->maybeCast){
+							main->maybeCast = false;
+							if (*tokenType != TokenTypes::rightParenthesis){
+								Parse::logErrorCString(main, compileCursor,
+									"Casting has to end with the ')' token.");
+								return false;
+							}
+							if (!putUnaryOperator(main,
+								lexical::CastExpression::create(
+									dataType))) {return false;}
+						} else {
+							if (!setVariableDeclaration(main, compileCursor,
+								dataType)) {return false;}
+						}
+						break;
+					}
+				case TokenTypes::constwriteKeyword:
+					if (main->currentExpression->type ==
+							lexical::Types::block &&
+						putUnaryOperator(main,
+							lexical::UnaryOperator::create(
+								lexical::Types::constwriteStatement))){
+						break;
+					}
+					Parse::logErrorCString(main, compileCursor,
+						"'constwrite' has to be directly in a block.");
+					return false;
+				case TokenTypes::returnKeyword:
+					if (main->currentExpression->type ==
+						lexical::Types::block){
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (*tokenType != TokenTypes::semicolon){
+							if (putUnaryOperator(main,
+								lexical::UnaryOperator::create(
+									lexical::Types::returnStatement))){
+								continue;
+							}
+						} else if (main->statementEnd){
+							if (getFunctionToParse(main)->dataType !=
+								main->voidType){
+								Parse::logErrorCString(main, compileCursor,
+									"void return has to be in a void function.");
+								return false;
+							}
+							((lexical::BlockStatement*)
+								(main->currentExpression))->
+									insertStatement(main->returnStatement);
+							break;
+						}
+					}
+					Parse::logErrorCString(main, compileCursor,
+						"'return' has to be directly in a block.");
+					return false;
+				case TokenTypes::ifKeyword:
+					if (main->currentExpression->type ==
+							lexical::Types::block &&
+						putUnaryOperator(main,
+							new lexical::IfStatement)){
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (*tokenType != TokenTypes::leftParenthesis){
+							Parse::logErrorCString(main, compileCursor,
+								"'if' has to be followed by the '(' token.");
+							return false;
+						}
+						break;
+					}
+					Parse::logErrorCString(main, compileCursor,
+						"'if' has to be directly in a block.");
+					return false;
+				case TokenTypes::elseKeyword:
+					Parse::logErrorCString(main, compileCursor,
+						"'else' has to be after an if then block.");
+					return false;
+				case TokenTypes::whileKeyword:
+					if (main->currentExpression->type ==
+							lexical::Types::block &&
+						putUnaryOperator(main,
+							lexical::UnaryOperator::create(
+								lexical::Types::whileStatement))){
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (*tokenType != TokenTypes::leftParenthesis){
+							Parse::logErrorCString(main, compileCursor,
+								"'while' has to be followed by the '(' token.");
+							return false;
+						}
+						break;
+					}
+					Parse::logErrorCString(main, compileCursor,
+						"'while' has to be directly in a block.");
+					return false;
+				case TokenTypes::breakKeyword:
+					if (main->currentExpression->type !=
+						lexical::Types::block || !main->statementEnd){
+						Parse::logErrorCString(main, compileCursor,
+							"'break' has to be directly in a block.");
+						return false;
+					} else {
+						std::PtrDArray* expressionStack =
+							main->expressionStack;
+						int i = expressionStack->size - 2;
+						lexical::Type*[] expressions =
+							(lexical::Type*[])(expressionStack->data);
+						while (i > 0){
+							switch (expressions[i]->type){
+								case lexical::Types::whileStatement:
+								case lexical::Types::switchStatement:
+									break;
+								default:
+									i = i - 1;
+									continue;
+							}
+							break;
+						}
+						if (i <= 0){
+							Parse::logErrorCString(main, compileCursor,
+								"'break' has to be in a while or switch statement.");
+							return false;
+						}
+						((lexical::BlockStatement*)
+							(main->currentExpression))->
+								insertStatement(main->breakStatement);
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (*tokenType != TokenTypes::semicolon){
+							Parse::logErrorCString(main, compileCursor,
+								"'break' has to be followed by the ';' token.");
+							return false;
+						}
+						break;
+					}
+				case TokenTypes::continueKeyword:
+					if (main->currentExpression->type !=
+						lexical::Types::block || !main->statementEnd){
+						Parse::logErrorCString(main, compileCursor,
+							"'continue' has to be directly in a block.");
+						return false;
+					} else {
+						std::PtrDArray* expressionStack =
+							main->expressionStack;
+						int i = expressionStack->size - 2;
+						lexical::Type*[] expressions =
+							(lexical::Type*[])(expressionStack->data);
+						while (i > 0){
+							if (expressions[i]->type ==
+								lexical::Types::whileStatement) {break;}
+							i = i - 1;
+						}
+						if (i <= 0){
+							Parse::logErrorCString(main, compileCursor,
+								"'continue' has to be in a while statement.");
+							return false;
+						}
+						((lexical::BlockStatement*)
+							(main->currentExpression))->
+								insertStatement(main->continueStatement);
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (*tokenType != TokenTypes::semicolon){
+							Parse::logErrorCString(main, compileCursor,
+								"'continue' has to be followed by the ';' token.");
+							return false;
+						}
+						break;
+					}
+				case TokenTypes::switchKeyword:
+					if (main->currentExpression->type ==
+							lexical::Types::block &&
+						putUnaryOperator(main,
+							lexical::UnaryOperator::create(
+								lexical::Types::switchStatement))){
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (*tokenType != TokenTypes::leftParenthesis){
+							Parse::logErrorCString(main, compileCursor,
+								"'switch' has to be followed by the '(' token.");
+							return false;
+						}
+						break;
+					}
+					Parse::logErrorCString(main, compileCursor,
+						"'switch' has to be directly in a block.");
+					return false;
+				case TokenTypes::caseKeyword:
+					if (main->currentExpression->type ==
+						lexical::Types::block &&
+						isInSwitch(main->expressionStack) &&
+						putUnaryOperator(main,
+							lexical::UnaryOperator::create(
+								lexical::Types::caseLabel))){
+						break;
+					}
+					Parse::logErrorCString(main, compileCursor,
+						"'case' has to be directly in a switch block.");
+					return false;
+				case TokenTypes::defaultKeyword:
+					if (main->currentExpression->type ==
+						lexical::Types::block && main->statementEnd &&
+						isInSwitch(main->expressionStack)){
+						((lexical::BlockStatement*)
+							(main->currentExpression))->
+								insertStatement(main->defaultLabel);
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (*tokenType != TokenTypes::colon){
+							Parse::logErrorCString(main, compileCursor,
+								"'default' has to be followed by the ':' token.");
+							return false;
+						}
+						break;
+					}
+					Parse::logErrorCString(main, compileCursor,
+						"'default' has to be directly in a switch block.");
+					return false;
+				case TokenTypes::newKeyword:
+					{
+						std::PtrDArray* dataMembersStack =
+							&main->dataMembersStack;
+						if (!isNextUnary(main) ||
+							dataMembersStack->size > 0){
+							Parse::logErrorCString(main, compileCursor,
+								"'new' at invalid place.");
+							return false;
+						}
+						/* For complex cases, like a new function pointer array. */
+						unsigned int savedCursor =
+							compileCursor - main->token.length;
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (*tokenType == TokenTypes::leftParenthesis){
+							putUnaryOperator(main,
+								new lexical::NewAsyncExpression);
+							break;
+						}
+						data::Type* dataType = Parse::getDataType(
+							app, classType, compileCursor);
+						if (dataType == nullptr) {return false;}
+						if (main->currentParseClass != nullptr){
+							saveCursor(main, savedCursor,
+								dataMembersStack->size);
+							return false;
+						}
+						compileCursor = main->compileCursor;
+						if (dataType->type == data::Types::classT){
+							(data::ClassType*)dataType->setNeedNew();
+						}
+						if (*tokenType == TokenTypes::leftBracket){
+							lexical::NewArrayExpression* expression =
+								new lexical::NewArrayExpression;
+							putUnaryOperator(main, expression);
+							expression->dataType = dataType;
+							if (dataType->type == data::Types::classT){
+								(data::ClassType*)dataType->setNeedNewArray();
+							}
+						} else {
+							lexical::NewExpression* expression =
+								new lexical::NewExpression;
+							putValueIntoExpression(main, expression);
+							expression->dataType = dataType;
+							continue;
+						}
+					}
+					break;
+				case TokenTypes::deleteKeyword:
+					if (main->currentExpression->type !=
+						lexical::Types::block || !main->statementEnd){
+						Parse::logErrorCString(main, compileCursor,
+							"'delete' has to be directly in a block.");
+						return false;
+					}
+					compileCursor = Lexical::getNextToken(main,
+						classType, compileCursor);
+					switch (*tokenType){
+						case TokenTypes::leftBracket:
+							compileCursor = Lexical::getNextToken(main,
+								classType, compileCursor);
+							if (*tokenType != TokenTypes::rightBracket){
+								Parse::logErrorCString(main, compileCursor,
+									"After 'delete[' the ']' token has to be given.");
+								return false;
+							}
+							putUnaryOperator(main,
+								lexical::UnaryOperator::create(
+									lexical::Types::deleteArray));
+							break;
+						case TokenTypes::semicolon:
+							{
+								lexical::MemberFunction* memberFunction =
+									getFunctionToParse(main);
+								if (!memberFunction->isAsync() ||
+									memberFunction->isStatic()){
+									Parse::logErrorCString(main, compileCursor,
+										"void delete has to be in a "
+										"non static async function.");
+									return false;
+								}
+								((lexical::BlockStatement*)
+									(main->currentExpression))->
+										insertStatement(main->deleteStatement);
+								break;
+							}
+						default:
+							putUnaryOperator(main,
+								lexical::UnaryOperator::create(
+									lexical::Types::deleteStatement));
+							continue;
+					}
+					break;
+				case TokenTypes::identifier:
+					{
+						std::PtrDArray* dataMembersStack =
+							&main->dataMembersStack;
+						unsigned int len = dataMembersStack->size;
+						if (!parseIdentifier(app,
+							classType, compileCursor)){
+							return false;
+						}
+						if (dataMembersStack->size > len) {return true;}
+						compileCursor = main->compileCursor;
+						break;
+					}
+				case TokenTypes::numberLiteral:
+					compileCursor = Lexical::getNumberToken(
+						main, classType, compileCursor);
+					if (putValueIntoExpression(main,
+						main->lexicalToken)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"Number literal at invalid place.");
+					return false;
+				case TokenTypes::characterLiteral:
+					compileCursor = Lexical::getCharacterToken(
+						main, classType, compileCursor);
+					if (putValueIntoExpression(main, 
+						main->lexicalToken)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"Character literal at invalid place.");
+					return false;
+				case TokenTypes::stringLiteral:
+					{
+						std::String string;
+						compileCursor = Lexical::getStringToken(
+							main, classType, compileCursor, &string);
+						std::PtrDArray* expressionStack =
+							main->expressionStack;
+						unsigned int i = expressionStack->size;
+						lexical::Type*[] expressions =
+							(lexical::Type*[])(expressionStack->data);
+						lexical::StringLiteral* expression;
+						while (i > 0){
+							switch (expressions[i-1]->type){
+								case lexical::Types::constwriteStatement:
+									/* Not inserting it into the stringLiterals. */
+									expression = new lexical::StringLiteral;
+									expression->string.move(&string);
+									break;
+								case lexical::Types::parenthesized:
+									i = i - 1;
+									continue;
+								default:
+									expression = (lexical::StringLiteral*)
+										(main->stringLiterals.findSorted(
+											&string,
+											lexical::StringLiteral::cmpString));
+									if (expression == nullptr){
+										expression = new lexical::StringLiteral;
+										expression->string.move(&string);
+										main->stringLiterals.insertSorted(
+											expression,
+											lexical::StringLiteral::cmp);
+									}
+									break;
+							}
+							break;
+						}
+						if (!putValueIntoExpression(
+							main, expression)){
+							Parse::logErrorCString(main, compileCursor,
+								"String literal at invalid place.");
+							return false;
+						}
+					}
+					break;
+				case TokenTypes::trueLiteral:
+					if (putValueIntoExpression(main, 
+						main->trueLiteral)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'true' at invalid place.");
+					return false;
+				case TokenTypes::falseLiteral:
+					if (putValueIntoExpression(main,
+						main->falseLiteral)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'false' at invalid place.");
+					return false;
+				case TokenTypes::nullptrLiteral:
+					if (putValueIntoExpression(main,
+						main->nullptrLiteral)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'nullptr' at invalid place.");
+					return false;
+				case TokenTypes::thisLiteral:
+					if (main->dataMembersStack.size > 0 ||
+						getFunctionToParse(main)->isStatic()){
+						Parse::logErrorCString(main, compileCursor,
+							"'this' keyword can not be used in static function.");
+						return false;
+					}
+					if (putValueIntoExpression(main,
+						main->thisLiteral)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'this' at invalid place.");
+					return false;
+				case TokenTypes::assignment:
+					{
+						lexical::BinaryOperator* expression =
+							lexical::BinaryOperator::create(
+								lexical::Types::assignment);
+						if (main->currentExpression->type ==
+							lexical::Types::variableDeclaration){
+							expression->operand1 = main->currentExpression;
+							main->currentExpression = expression;
+							std::PtrDArray* expressionStack =
+								main->expressionStack;
+							unsigned int len = expressionStack->size;
+							std::PtrDArray* statements =
+								&((lexical::BlockStatement*)
+									(expressionStack->data[len - 2]))->statements;
+							statements->data[statements->size - 1] =
+								expression;
+							expressionStack->data[len - 1] =
+								expression;
+						} else {
+							if (putBinaryOperator(main,
+								expression, classType)) {break;}
+							Parse::logErrorCString(main, compileCursor,
+								"'=' at invalid place.");
+							return false;
+						}
+						break;
+					}
+				case TokenTypes::plus:
+					if (isNextUnary(main)){
+						if (putUnaryOperator(main,
+							lexical::UnaryOperator::create(
+								lexical::Types::plus))) {break;}
+					} else if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::addition), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'+' at invalid place.");
+					return false;
+				case TokenTypes::minus:
+					if (isNextUnary(main)){
+						if (putUnaryOperator(main,
+							lexical::UnaryOperator::create(
+								lexical::Types::minus))) {break;}
+					} else if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::substraction), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'-' at invalid place.");
+					return false;
+				case TokenTypes::asterisk:
+					if (isNextUnary(main)){
+						if (putUnaryOperator(main,
+							lexical::UnaryOperator::create(
+								lexical::Types::indirection))) {break;}
+					} else if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::multiplication), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'*' at invalid place.");
+					return false;
+				case TokenTypes::division:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::division), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'/' at invalid place.");
+					return false;
+				case TokenTypes::modulus:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::modulus), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'%' at invalid place.");
+					return false;
+				case TokenTypes::bitwiseComplement:
+					if (putUnaryOperator(main,
+						lexical::UnaryOperator::create(
+							lexical::Types::bitwiseComplement))) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'~' at invalid place.");
+					return false;
+				case TokenTypes::logicalAnd:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::logicalAnd), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'&&' at invalid place.");
+					return false;
+				case TokenTypes::andChar:
+					if (isNextUnary(main)){
+						if (putUnaryOperator(main,
+							lexical::UnaryOperator::create(
+								lexical::Types::addressOf))) {break;}
+					} else if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::bitwiseAnd), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'&' at invalid place.");
+					return false;
+				case TokenTypes::bitwiseExclusiveOr:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::bitwiseExclusiveOr), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'^' at invalid place.");
+					return false;
+				case TokenTypes::logicalOr:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::logicalOr), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'||' at invalid place.");
+					return false;
+				case TokenTypes::bitwiseInclusiveOr:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::bitwiseInclusiveOr), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'|' at invalid place.");
+					return false;
+				case TokenTypes::leftShift:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::leftShift), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'<<' at invalid place.");
+					return false;
+				case TokenTypes::lessThanOrEqual:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::lessThanOrEqual), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'<=' at invalid place.");
+					return false;
+				case TokenTypes::lessThan:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::lessThan), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'<' at invalid place.");
+					return false;
+				case TokenTypes::rightShift:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::rightShift), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'>>' at invalid place.");
+					return false;
+				case TokenTypes::greaterThanOrEqual:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::greaterThanOrEqual), classType)){break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'>=' at invalid place.");
+					return false;
+				case TokenTypes::greaterThan:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::greaterThan), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'>' at invalid place.");
+					return false;
+				case TokenTypes::equalTo:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::equalTo), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'==' at invalid place.");
+					return false;
+				case TokenTypes::notEqualTo:
+					if (putBinaryOperator(main,
+						lexical::BinaryOperator::create(
+							lexical::Types::notEqualTo), classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'!=' at invalid place.");
+					return false;
+				case TokenTypes::logicalNegation:
+					if (putUnaryOperator(main,
+						lexical::UnaryOperator::create(
+							lexical::Types::logicalNegation))) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'!' at invalid place.");
+					return false;
+				case TokenTypes::comma:
+					switch (main->currentExpression->type){
+						case lexical::Types::functionCall:
+							{
+								std::PtrDArray* arguments =
+									&((lexical::FunctionCall*)
+										(main->currentExpression))->arguments;
+								unsigned int len = arguments->size;
+								if (len == 0){
+									Parse::logErrorCString(main, compileCursor,
+										"',' before a first argument is given.");
+									return false;
+								} else if (arguments->data[len-1] == nullptr){
+									Parse::logErrorCString(main, compileCursor,
+										"',' before the argument is given.");
+									return false;
+								}
+								break;
+							}
+						case lexical::Types::newAsync:
+							{
+								lexical::NewAsyncExpression* expression =
+									(lexical::NewAsyncExpression*)
+										(main->currentExpression);
+								if (expression->instance == nullptr){
+									Parse::logErrorCString(main, compileCursor,
+										"',' before a first argument is given.");
+									return false;
+								} else if (expression->thread != nullptr){
+									Parse::logErrorCString(main, compileCursor,
+										"new async call can only have 2 arguments.");
+									return false;
+								}
+								break;
+							}
+						case lexical::Types::parenthesized:
+						case lexical::Types::subscript:
+						case lexical::Types::newArray:
+						case lexical::Types::block:
+							break;
+						default:
+							if (isNextUnary(main)){
+								Parse::logErrorCString(main, compileCursor,
+									"',' before expression end.");
+								return false;
+							}
+							break;
+					}
+					while (true){
+						switch (main->currentExpression->type){
+							case lexical::Types::functionCall:
+								((lexical::FunctionCall*)
+									(main->currentExpression))->
+										arguments.pushBack(nullptr);
+								break;
+							case lexical::Types::newAsync:
+								break;
+							case lexical::Types::parenthesized:
+							case lexical::Types::subscript:
+							case lexical::Types::newArray:
+							case lexical::Types::block:
+								Parse::logErrorCString(main, compileCursor,
+									"',' has to be between function call arguments.");
+								return false;
+							default:
+								if (!Lexical::popExpression(main,
+									classType)) {return false;}
+								continue;
+						}
+						break;
+					}
+					break;
+				case TokenTypes::leftBrace:
+					if (main->currentExpression->type ==
+						lexical::Types::block &&
+						putUnaryOperator(main,
+							new lexical::BlockStatement)){
+						main->statementEnd = true;
+						break;
+					}
+					Parse::logErrorCString(main, compileCursor,
+						"Block begin before end of statement.");
+					return false;
+				case TokenTypes::rightBrace:
+					if (main->currentExpression->type !=
+						lexical::Types::block || !main->statementEnd){
+						Parse::logErrorCString(main, compileCursor,
+							"Block end before end of statement.");
+						return false;
+					} else {
+						std::PtrDArray* expressionStack =
+							main->expressionStack;
+						expressionStack->popBack();
+						unsigned int len = expressionStack->size;
+						if (len == 0){
+							main->functionsToParse.popFront();
+							return true;
+						}
+						lexical::Type* currentExpression =
+							(lexical::Type*)
+								(expressionStack->data[len - 1]);
+						main->currentExpression = currentExpression;
+						switch (currentExpression->type){
+							case lexical::Types::ifStatement:
+								compileCursor = Lexical::getNextToken(main,
+									classType, compileCursor);
+								if (*tokenType != TokenTypes::elseKeyword){
+									while (true){
+										if (!Lexical::popExpression(main,
+											classType)) {return false;}
+										if (main->currentExpression->type !=
+											lexical::Types::ifStatement) {break;}
+									}
+									continue;
+								} else {
+									lexical::IfStatement* expression =
+										(lexical::IfStatement*)currentExpression;
+									if (expression->operand3 != nullptr){
+										Parse::logErrorCString(main, compileCursor,
+											"Else block was already given.");
+										return false;
+									}
+									compileCursor = Lexical::getNextToken(main,
+										classType, compileCursor);
+									if (*tokenType == TokenTypes::ifKeyword){
+										lexical::Type* ifStatement =
+											new lexical::IfStatement;
+										expression->operand3 = ifStatement;
+										main->currentExpression = ifStatement;
+										expressionStack->pushBack(ifStatement);
+										compileCursor = Lexical::getNextToken(main,
+											classType, compileCursor);
+										if (*tokenType != TokenTypes::leftParenthesis){
+											Parse::logErrorCString(main, compileCursor,
+												"'if' has to be followed by the '(' token.");
+											return false;
+										}
+									} else {
+										if (*tokenType != TokenTypes::leftBrace){
+											Parse::logErrorCString(main, compileCursor,
+												"Else has to be followed by the '{' or 'if' token.");
+											return false;
+										}
+										lexical::Type* block =
+											new lexical::BlockStatement;
+										expression->operand3 = block;
+										main->currentExpression = block;
+										expressionStack->pushBack(block);
+										main->statementEnd = true;
+									}
+								}
+								break;
+							case lexical::Types::whileStatement:
+							case lexical::Types::switchStatement:
+								expressionStack->popBack();
+								main->currentExpression = (lexical::Type*)
+									(expressionStack->data[len - 2]);
+								break;
+						}
+						break;
+					}
+				case TokenTypes::leftBracket:
+					{
+						lexical::BinaryOperator* expression =
+							lexical::BinaryOperator::create(
+								lexical::Types::subscript);
+						if (putBinaryOperator(main,
+							expression, classType)){
+							data::Type* dataType =
+								Lexical::getWithoutSpecifiers(main,
+									expression->operand1, classType);
+							if (dataType == nullptr) {return false;}
+							if (dataType->type != data::Types::arrayPointerT){
+								Parse::logErrorCString(main, compileCursor,
+									"An array pointer has to be "
+									"given before the subscript operator.");
+								return false;
+							}
+							break;
+						}
+						Parse::logErrorCString(main, compileCursor,
+							"'[' at invalid place.");
+						return false;
+					}
+				case TokenTypes::rightBracket:
+					{
+						lexical::Type* currentExpression =
+							main->currentExpression;
+						switch (currentExpression->type){
+							case lexical::Types::functionCall:
+							case lexical::Types::newAsync:
+							case lexical::Types::parenthesized:
+							case lexical::Types::subscript:
+							case lexical::Types::newArray:
+							case lexical::Types::block:
+							case lexical::Types::ifStatement:
+							case lexical::Types::whileStatement:
+							case lexical::Types::switchStatement:
+								break;
+							default:
+								if (isNextUnary(main)){
+									Parse::logErrorCString(main, compileCursor,
+										"']' before expression end.");
+									return false;
+								}
+								break;
+						}
+						while (true){
+							switch (currentExpression->type){
+								case lexical::Types::functionCall:
+								case lexical::Types::newAsync:
+								case lexical::Types::parenthesized:
+									Parse::logErrorCString(main, compileCursor,
+										"']' before ')'.");
+									return false;
+								case lexical::Types::subscript:
+								case lexical::Types::newArray:
+									{
+										lexical::Type* operand;
+										if (currentExpression->type ==
+											lexical::Types::newArray){
+											data::Type* dataType =
+												(lexical::NewArrayExpression*)
+													currentExpression->dataType;
+											if ((dataType->type == data::Types::classT) &&
+												(data::ClassType*)dataType->isAsync()){
+												Parse::logErrorCString(main, compileCursor,
+													"'new[]' can not be used with an async class.");
+												return false;
+											}
+											operand = (lexical::NewArrayExpression*)
+												currentExpression->operand;
+										} else {
+											operand = (lexical::BinaryOperator*)
+												currentExpression->operand2;
+										}
+										if (operand != nullptr){
+											data::Type* dataType =
+												Lexical::dataTypeFromExpression(
+													main, operand, classType);
+											if (dataType == nullptr) {return false;}
+											if (dataType->isIntegerType()) {break;}
+										}
+										Parse::logErrorCString(main, compileCursor,
+											"An integer has to be "
+											"given for the subscript operator.");
+										return false;
+									}
+								case lexical::Types::block:
+								case lexical::Types::ifStatement:
+								case lexical::Types::whileStatement:
+								case lexical::Types::switchStatement:
+									Parse::logErrorCString(main, compileCursor,
+										"']' without '['.");
+									return false;
+								default:
+									if (Lexical::popExpression(main, classType)){
+										currentExpression = main->currentExpression;
+										continue;
+									}
+									return false;
+							}
+							break;
+						}
+						main->expressionStack->popBack();
+						main->currentExpression = (lexical::Type*)
+							(main->expressionStack->data[
+								main->expressionStack->size - 1]);
+						break;
+					}
+				case TokenTypes::colon:
+					if (isNextUnary(main)){
+						Parse::logErrorCString(main, compileCursor,
+							"':' before statement end.");
+						return false;
+					}
+					while (true){
+						switch (main->currentExpression->type){
+							case lexical::Types::parenthesized:
+							case lexical::Types::ifStatement:
+							case lexical::Types::whileStatement:
+							case lexical::Types::switchStatement:
+								Parse::logErrorCString(main, compileCursor,
+									"':' before ')'.");
+								return false;
+							case lexical::Types::subscript:
+							case lexical::Types::newArray:
+								Parse::logErrorCString(main, compileCursor,
+									"':' before ']'.");
+								return false;
+							case lexical::Types::block:
+								Parse::logErrorCString(main, compileCursor,
+									"':' at invalid place.");
+								return false;
+							case lexical::Types::caseLabel:
+								{
+									lexical::Type* operand =
+										((lexical::UnaryOperator*)
+											(main->currentExpression))->operand;
+									switch (operand->type){
+										case lexical::Types::integerLiteral:
+										case lexical::Types::characterLiteral:
+											break;
+										case lexical::Types::dataMember:
+											if ((lexical::DataMember*)operand->
+												isConstexpr()) {break;}
+											/* No break for error. */
+										default:
+											Parse::logErrorCString(main, compileCursor,
+												"An integer literal has to be "
+												"given for the case label.");
+											return false;
+									}
+									break;
+								}
+							default:
+								if (!Lexical::popExpression(
+									main, classType)) {return false;}
+								continue;
+						}
+						break;
+					}
+					main->expressionStack->popBack();
+					main->currentExpression = (lexical::Type*)
+						(main->expressionStack->data[
+							main->expressionStack->size - 1]);
+					main->statementEnd = true;
+					break;
+				case TokenTypes::leftParenthesis:
+					if (isNextUnary(main)){
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						switch (*tokenType){
+							case TokenTypes::voidKeyword:
+							case TokenTypes::boolKeyword:
+							case TokenTypes::unsignedKeyword:
+							case TokenTypes::charKeyword:
+							case TokenTypes::shortKeyword:
+							case TokenTypes::intKeyword:
+							case TokenTypes::floatKeyword:
+							case TokenTypes::doubleKeyword:
+							case TokenTypes::identifier:
+								main->maybeCast = true;
+								continue;
+							default:
+								if (putUnaryOperator(main,
+									lexical::UnaryOperator::create(
+										lexical::Types::parenthesized))) {continue;}
+								break;
+						}
+					} else if (putBinaryOperator(main,
+						new lexical::FunctionCall, classType)) {break;}
+					Parse::logErrorCString(main, compileCursor,
+						"'(' at invalid place.");
+					return false;
+				case TokenTypes::rightParenthesis:
+					{
+						lexical::Type* currentExpression =
+							main->currentExpression;
+						switch (currentExpression->type){
+							case lexical::Types::functionCall:
+							case lexical::Types::parenthesized:
+							case lexical::Types::subscript:
+							case lexical::Types::newArray:
+							case lexical::Types::newAsync:
+							case lexical::Types::block:
+							case lexical::Types::ifStatement:
+							case lexical::Types::whileStatement:
+							case lexical::Types::switchStatement:
+								break;
+							default:
+								if (isNextUnary(main)){
+									Parse::logErrorCString(main, compileCursor,
+										"')' before expression end.");
+									return false;
+								}
+								break;
+						}
+						bool doContinue = false;
+						while (true){
+							switch (currentExpression->type){
+								case lexical::Types::functionCall:
+									{
+										lexical::FunctionCall* expression =
+											(lexical::FunctionCall*)currentExpression;
+										std::PtrDArray* arguments =
+											&expression->arguments;
+										unsigned int len = arguments->size;
+										if (len > 0 &&
+											arguments->data[len-1] == nullptr){
+											Parse::logErrorCString(main, compileCursor,
+												"')' before the argument is given.");
+											return false;
+										}
+										if (!isFunctionCallValid(
+											main, expression,
+											classType, compileCursor)) {return false;}
+									}
+									/* No break */
+								case lexical::Types::parenthesized:
+									main->expressionStack->popBack();
+									main->currentExpression =
+										(lexical::Type*)
+											(main->expressionStack->data[
+												main->expressionStack->size - 1]);
+									break;
+								case lexical::Types::subscript:
+								case lexical::Types::newArray:
+									Parse::logErrorCString(main, compileCursor,
+										"')' before ']'.");
+									return false;
+								case lexical::Types::newAsync:
+									{
+										unsigned int savedCursor = compileCursor - 1;
+										compileCursor = Lexical::getNextToken(main,
+											classType, compileCursor);
+										data::Type* dataType = Parse::getDataType(
+											app, classType, compileCursor);
+										if (dataType == nullptr) {return false;}
+										if (dataType->type == data::Types::classT){
+											(data::ClassType*)dataType->setNeedNew();
+										}
+										if (main->currentParseClass != nullptr){
+											saveCursor(main, savedCursor,
+												main->dataMembersStack.size);
+											return false;
+										}
+										compileCursor = main->compileCursor;
+										lexical::NewAsyncExpression* expression =
+											(lexical::NewAsyncExpression*)
+												currentExpression;
+										expression->dataType = dataType;
+										if (isNewAsyncValid(main, expression,
+											classType, compileCursor)){
+											main->expressionStack->popBack();
+											main->currentExpression =
+												(lexical::Type*)
+													(main->expressionStack->data[
+														main->expressionStack->size - 1]);
+											doContinue = true;
+											break;
+										}
+										return false;
+									}
+								case lexical::Types::block:
+									Parse::logErrorCString(main, compileCursor,
+										"')' without '('.");
+									return false;
+								case lexical::Types::ifStatement:
+									{
+										lexical::Type* operand =
+											(lexical::IfStatement*)
+												currentExpression->operand1;
+										if (operand == nullptr ||
+											Lexical::getWithoutSpecifiers(
+												main, operand, classType) != main->boolType){
+											Parse::logErrorCString(main, compileCursor,
+												"The if statement "
+												"has to have a boolean argument.");
+											return false;
+										}
+										compileCursor = Lexical::getNextToken(main,
+											classType, compileCursor);
+										if (*tokenType != TokenTypes::leftBrace){
+											Parse::logErrorCString(main, compileCursor,
+												"The if statement condition has "
+												" to be followed by the '{' token.");
+											return false;
+										}
+										lexical::Type* expression =
+											new lexical::BlockStatement;
+										(lexical::IfStatement*)
+											currentExpression->operand2 = expression;
+										main->currentExpression = expression;
+										main->expressionStack->pushBack(
+											expression);
+										main->statementEnd = true;
+										break;
+									}
+								case lexical::Types::whileStatement:
+									{
+										lexical::Type* operand =
+											(lexical::BinaryOperator*)
+												currentExpression->operand1;
+										if (operand == nullptr ||
+											Lexical::getWithoutSpecifiers(
+												main, operand, classType) != main->boolType){
+											Parse::logErrorCString(main, compileCursor,
+												"The while statement "
+												"has to have a boolean argument.");
+											return false;
+										}
+										compileCursor = Lexical::getNextToken(main,
+											classType, compileCursor);
+										if (*tokenType != TokenTypes::leftBrace){
+											Parse::logErrorCString(main, compileCursor,
+												"The while statement condition has "
+												" to be followed by the '{' token.");
+											return false;
+										}
+										lexical::Type* expression =
+											new lexical::BlockStatement;
+										(lexical::BinaryOperator*)
+											currentExpression->operand2 = expression;
+										main->currentExpression = expression;
+										main->expressionStack->pushBack(
+											expression);
+										main->statementEnd = true;
+										break;
+									}
+								case lexical::Types::switchStatement:
+									{
+										lexical::Type* operand =
+											(lexical::BinaryOperator*)
+												currentExpression->operand1;
+										if (operand == nullptr ||
+											!(Lexical::getWithoutSpecifiers(
+												main, operand, classType)->isIntegerType())){
+											Parse::logErrorCString(main, compileCursor,
+												"The switch statement "
+												"has to have an integer argument.");
+											return false;
+										}
+										compileCursor = Lexical::getNextToken(main,
+											classType, compileCursor);
+										if (*tokenType != TokenTypes::leftBrace){
+											Parse::logErrorCString(main, compileCursor,
+												"The switch statement argument has "
+												" to be followed by the '{' token.");
+											return false;
+										}
+										compileCursor = Lexical::getNextToken(main,
+											classType, compileCursor);
+										if (*tokenType != TokenTypes::caseKeyword &&
+											*tokenType != TokenTypes::defaultKeyword){
+											Parse::logErrorCString(main, compileCursor,
+												"The switch block has to start with "
+												"either the case or the default label.");
+											return false;
+										}
+										doContinue = true;
+										lexical::Type* expression =
+											new lexical::BlockStatement;
+										(lexical::BinaryOperator*)
+											currentExpression->operand2 = expression;
+										main->currentExpression = expression;
+										main->expressionStack->pushBack(
+											expression);
+										main->statementEnd = true;
+										break;
+									}
+								default:
+									if (Lexical::popExpression(main, classType)){
+										currentExpression = main->currentExpression;
+										continue;
+									}
+									return false;
+							}
+							break;
+						}
+						if (doContinue) {continue;}
+						break;
+					}
+				case TokenTypes::semicolon:
+					if (main->statementEnd) {break;}
+					if (isNextUnary(main)){
+						Parse::logErrorCString(main, compileCursor,
+							"';' before statement end.");
+						return false;
+					}
+					while (true){
+						switch (main->currentExpression->type){
+							case lexical::Types::parenthesized:
+							case lexical::Types::functionCall:
+							case lexical::Types::ifStatement:
+							case lexical::Types::whileStatement:
+							case lexical::Types::switchStatement:
+								Parse::logErrorCString(main, compileCursor,
+									"';' before ')'.");
+								return false;
+							case lexical::Types::subscript:
+							case lexical::Types::newArray:
+								Parse::logErrorCString(main, compileCursor,
+									"';' before ']'.");
+								return false;
+							case lexical::Types::caseLabel:
+								Parse::logErrorCString(main, compileCursor,
+									"';' before ':'.");
+								return false;
+							case lexical::Types::block:
+								{
+									std::PtrDArray* statements =
+										&((lexical::BlockStatement*)
+										(main->currentExpression))->statements;
+									unsigned int len = statements->size;
+									if (len > 0 &&
+										Lexical::dataTypeFromExpression(main,
+											(lexical::Type*)(statements->data[len-1]),
+												classType) == nullptr) {return false;}
+									break;
+								}
+							default:
+								if (main->expressionStack->size == 1){
+									lexical::BinaryOperator* expression =
+										(lexical::BinaryOperator*)
+											(main->expressionStack->data[0]);
+									if (Lexical::popExpression(main, classType)){
+										Lexical::doConstParse(main, expression);
+										main->dataMembersStack.popBack();
+										return true;
+									}
+									return false;
+								}
+								if (Lexical::popExpression(
+									main, classType)) {continue;}
+								return false;
+						}
+						break;
+					}
+					main->statementEnd = true;
+					break;
+				case TokenTypes::classMember:
+				case TokenTypes::memberPointer:
+					{
+						bool pointer =
+							*tokenType == TokenTypes::memberPointer;
+						unsigned char type;
+						if (pointer){
+							type = lexical::Types::memberPointer;
+						} else {
+							type = lexical::Types::classMember;
+						}
+						if (putBinaryOperator(main,
+							lexical::BinaryOperator::create(type), classType)){
+							unsigned int len = main->dataMembersStack.size;
+							if (parseMemberAccess(app, classType,
+								pointer, compileCursor)){
+								if (main->dataMembersStack.size >
+									len) {return true;}
+								compileCursor = main->compileCursor;
+								break;
+							}
+							return false;
+						}
+						if (pointer){
+							Parse::logErrorCString(main, compileCursor,
+								"'->' at invalid place.");
+						} else {
+							Parse::logErrorCString(main, compileCursor,
+								"'.' at invalid place.");
+						}
+						return false;
+					}
+				default:
+					Parse::logErrorCString(main, compileCursor,
+						"Invalid token.");
+					return false;
+			}
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+			continue;
+		}
+	}
+
+	static bool isNewAsyncValid(Main* main,
+		lexical::NewAsyncExpression* expression,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		data::Type* dataType = expression->dataType;
+		if ((dataType->type != data::Types::classT) ||
+			!(data::ClassType*)dataType->isAsync()){
+			Parse::logErrorCString(main, compileCursor,
+				"'new()' needs an async class.");
+			return false;
+		}
+		lexical::Type* instance = expression->instance;
+		if (instance != nullptr){
+			if (instance != main->nullptrLiteral){
+				dataType = Lexical::getWithoutSpecifiers(
+					main, instance, classType);
+				if ((dataType->type != data::Types::classT) ||
+					!(data::ClassType*)dataType->isAsync()){
+					Parse::logErrorCString(main, compileCursor,
+						"'new()' needs an async object as its first parameter.");
+					return false;
+				}
+			}
+			lexical::Type* thread = expression->thread;
+			if (thread != nullptr){
+				dataType = Lexical::dataTypeFromExpression(
+					main, thread, classType);
+				if (!dataType->isIntegerType()){
+					Parse::logErrorCString(main, compileCursor,
+						"'new()' needs an integer as its second parameter.");
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	static bool isFunctionCallValid(Main* main,
+		lexical::FunctionCall* expression,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		data::Type* dataType1 =
+			Lexical::getWithoutSpecifiers(
+				main, expression->operand, classType);
+		if (dataType1 == nullptr) {return false;}
+		bool isPointer;
+		std::PtrDArray* parameters;
+		lexical::Type* lexicalExpression =
+			main->lexicalExpression;
+		if (lexicalExpression != nullptr &&
+			lexicalExpression->type ==
+				lexical::Types::memberFunction){
+			isPointer = false;
+			parameters = &(lexical::MemberFunction*)
+				lexicalExpression->parameters;
+  	} else {
+			if (dataType1->type !=
+				data::Types::functionPointerT){
+				Parse::logErrorCString(main, compileCursor,
+					"Function member or pointer has to be "
+					"given for a function call.");
+				return false;
+			}
+			isPointer = true;
+			parameters = &((data::FunctionPointerType*)
+				dataType1->parameters);
+		}
+		unsigned int argumentsLen =
+			expression->arguments.size;
+		unsigned int parametersLen =
+			parameters->size;
+		if (argumentsLen != parametersLen){
+			std::DString error;
+			error.addCString("Calling function ");
+			if (isPointer){
+				error.addCString("pointer ");
+			} else {
+				error.addCString("member ");
+				error.addString(&(lexical::MemberFunction*)
+					lexicalExpression->name);
+			}
+			error.addCString(" needs ");
+			error.addUint(parametersLen,
+				std::NumberBases::decimal);
+			error.addCString(" arguments, but ");
+			error.addUint(argumentsLen,
+				std::NumberBases::decimal);
+			error.addCString(" was given.");
+			Parse::logError(main, compileCursor, &error);
+			return false;
+		}
+		lexical::Type*[] arguments = (lexical::Type*[])
+			(expression->arguments.data);
+		void*[] parametersData = parameters->data;
+		unsigned int i = 0;
+		while (i < parametersLen){
+			if (isPointer){
+				dataType1 = (data::Type*)(parametersData[i]);
+			} else {
+				dataType1 = ((lexical::FunctionParameter*)
+					(parametersData[i]))->dataType;
+			}
+			data::Type* dataType2 =
+				Lexical::dataTypeFromExpression(
+					main, arguments[i], classType);
+			if (dataType2 == nullptr ||
+				!Lexical::isAssignmentValid(main, dataType1,
+					dataType2, classType)) {return false;}
+			i = i + 1;
+		}
+		return true;
+	}
+
+	static lexical::DataMember* getDataMember(
+		data::ClassType* classType,
+		std::StringView* name){
+		lexical::DataMember* dataMember;
+		while (classType != nullptr){
+			dataMember = classType->getDataMember(name);
+			if (dataMember != nullptr) {return dataMember;}
+			classType = classType->base;
+		}
+		return nullptr;
+	}
+
+	static lexical::MemberFunction* getMemberFunction(
+		data::ClassType* classType,
+		std::StringView* name){
+		lexical::MemberFunction* memberFunction;
+		while (classType != nullptr){
+			memberFunction = classType->getFunction(name);
+			if (memberFunction != nullptr) {return memberFunction;}
+			classType = classType->base;
+		}
+		return nullptr;
+	}
+
+	static bool classMemberToExpression(
+		std::ApplicationInstance aexcl app,
+		data::ClassType* classType,
+		std::StringView* name,
+		unsigned int compileCursor){
+		Main* main = &app.main;
+		lexical::DataMember* dataMember =
+			getDataMember(classType, name);
+		if (dataMember != nullptr){
+			return dataMemberToExpression(
+				app, dataMember, compileCursor);
+		} else {
+			lexical::MemberFunction* functionMember =
+				getMemberFunction(classType, name);
+			if (functionMember != nullptr){
+				return functionMemberToExpression(
+					app, functionMember, compileCursor);
+			} else {
+				std::DString error;
+				error.addCString("Class member '");
+				error.addStringView(name);
+				error.addCString("' not found.");
+				Parse::logError(main, compileCursor, &error);
+				return false;
+			}
+		}
+	}
+
+	static bool parseMemberAccess(
+		std::ApplicationInstance aexcl app,
+		data::ClassType* classType,
+		bool pointer, unsigned int compileCursor){
+		Main* main = &app.main;
+		compileCursor = Lexical::getNextToken(main,
+			classType, compileCursor);
+		if (main->tokenType != TokenTypes::identifier){
+			std::DString error;
+			error.addCString(
+				"There has to be an identifier after the '");
+			if (pointer){
+				error.addCString("->");
+			} else {
+				error.addChar('.');
+			}
+			error.addCString("' operator.");
+			Parse::logError(main, compileCursor, &error);
+			return false;
+		}
+		lexical::BinaryOperator* expression =
+			(lexical::BinaryOperator*)(main->currentExpression);
+		data::Type* ofClass =
+			Lexical::getWithoutSpecifiers(
+				main, expression->operand1, classType);
+		if (ofClass == nullptr) {return false;}
+		data::ClassType* ofClassType = nullptr;
+		if (!pointer){
+			if (ofClass->type != data::Types::classT){
+				Parse::logErrorCString(main, compileCursor,
+					"A class data type has to be before the '.' operator.");
+				return false;
+			}
+			lexical::Type* lexicalExpression =
+				main->lexicalExpression;
+			ofClassType = (data::ClassType*)ofClass;
+			if (ofClassType->isAsync() &&
+				(lexicalExpression == nullptr ||
+					(lexicalExpression->type !=
+							lexical::Types::localVariable &&
+						lexicalExpression->type !=
+							lexical::Types::functionParameter) ||
+					!(lexical::Variable*)lexicalExpression->isAexcl())){
+				lexical::MemberFunction* memberFunction =
+					getMemberFunction(ofClassType, &main->token);
+				if (memberFunction != nullptr){
+					unsigned char specifiers =
+						getFunctionMemberSpecifiers(main, memberFunction);
+					if ((specifiers & (
+						lexical::FunctionSpecifierTypes::isAsync |
+						lexical::FunctionSpecifierTypes::isStatic)) != 0){
+						return functionMemberToExpression(
+							app, memberFunction, compileCursor);
+					}
+				}
+				Parse::logErrorCString(main, compileCursor,
+					"Use of the '.' operator with an async type "
+					"has to have the 'aexcl' specifier.");
+				return false;
+			}
+		} else {
+			if (ofClass->type == data::Types::pointerT){
+				ofClass = (data::PointerType*)ofClass->dataType;
+				if (ofClass->type == data::Types::classT){
+					ofClassType = (data::ClassType*)ofClass;
+					if (ofClassType->isAsync()){
+						ofClassType = nullptr;
+					}
+				}
+			}
+			if (ofClassType == nullptr){
+				Parse::logErrorCString(main, compileCursor,
+					"A pointer to a non-async class data type "
+					"has to be before the '->' operator.");
+				return false;
+			}
+		}
+		return classMemberToExpression(
+			app, ofClassType, &main->token, compileCursor);
+	}
+
+	static void saveCursor(Main* main,
+		unsigned int cursor, unsigned int length){
+		if (length == 0){
+			getFunctionToParse(main)->cursor = cursor;
+			main->functionStatementEnd = main->statementEnd;
+			main->functionMaybeCast = main->maybeCast;
+		} else {
+			DataMemberStack* dataMemberStack =
+				(DataMemberStack*)(main->
+					dataMembersStack.data[length-1]);
+			((lexical::DataMember*)
+				(((lexical::BinaryOperator*)
+					(dataMemberStack->expressionStack.data[0]))->
+						operand1))->cursor = cursor;
+			dataMemberStack->statementEnd = main->statementEnd;
+			dataMemberStack->maybeCast = main->maybeCast;
+		}
+	}
+	
+	static unsigned int getSavedCursor(Main* main,
+		bool savedCursor){
+		unsigned int cursor;
+		if (savedCursor){
+			main->currentParseDataMember = nullptr;
+			cursor = main->compileCursor;
+		} else {
+			unsigned int len = main->dataMembersStack.size;
+			if (len == 0){
+				cursor = getFunctionToParse(main)->cursor;
+			} else {
+				cursor = ((lexical::DataMember*)
+					(((lexical::BinaryOperator*)
+						(((DataMemberStack*)(main->
+							dataMembersStack.data[len-1]))->
+								expressionStack.data[0]))->
+									operand1))->cursor;
+			}
+		}
+		return cursor;
+	}
+
+	static bool parseDataMember(
+		std::ApplicationInstance aexcl app,
+		lexical::DataMember* dataMember,
+		unsigned int compileCursor){
+		Main* main = &app.main;
+		data::ClassType* classType = dataMember->parentClass;
+		unsigned int savedCursor = compileCursor;
+		main->currentParseDataMember = dataMember;
+		compileCursor = Lexical::getNextToken(main,
+			classType, dataMember->cursor);
+		dataMember->dataType = Parse::getDataType(
+			app, classType, compileCursor);
+		if (dataMember->dataType == nullptr) {return false;}
+		compileCursor = main->compileCursor;
+		main->compileCursor = savedCursor;
+		if (main->currentParseClass != nullptr){
+			dataMember->cursor = compileCursor;
+			return false;
+		}
+		unsigned int len = main->dataMembersStack.size;
+		if (!parseDataMemberName(main,
+			dataMember, compileCursor, true)) {return false;}
+		main->currentParseDataMember = nullptr;
+		if (main->dataMembersStack.size > len){
+			saveCursor(main, savedCursor, len);
+		} else {
+			main->compileCursor = savedCursor;
+		}
+		return true;
+	}
+
+	static bool parseDataMemberName(Main* main,
+		lexical::DataMember* dataMember,
+		unsigned int compileCursor,
+		bool savedCursor){
+		if ((dataMember->getSpecifiers() & (
+			data::SpecifierTypes::isAlock |
+			data::SpecifierTypes::isAexcl)) != 0){
+			Parse::logErrorCString(main, compileCursor,
+				"A data member can not be alock or aexcl.");
+			return false;
+		}
+		if (!checkDataMemberSpecifiers(
+			main, dataMember, savedCursor)) {return false;}
+		unsigned char* tokenType = &main->tokenType;
+		if (*tokenType != TokenTypes::identifier ||
+			main->token.compareString(&dataMember->name) != 0){
+			Parse::logErrorCString(main, compileCursor,
+				"A data member name has to be after its type.");
+			return false;
+		}
+		data::ClassType* classType = dataMember->parentClass;
+		compileCursor = Lexical::getNextToken(main,
+			classType, compileCursor);
+		if (dataMember->isConstant()){
+			if (dataMember->isConst()){
+				Parse::logErrorCString(main, compileCursor,
+					"A constant data member has to be "
+					"constexpr or static.");
+				return false;
+			}
+			if (*tokenType != TokenTypes::assignment){
+				Parse::logErrorCString(main, compileCursor,
+					"A constexpr or static data member "
+					"requires assignment.");
+				return false;
+			}
+			if (dataMember->isStatic()){
+				main->staticMembers.pushBack(dataMember);
+			}
+			DataMemberStack* dataMemberStack;
+			unsigned int len = main->dataMembersStack.size;
+			if (len == 0){
+				main->functionStatementEnd = main->statementEnd;
+				main->functionMaybeCast = main->maybeCast;
+			} else {
+				dataMemberStack =
+					(DataMemberStack*)(main->
+						dataMembersStack.data[len-1]);
+				dataMemberStack->statementEnd = main->statementEnd;
+				dataMemberStack->maybeCast = main->maybeCast;
+			}
+			dataMemberStack = new DataMemberStack;
+			dataMemberStack->statementEnd = false;
+			dataMemberStack->maybeCast = false;
+			lexical::BinaryOperator* expression =
+				lexical::BinaryOperator::create(
+					lexical::Types::assignment);
+			expression->operand1 = dataMember;
+			dataMemberStack->expressionStack.pushBack(expression);
+			main->dataMembersStack.pushBack(dataMemberStack);
+			dataMember->cursor = compileCursor;
+		} else if (*tokenType != TokenTypes::semicolon){
+			Parse::logErrorCString(main, compileCursor,
+				"Data member declaration has to end with a ';'.");
+			return false;
+		}
+		main->compileCursor = compileCursor;
+		return true;
+	}
+
+	static void parseClassOrMember(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* openedFile){
+		Main* main = &app.main;
+		unsigned int compileCursor = main->compileCursor;
+		std::DString* classOrMemberPath =
+			&main->classOrMemberPath;
+		std::DString* classMemberName =
+			&main->classMemberName;
+		unsigned int rootPath = main->rootPath;
+		unsigned int len = classOrMemberPath->length;
+		unsigned int nameLen = classMemberName->length;
+		unsigned int i;
+		if (openedFile == nullptr){
+			if (nameLen != 0){
+				std::DString error;
+				error.addCString("Identifier '");
+				error.addSubReplace(classOrMemberPath->data,
+					rootPath + 4, len - rootPath - 4, "/", 0, 1,
+					"::", 0, 2);
+				error.addCString("::");
+				error.addDString(classMemberName);
+				error.addCString("' could not be resolved.");
+				Parse::logError(main, compileCursor, &error);
+				return;
+			}
+			i = std::Memory::indexOfUcharReverse(
+				'/', classOrMemberPath->data, 0, len) - 1;
+			classMemberName->setSubstring(
+				classOrMemberPath->data, i + 1,
+				len - i - 1);
+			if (i == rootPath + 3){
+				std::DString error;
+				error.addCString("Identifier '");
+				error.addDString(classMemberName);
+				error.addCString("' could not be resolved.");
+				Parse::logError(main, compileCursor, &error);
+				return;
+			}
+			classOrMemberPath->trim(i);
+			classOrMemberPath->addCString(".scf");
+			app.fileSystem.openFile(
+				classOrMemberPath->data, parseClassOrMember,
+				std::fs::OpenFileModes::readBinary);
+			classOrMemberPath->trim(i);
+			return;
+		}
+		i = rootPath + 4;
+		unsigned int j = i;
+		Namespace* compileNamespace = main->rootNamespace;
+		data::ClassType* classType;
+		std::StringView name;
+		while (true){
+			j = classOrMemberPath->indexOfChar('/', j);
+			if (j == 0){
+				j = len + 1;
+			}
+			j = j - 1;
+			name.setSubstring(classOrMemberPath->data, i, j - i);
+			if (j < len){
+				Namespace* nextNameSpace =
+					compileNamespace->getNamespace(&name);
+				if (nextNameSpace == nullptr){
+					nextNameSpace =
+						Namespace::create(&name, compileNamespace);
+					compileNamespace->insertNamespace(nextNameSpace);
+				}
+				compileNamespace = nextNameSpace;
+				j = j + 1;
+				i = j;
+			} else {
+				classType = data::ClassType::create(
+					&name, compileNamespace);
+				compileNamespace->insertClass(classType);
+				break;
+			}
+		}
+		main->currentParseClass = classType;
+		continueParseClassOrMember(app, openedFile);
+	}
+
+	static void continueParseClassOrMember(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* openedFile){
+		Main* main = &app.main;
+		data::ClassType* classType = main->currentParseClass;
+		if (openedFile == nullptr){
+			std::DString error;
+			error.addCString("Class: ");
+			error.addString(&classType->name);
+			error.addCString(" does not exists.");
+			Parse::logError(main, 0, &error);
+			return;
+		}
+		unsigned int len = openedFile->getSize();
+		std::String* code = &classType->code;
+		code->setLength(len);
+		openedFile->read(code->data, 0, len);
+		Parse::parseClass(app, classType,
+			continueParseClassOrMember);
+		if (main->compileError) {return;}
+		if (main->currentParseClass == classType->base) {return;}
+		main->currentParseClass = nullptr;
+		parseExpressionStacks(app);
+	}
+
+	static bool isSubClass(
+		data::ClassType* classType,
+		data::Type* subType){
+		while (classType != nullptr){
+			if (classType == subType) {return true;}
+			classType = classType->base;
+		}
+		return false;
+	}
+	
+	static bool checkDataMemberSpecifiers(
+		Main* main, lexical::DataMember* dataMember,
+		bool savedCursor){
+		unsigned char type = main->currentExpression->type;
+		if (type != lexical::Types::classMember &&
+			type != lexical::Types::memberPointer){
+			unsigned char specifiers =
+				dataMember->getSpecifiers();
+			unsigned int len = main->dataMembersStack.size;
+			if (len == 0){
+				if ((specifiers & (
+					data::SpecifierTypes::isStatic |
+					data::SpecifierTypes::isConstexpr)) == 0){
+					lexical::MemberFunction* functionToParse =
+						getFunctionToParse(main);
+					if (functionToParse->isStatic()){
+						Parse::logErrorCString(main,
+							getSavedCursor(main, savedCursor),
+							"Referencing a non-static data member "
+							"from a static function.");
+						return false;
+					} else if (!isSubClass(functionToParse->parentClass,
+						dataMember->parentClass)){
+						std::DString error;
+						error.addCString("Non-static data member '");
+						error.addString(&dataMember->name);
+						error.addCString("' referenced outside of its class.");
+						Parse::logError(main, 
+							getSavedCursor(main, savedCursor), &error);
+						return false;
+					}
+				}
+			} else {
+				if ((specifiers &
+					data::SpecifierTypes::isConstexpr) == 0){
+					Parse::logErrorCString(main,
+						getSavedCursor(main, savedCursor),
+						"Referencing a non-constexpr data member "
+						"from a constexpr data member.");
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	static bool dataMemberToExpression(
+		std::ApplicationInstance aexcl app,
+		lexical::DataMember* dataMember,
+		unsigned int compileCursor){
+		Main* main = &app.main;
+		if (!putValueIntoExpression(main, dataMember)){
+			std::DString error;
+			error.addCString("Data member '");
+			error.addStringView(&main->token);
+			error.addCString("' at invalid place.");
+			Parse::logError(main, 0, &error);
+			return false;
+		}
+		if (dataMember->dataType == nullptr){
+			if (!parseDataMember(app, dataMember, compileCursor)){
+				if (main->currentParseDataMember != nullptr){
+					saveCursor(main, compileCursor,
+						main->dataMembersStack.size);
+				}
+				return false;
+			}
+			return true;
+		}
+		main->compileCursor = compileCursor;
+		return checkDataMemberSpecifiers(
+			main, dataMember, true);
+	}
+
+	static unsigned char getFunctionMemberSpecifiers(
+		Main* main, lexical::MemberFunction* memberFunction){
+		if (memberFunction->dataType != nullptr){
+			return memberFunction->specifiers;
+		} else {
+			data::ClassType* classType = memberFunction->parentClass;
+			return Parse::parseFunctionSpecifiers(
+				main, classType,
+				Lexical::getNextToken(main,
+					classType, memberFunction->cursor),
+				memberFunction);
+		}
+	}
+
+	static bool functionMemberToExpression(
+		std::ApplicationInstance aexcl app,
+		lexical::MemberFunction* memberFunction,
+		unsigned int compileCursor){
+		Main* main = &app.main;
+		if (!putValueIntoExpression(main, memberFunction)){
+			std::DString error;
+			error.addCString("Member function '");
+			error.addStringView(&main->token);
+			error.addCString("' at invalid place.");
+			Parse::logError(main, 0, &error);
+			return false;
+		}
+		unsigned char type = main->currentExpression->type;
+		if (type != lexical::Types::classMember &&
+			type != lexical::Types::memberPointer){
+			unsigned char specifiers =
+				getFunctionMemberSpecifiers(main, memberFunction);
+			if (main->compileError) {return false;}
+			unsigned int len = main->dataMembersStack.size;
+			if (len == 0){
+				if ((specifiers &
+					lexical::FunctionSpecifierTypes::isStatic) == 0){
+					lexical::MemberFunction* functionToParse =
+						getFunctionToParse(main);
+					if (functionToParse->isStatic()){
+						Parse::logErrorCString(main, compileCursor,
+							"Referencing a non-static function "
+							"from a static function.");
+						return false;
+					} else if (!isSubClass(functionToParse->parentClass,
+						memberFunction->parentClass)){
+						std::DString error;
+						error.addCString("Non-static function '");
+						error.addString(&memberFunction->name);
+						error.addCString("' referenced outside of its class.");
+						Parse::logError(main, 0, &error);
+						return false;
+					}
+				}
+			} else {
+				Parse::logErrorCString(main, compileCursor,
+					"Referencing a function "
+					"from a constexpr data member.");
+				return false;
+			}
+		}
+		if (memberFunction->dataType == nullptr){
+			main->currentParseFunction = memberFunction;
+			memberFunction->block = new lexical::BlockStatement;
+			main->functionsToParse.pushBack(
+				memberFunction);
+			unsigned int savedCursor = compileCursor;
+			if (!Parse::parseFunctionUntilBlock(app)){
+				saveCursor(main, savedCursor,
+					main->dataMembersStack.size);
+				return false;
+			} else {
+				compileCursor = savedCursor;
+			}
+		}
+		main->compileCursor = compileCursor;
+		return true;
+	}
+	
+	static void checkMaybeCast(Main* main){
+		if (main->maybeCast){
+			putUnaryOperator(main,
+				lexical::BinaryOperator::create(
+					lexical::Types::parenthesized));
+			main->maybeCast = false;
+		}
+	}
+
+	static bool parseIdentifier(
+		std::ApplicationInstance aexcl app,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		Main* main = &app.main;
+		std::StringView* token = &main->token;
+		unsigned int savedCursor =
+			compileCursor - main->token.length;
+		/* If scope resolution, then it is a namespace or class name. */
+		compileCursor = Parse::ignoreWhitespaceAndComment(
+			classType, compileCursor);
+		std::String* code = &classType->code;
+		if (compileCursor + 2 > code->length ||
+			code->data[compileCursor] != ':' ||
+			code->data[compileCursor + 1] != ':'){
+			/* Find in local variables. */
+			unsigned int i = main->expressionStack->size - 1;
+			lexical::Type*[] expressions = (lexical::Type*[])
+				(main->expressionStack->data);
+			while (i >= 0){
+				if (expressions[i]->type == lexical::Types::block){
+					lexical::LocalVariable* variable =
+						((lexical::BlockStatement*)
+							(expressions[i]))->getVariable(token);
+					if (variable != nullptr){
+						checkMaybeCast(main);
+						if (!putValueIntoExpression(
+							main, variable)){
+							std::DString error;
+							error.addCString("Local variable '");
+							error.addStringView(token);
+							error.addCString("' at invalid place.");
+							Parse::logError(main, 0, &error);
+							return false;
+						}
+						main->compileCursor = compileCursor;
+						return true;
+					}
+				}
+				i = i - 1;
+			}
+			if (main->dataMembersStack.size == 0){
+				/* Find in parameters. */
+				lexical::MemberFunction* functionToParse =
+					getFunctionToParse(main);
+				lexical::FunctionParameter* parameter =
+					functionToParse->getParameter(token);
+				if (parameter != nullptr){
+					checkMaybeCast(main);
+					if (!putValueIntoExpression(
+						main, parameter)){
+						std::DString error;
+						error.addCString("Function parameter '");
+						error.addStringView(token);
+						error.addCString("' at invalid place.");
+						Parse::logError(main, 0, &error);
+						return false;
+					}
+					main->compileCursor = compileCursor;
+					return true;
+				}
+			}
+			/* Find in current class data members. */
+			lexical::DataMember* dataMember =
+				getDataMember(classType, token);
+			if (dataMember != nullptr){
+				checkMaybeCast(main);
+				return dataMemberToExpression(
+					app, dataMember, compileCursor);
+			}
+			/* Find in current class function members. */
+			lexical::MemberFunction* functionMember =
+				getMemberFunction(classType, token);
+			if (functionMember != nullptr){
+				checkMaybeCast(main);
+				return functionMemberToExpression(
+					app, functionMember, compileCursor);
+			}
+		}
+		/* Find in namespaces. */
+		Namespace* compileNamespace = main->rootNamespace;
+		std::DString* path = &main->classOrMemberPath;
+		while (true){
+			Namespace* nextNameSpace =
+				compileNamespace->getNamespace(token);
+			if (nextNameSpace == nullptr){
+				data::ClassType* classDataType =
+					compileNamespace->getClass(token);
+				if (classDataType == nullptr){
+					main->classMemberName.clear();
+					path->trim(main->rootPath + 3/*src*/);
+					compileNamespace->getPath(path);
+					path->addStringView(token);
+					break;
+				} else {
+					data::Type* dataType = classDataType;
+					compileCursor = Lexical::getNextToken(main,
+						classType, compileCursor);
+					if (main->tokenType !=
+						TokenTypes::scopeResolution){
+						dataType = Parse::continueParseDataType(
+							app, dataType, classType, compileCursor);
+						if (dataType == nullptr){
+							return false;
+						}
+						if (main->currentParseClass != nullptr){
+							saveCursor(main, savedCursor,
+								main->dataMembersStack.size);
+							return false;
+						}
+						compileCursor = main->compileCursor;
+					} else {
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (main->tokenType != TokenTypes::identifier){
+							Parse::logErrorCString(main, compileCursor,
+								"There has to be an identifier "
+								"after the :: operator.");
+							return false;
+						}
+						lexical::DataMember* dataMember =
+							getDataMember(classDataType, token);
+						if (dataMember != nullptr){
+							checkMaybeCast(main);
+							return dataMemberToExpression(
+								app, dataMember, compileCursor);
+						}
+						lexical::MemberFunction* functionMember =
+							getMemberFunction(classDataType, token);
+						if (functionMember != nullptr){
+							checkMaybeCast(main);
+							return functionMemberToExpression(
+								app, functionMember, compileCursor);
+						} else {
+							std::DString error;
+							error.addCString("Not found: '");
+							error.addStringView(token);
+							error.addCString("'.");
+							Parse::logError(main, 0, &error);
+							return false;
+						}
+					}
+					switch (main->tokenType){
+						case TokenTypes::identifier:
+							checkMaybeCast(main);
+							main->compileCursor = compileCursor;
+							return setVariableDeclaration(
+								main, compileCursor, dataType);
+						case TokenTypes::rightParenthesis:
+							if (main->maybeCast){
+								main->maybeCast = false;
+								if (putUnaryOperator(main,
+									lexical::CastExpression::create(
+										dataType))){
+									main->compileCursor = compileCursor;
+									return true;
+								}
+							}
+							break;
+					}
+					{
+						std::DString error;
+						error.addCString("Wrong token after class: '");
+						error.addString(&classDataType->name);
+						error.addCString("'.");
+						Parse::logError(main, 0, &error);
+						return false;
+					}
+				}
+			} else {
+				compileNamespace = nextNameSpace;
+				compileCursor = Lexical::getNextToken(main,
+					classType, compileCursor);
+				if (main->tokenType != TokenTypes::scopeResolution){
+					Parse::logErrorCString(main, compileCursor,
+						"The :: operator has to be given after the namespace.");
+					return false;
+				}
+				compileCursor = Lexical::getNextToken(main,
+					classType, compileCursor);
+				if (main->tokenType != TokenTypes::identifier){
+					Parse::logErrorCString(main, compileCursor,
+						"There has to be an identifier after the :: operator.");
+					return false;
+				}
+			}
+		}
+		/* Find in unopened. */
+		while (true){
+			compileCursor = Lexical::getNextToken(main,
+				classType, compileCursor);
+			if (main->tokenType == TokenTypes::scopeResolution){
+				compileCursor = Lexical::getNextToken(main,
+					classType, compileCursor);
+				if (main->tokenType != TokenTypes::identifier){
+					Parse::logErrorCString(main, compileCursor,
+						"There has to be an identifier after the :: operator.");
+					return false;
+				}
+				path->addChar('/');
+				path->addStringView(token);
+				continue;
+			}
+			unsigned int len = path->length;
+			path->addCString(".scf");
+			app.fileSystem.openFile(
+				path->data, parseClassOrMember,
+				std::fs::OpenFileModes::readBinary);
+			path->trim(len);
+			saveCursor(main, savedCursor,
+				main->dataMembersStack.size);
+			/* Still used if error. */
+			main->compileCursor = compileCursor;
+			return false;
+		}
+	}
+
+	static lexical::Type** getOperand(
+		lexical::Type* expression){
+		switch (expression->type){
+			case lexical::Types::parenthesized:
+			case lexical::Types::indirection:
+			case lexical::Types::addressOf:
+			case lexical::Types::plus:
+			case lexical::Types::minus:
+			case lexical::Types::logicalNegation:
+			case lexical::Types::bitwiseComplement:
+			case lexical::Types::deleteStatement:
+			case lexical::Types::deleteArray:
+			case lexical::Types::constwriteStatement:
+			case lexical::Types::returnStatement:
+			case lexical::Types::caseLabel:
+				return &(lexical::UnaryOperator*)
+					expression->operand;
+			case lexical::Types::cast:
+				return &(lexical::CastExpression*)
+					expression->operand;
+			case lexical::Types::ifStatement:
+				return &(lexical::IfStatement*)
+					expression->operand1;
+			case lexical::Types::newArray:
+				return &(lexical::NewArrayExpression*)
+					expression->operand;
+			case lexical::Types::subscript:
+			case lexical::Types::classMember:
+			case lexical::Types::memberPointer:
+			case lexical::Types::multiplication:
+			case lexical::Types::division:
+			case lexical::Types::modulus:
+			case lexical::Types::addition:
+			case lexical::Types::substraction:
+			case lexical::Types::leftShift:
+			case lexical::Types::rightShift:
+			case lexical::Types::lessThan:
+			case lexical::Types::greaterThan:
+			case lexical::Types::lessThanOrEqual:
+			case lexical::Types::greaterThanOrEqual:
+			case lexical::Types::equalTo:
+			case lexical::Types::notEqualTo:
+			case lexical::Types::bitwiseAnd:
+			case lexical::Types::bitwiseExclusiveOr:
+			case lexical::Types::bitwiseInclusiveOr:
+			case lexical::Types::logicalAnd:
+			case lexical::Types::logicalOr:
+			case lexical::Types::assignment:
+			case lexical::Types::whileStatement:
+			case lexical::Types::switchStatement:
+				return &(lexical::BinaryOperator*)
+					expression->operand1;
+			case lexical::Types::functionCall:
+				return &(lexical::FunctionCall*)
+					expression->operand;
+			case lexical::Types::newAsync:
+				return &(lexical::NewAsyncExpression*)
+					expression->instance;
+			default:
+				return nullptr;
+		}
+	}
+
+	static lexical::Type** getOperand2(
+		lexical::Type* expression){
+		switch (expression->type){
+			case lexical::Types::ifStatement:
+				return &(lexical::IfStatement*)
+					expression->operand2;
+			case lexical::Types::subscript:
+			case lexical::Types::classMember:
+			case lexical::Types::memberPointer:
+			case lexical::Types::multiplication:
+			case lexical::Types::division:
+			case lexical::Types::modulus:
+			case lexical::Types::addition:
+			case lexical::Types::substraction:
+			case lexical::Types::leftShift:
+			case lexical::Types::rightShift:
+			case lexical::Types::lessThan:
+			case lexical::Types::greaterThan:
+			case lexical::Types::lessThanOrEqual:
+			case lexical::Types::greaterThanOrEqual:
+			case lexical::Types::equalTo:
+			case lexical::Types::notEqualTo:
+			case lexical::Types::bitwiseAnd:
+			case lexical::Types::bitwiseExclusiveOr:
+			case lexical::Types::bitwiseInclusiveOr:
+			case lexical::Types::logicalAnd:
+			case lexical::Types::logicalOr:
+			case lexical::Types::assignment:
+			case lexical::Types::whileStatement:
+			case lexical::Types::switchStatement:
+				return &(lexical::BinaryOperator*)
+					expression->operand2;
+			case lexical::Types::newAsync:
+				return &(lexical::NewAsyncExpression*)
+					expression->thread;
+			default:
+				return nullptr;
+		}
+	}
+
+	static bool putValueIntoExpression(Main* main,
+		lexical::Type* value){
+		lexical::Type* currentExpression =
+			main->currentExpression;
+		lexical::Type** operand;
+		switch (currentExpression->type){
+			case lexical::Types::subscript:
+			case lexical::Types::classMember:
+			case lexical::Types::memberPointer:
+			case lexical::Types::multiplication:
+			case lexical::Types::division:
+			case lexical::Types::modulus:
+			case lexical::Types::addition:
+			case lexical::Types::substraction:
+			case lexical::Types::leftShift:
+			case lexical::Types::rightShift:
+			case lexical::Types::lessThan:
+			case lexical::Types::greaterThan:
+			case lexical::Types::lessThanOrEqual:
+			case lexical::Types::greaterThanOrEqual:
+			case lexical::Types::equalTo:
+			case lexical::Types::notEqualTo:
+			case lexical::Types::bitwiseAnd:
+			case lexical::Types::bitwiseExclusiveOr:
+			case lexical::Types::bitwiseInclusiveOr:
+			case lexical::Types::logicalAnd:
+			case lexical::Types::logicalOr:
+			case lexical::Types::assignment:
+				operand = &(lexical::BinaryOperator*)
+					currentExpression->operand2;
+				break;
+			case lexical::Types::block:
+				{
+					if (!main->statementEnd) {return false;}
+					lexical::BlockStatement* expression =
+						(lexical::BlockStatement*)currentExpression;
+					expression->insertStatement(value);
+					main->statementEnd = false;
+					return true;
+				}
+			case lexical::Types::functionCall:
+				{
+					lexical::FunctionCall* expression =
+						(lexical::FunctionCall*)currentExpression;
+					unsigned int len = expression->arguments.size;
+					if (len == 0){
+						expression->arguments.pushBack(value);
+					} else {
+						void** argument = &expression->
+							arguments.data[len-1];
+						if (*argument != nullptr) {return false;}
+						*argument = value;
+					}
+					return true;
+				}
+			case lexical::Types::newAsync:
+				{
+					lexical::NewAsyncExpression* expression =
+						(lexical::NewAsyncExpression*)currentExpression;
+					if (expression->instance == nullptr){
+						expression->instance = value;
+						return true;
+					} else if (expression->thread == nullptr){
+						expression->thread = value;
+						return true;
+					}
+					return false;
+				}
+			default:
+				operand = getOperand(currentExpression);
+				if (operand == nullptr) {return false;}
+				break;
+		}
+		if (*operand != nullptr) {return false;}
+		*operand = value;
+		return true;
+	}
+
+	static unsigned char getExpressionGroup(
+		lexical::Type* expression){
+		switch (expression->type){
+			case lexical::Types::nullptrLiteral:
+			case lexical::Types::trueLiteral:
+			case lexical::Types::falseLiteral:
+			case lexical::Types::characterLiteral:
+			case lexical::Types::stringLiteral:
+			case lexical::Types::integerLiteral:
+			case lexical::Types::floatingLiteral:
+			case lexical::Types::parenthesized:
+			case lexical::Types::localVariable:
+			case lexical::Types::functionParameter:
+			case lexical::Types::dataMember:
+			case lexical::Types::memberFunction:
+				return lexical::ExpressionGroups::primary;
+			case lexical::Types::subscript:
+			case lexical::Types::functionCall:
+			case lexical::Types::classMember:
+			case lexical::Types::memberPointer:
+			case lexical::Types::cast:
+				return lexical::ExpressionGroups::postfix;
+			case lexical::Types::indirection:
+			case lexical::Types::addressOf:
+			case lexical::Types::plus:
+			case lexical::Types::minus:
+			case lexical::Types::logicalNegation:
+			case lexical::Types::bitwiseComplement:
+			case lexical::Types::newExpression:
+			case lexical::Types::newArray:
+			case lexical::Types::newAsync:
+			case lexical::Types::deleteStatement:
+			case lexical::Types::deleteArray:
+				return lexical::ExpressionGroups::unary;
+			case lexical::Types::multiplication:
+			case lexical::Types::division:
+			case lexical::Types::modulus:
+				return lexical::ExpressionGroups::multiplicative;
+			case lexical::Types::addition:
+			case lexical::Types::substraction:
+				return lexical::ExpressionGroups::additive;
+			case lexical::Types::leftShift:
+			case lexical::Types::rightShift:
+				return lexical::ExpressionGroups::shift;
+			case lexical::Types::lessThan:
+			case lexical::Types::lessThanOrEqual:
+			case lexical::Types::greaterThanOrEqual:
+			case lexical::Types::greaterThan:
+				return lexical::ExpressionGroups::relational;
+			case lexical::Types::equalTo:
+			case lexical::Types::notEqualTo:
+				return lexical::ExpressionGroups::equality;
+			case lexical::Types::bitwiseAnd:
+			case lexical::Types::bitwiseExclusiveOr:
+			case lexical::Types::bitwiseInclusiveOr:
+				return lexical::ExpressionGroups::bitwise;
+			case lexical::Types::logicalAnd:
+			case lexical::Types::logicalOr:
+				return lexical::ExpressionGroups::logical;
+			case lexical::Types::assignment:
+				return lexical::ExpressionGroups::assignment;
+			default:
+				return lexical::ExpressionGroups::error;
+		}
+	}
+
+	static bool putBinaryOperator(Main* main,
+		lexical::Type* operator, data::ClassType* classType){
+		if (isNextUnary(main)) {return false;}
+		while (true){
+			/* Inside the loop as it changes. */
+			lexical::Type* currentExpression =
+				main->currentExpression;
+			switch (currentExpression->type){
+				case lexical::Types::block:
+					{
+						lexical::BlockStatement* expression =
+							(lexical::BlockStatement*)currentExpression;
+						lexical::Type** statement = (lexical::Type**)
+							(&expression->statements.data[
+								expression->statements.size - 1]);
+						lexical::Type** operatorOperand =
+							getOperand(operator);
+						*operatorOperand = *statement;
+						*statement = operator;
+						main->currentExpression = operator;
+						main->expressionStack->pushBack(
+							operator);
+						return true;
+					}
+				case lexical::Types::parenthesized:
+				case lexical::Types::constwriteStatement:
+				case lexical::Types::returnStatement:
+				case lexical::Types::caseLabel:
+				case lexical::Types::deleteStatement:
+				case lexical::Types::deleteArray:
+				case lexical::Types::ifStatement:
+				case lexical::Types::whileStatement:
+				case lexical::Types::switchStatement:
+				case lexical::Types::newArray:
+					{
+						lexical::Type** operatorOperand =
+							getOperand(operator);
+						lexical::Type** expressionOperand =
+							getOperand(currentExpression);
+						*operatorOperand = *expressionOperand;
+						*expressionOperand = operator;
+						main->expressionStack->pushBack(
+							operator);
+						main->currentExpression = operator;
+						return true;
+					}
+				case lexical::Types::subscript:
+					{
+						lexical::Type** operatorOperand =
+							getOperand(operator);
+						lexical::Type** expressionOperand =
+							getOperand2(currentExpression);
+						*operatorOperand = *expressionOperand;
+						*expressionOperand = operator;
+						main->expressionStack->pushBack(
+							operator);
+						main->currentExpression = operator;
+						return true;
+					}
+				case lexical::Types::functionCall:
+					{
+						lexical::FunctionCall* expression =
+							(lexical::FunctionCall*)currentExpression;
+						lexical::Type** argument = (lexical::Type**)
+							(&expression->arguments.data[
+								expression->arguments.size - 1]);
+						lexical::Type** operatorOperand =
+							getOperand(operator);
+						*operatorOperand = *argument;
+						*argument = operator;
+						main->expressionStack->pushBack(
+							operator);
+						main->currentExpression = operator;
+						return true;
+					}
+				case lexical::Types::newAsync:
+					{
+						lexical::NewAsyncExpression* expression =
+							(lexical::NewAsyncExpression*)currentExpression;
+						lexical::Type** operatorOperand =
+							getOperand(operator);
+						lexical::Type** expressionOperand;
+						if (expression->thread == nullptr){
+							expressionOperand = &expression->thread;
+						} else {
+							expressionOperand = &expression->instance;
+						}
+						*operatorOperand = *expressionOperand;
+						*expressionOperand = operator;
+						main->expressionStack->pushBack(operator);
+						main->currentExpression = operator;
+						return true;
+					}
+			}
+			unsigned char expressionGroup =
+				getExpressionGroup(currentExpression);
+			unsigned char operatorGroup =
+				getExpressionGroup(operator);
+			if (expressionGroup <= operatorGroup){
+				if (!Lexical::popExpression(main,
+					classType)) {return false;}
+			} else {
+				lexical::Type** operatorOperand =
+					getOperand(operator);
+				lexical::Type** expressionOperand;
+				if (expressionGroup == lexical::ExpressionGroups::unary){
+					expressionOperand = getOperand(currentExpression);
+				} else {
+					expressionOperand = getOperand2(currentExpression);
+				}
+				*operatorOperand = *expressionOperand;
+				*expressionOperand = operator;
+				main->expressionStack->pushBack(operator);
+				main->currentExpression = operator;
+				return true;
+			}
+		}
+	}
+
+	static bool putUnaryOperator(Main* main,
+		lexical::Type* operator){
+		lexical::Type* currentExpression =
+			main->currentExpression;
+		lexical::Type** operand;
+		switch (currentExpression->type){
+			case lexical::Types::subscript:
+			case lexical::Types::multiplication:
+			case lexical::Types::division:
+			case lexical::Types::modulus:
+			case lexical::Types::addition:
+			case lexical::Types::substraction:
+			case lexical::Types::leftShift:
+			case lexical::Types::rightShift:
+			case lexical::Types::lessThan:
+			case lexical::Types::greaterThan:
+			case lexical::Types::lessThanOrEqual:
+			case lexical::Types::greaterThanOrEqual:
+			case lexical::Types::equalTo:
+			case lexical::Types::notEqualTo:
+			case lexical::Types::bitwiseAnd:
+			case lexical::Types::bitwiseExclusiveOr:
+			case lexical::Types::bitwiseInclusiveOr:
+			case lexical::Types::logicalAnd:
+			case lexical::Types::logicalOr:
+			case lexical::Types::assignment:
+				operand = getOperand2(currentExpression);
+				break;
+			case lexical::Types::block:
+				{
+					if (!main->statementEnd) {return false;}
+					lexical::BlockStatement* expression =
+						(lexical::BlockStatement*)currentExpression;
+					expression->statements.pushBack(operator);
+					main->statementEnd = false;
+					main->currentExpression = operator;
+					main->expressionStack->pushBack(operator);
+					return true;
+				}
+			case lexical::Types::functionCall:
+				{
+					lexical::FunctionCall* expression =
+						(lexical::FunctionCall*)currentExpression;
+					unsigned int len = expression->arguments.size;
+					if (len == 0){
+						expression->arguments.pushBack(nullptr);
+						len = 1;
+					}
+					operand = (lexical::Type**)
+						&expression->arguments.data[len - 1];
+					break;
+				}
+			case lexical::Types::newAsync:
+				{
+					lexical::NewAsyncExpression* expression =
+						(lexical::NewAsyncExpression*)currentExpression;
+					if (expression->instance == nullptr){
+						operand = &expression->instance;
+					} else {
+						operand = &expression->thread;
+					}
+					break;
+				}
+			default:
+				operand = getOperand(currentExpression);
+				if (operand == nullptr) {return false;}
+				break;
+		}
+		if (*operand != nullptr) {return false;}
+		*operand = operator;
+		main->currentExpression = operator;
+		main->expressionStack->pushBack(operator);
+		return true;
+	}
+
+	static bool isNextUnary(Main* main){
+		lexical::Type* currentExpression =
+			main->currentExpression;
+		lexical::Type* operand;
+		switch (currentExpression->type){
+			case lexical::Types::subscript:
+			case lexical::Types::multiplication:
+			case lexical::Types::division:
+			case lexical::Types::modulus:
+			case lexical::Types::addition:
+			case lexical::Types::substraction:
+			case lexical::Types::leftShift:
+			case lexical::Types::rightShift:
+			case lexical::Types::lessThan:
+			case lexical::Types::greaterThan:
+			case lexical::Types::lessThanOrEqual:
+			case lexical::Types::greaterThanOrEqual:
+			case lexical::Types::equalTo:
+			case lexical::Types::notEqualTo:
+			case lexical::Types::bitwiseAnd:
+			case lexical::Types::bitwiseExclusiveOr:
+			case lexical::Types::bitwiseInclusiveOr:
+			case lexical::Types::logicalAnd:
+			case lexical::Types::logicalOr:
+			case lexical::Types::assignment:
+			case lexical::Types::newAsync:
+				operand = *getOperand2(currentExpression);
+				break;
+			case lexical::Types::block:
+				return main->statementEnd;
+			case lexical::Types::functionCall:
+				{
+					lexical::FunctionCall* expression =
+						(lexical::FunctionCall*)currentExpression;
+					unsigned int len = expression->arguments.size;
+					if (len == 0){
+						operand = nullptr;
+					} else {
+						operand = (lexical::Type*)
+							(expression->arguments.data[len - 1]);
+					}
+				}
+				break;
+			default:
+				operand = *getOperand(currentExpression);
+				break;
+		}
+		return operand == nullptr;
+	}
+
+}

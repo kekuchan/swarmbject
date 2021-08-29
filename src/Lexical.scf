@@ -1,0 +1,2356 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Lexical {
+
+	static unsigned char[] expressionTypeToString(
+		unsigned char type){
+		switch (type){
+			case lexical::Types::nullptrLiteral:
+				return "nullptr";
+			case lexical::Types::thisLiteral:
+				return "this";
+			case lexical::Types::trueLiteral:
+				return "true";
+			case lexical::Types::falseLiteral:
+				return "false";
+			case lexical::Types::characterLiteral:
+				return "character";
+			case lexical::Types::stringLiteral:
+				return "string";
+			case lexical::Types::integerLiteral:
+				return "integer";
+			case lexical::Types::floatingLiteral:
+				return "floating";
+			case lexical::Types::parenthesized:
+				return "()";
+			case lexical::Types::localVariable:
+				return "variable";
+			case lexical::Types::functionParameter:
+				return "parameter";
+			case lexical::Types::dataMember:
+				return "data member";
+			case lexical::Types::memberFunction:
+				return "function member";
+			case lexical::Types::subscript:
+				return "array[]";
+			case lexical::Types::functionCall:
+				return "function()";
+			case lexical::Types::classMember:
+				return "1.2";
+			case lexical::Types::memberPointer:
+				return "1->2";
+			case lexical::Types::cast:
+				return "(1)2";
+			case lexical::Types::indirection:
+				return "*1";
+			case lexical::Types::addressOf:
+				return "&1";
+			case lexical::Types::plus:
+				return "+1";
+			case lexical::Types::minus:
+				return "-1";
+			case lexical::Types::logicalNegation:
+				return "!";
+			case lexical::Types::bitwiseComplement:
+				return "~";
+			case lexical::Types::newExpression:
+				return "new";
+			case lexical::Types::newArray:
+				return "new[]";
+			case lexical::Types::newAsync:
+				return "new()";
+			case lexical::Types::deleteStatement:
+				return "delete";
+			case lexical::Types::deleteArray:
+				return "delete[]";
+			case lexical::Types::multiplication:
+				return "1*2";
+			case lexical::Types::division:
+				return "/";
+			case lexical::Types::modulus:
+				return "%";
+			case lexical::Types::addition:
+				return "1+2";
+			case lexical::Types::substraction:
+				return "1-2";
+			case lexical::Types::leftShift:
+				return "<<";
+			case lexical::Types::rightShift:
+				return ">>";
+			case lexical::Types::lessThan:
+				return "<";
+			case lexical::Types::lessThanOrEqual:
+				return "<=";
+			case lexical::Types::greaterThanOrEqual:
+				return ">=";
+			case lexical::Types::greaterThan:
+				return ">";
+			case lexical::Types::equalTo:
+				return "==";
+			case lexical::Types::notEqualTo:
+				return "!=";
+			case lexical::Types::bitwiseAnd:
+				return "1&2";
+			case lexical::Types::bitwiseExclusiveOr:
+				return "^";
+			case lexical::Types::bitwiseInclusiveOr:
+				return "|";
+			case lexical::Types::logicalAnd:
+				return "&&";
+			case lexical::Types::logicalOr:
+				return "||";
+			case lexical::Types::assignment:
+				return "=";
+			case lexical::Types::block:
+				return "{";
+			case lexical::Types::variableDeclaration:
+				return "var";
+			case lexical::Types::constwriteStatement:
+				return "constwrite";
+			case lexical::Types::returnStatement:
+				return "return";
+			case lexical::Types::ifStatement:
+				return "if";
+			case lexical::Types::whileStatement:
+				return "while";
+			case lexical::Types::breakStatement:
+				return "break";
+			case lexical::Types::continueStatement:
+				return "continue";
+			case lexical::Types::switchStatement:
+				return "switch";
+			case lexical::Types::caseLabel:
+				return "case";
+			case lexical::Types::defaultLabel:
+				return "default";
+		}
+	}
+	
+	static void namespacePathToString(
+		Namespace* compileNamespace, std::DString* string){
+		Namespace* ns = compileNamespace->parentNamespace;
+		if (ns != nullptr){
+			namespacePathToString(ns, string);
+			string->addString(&compileNamespace->name);
+			string->addSubstring("::", 0, 2);
+		}
+	}
+
+	static void dataTypeToString(
+		data::Type* dataType, std::DString* string){
+		switch (dataType->type){
+			case data::Types::voidT:
+				string->addCString("void");
+				break;
+			case data::Types::boolT:
+				string->addCString("bool");
+				break;
+			case data::Types::ucharT:
+				string->addCString("unsigned char");
+				break;
+			case data::Types::charT:
+				string->addCString("char");
+				break;
+			case data::Types::ushortT:
+				string->addCString("unsigned short");
+				break;
+			case data::Types::shortT:
+				string->addCString("short");
+				break;
+			case data::Types::uintT:
+				string->addCString("unsigned int");
+				break;
+			case data::Types::intT:
+				string->addCString("int");
+				break;
+			case data::Types::floatT:
+				string->addCString("float");
+				break;
+			case data::Types::doubleT:
+				string->addCString("double");
+				break;
+			case data::Types::arrayT:
+				dataTypeToString((data::ArrayType*)
+					dataType->dataType, string);
+				string->addCString("[]");
+				break;
+			case data::Types::pointerT:
+				dataTypeToString((data::PointerType*)
+					dataType->dataType, string);
+				string->addChar('*');
+				break;
+			case data::Types::arrayPointerT:
+				dataTypeToString((data::PointerType*)
+					dataType->dataType, string);
+				string->addCString("[]");
+				break;
+			case data::Types::classT:
+				{
+					data::ClassType* classType =
+						(data::ClassType*)dataType;
+					namespacePathToString(
+						classType->parentNamespace, string);
+					string->addString(&classType->name);
+					break;
+				}
+			case data::Types::functionPointerT:
+				{
+					data::FunctionPointerType* pointerType =
+						(data::FunctionPointerType*)dataType;
+					dataTypeToString(pointerType->dataType, string);
+					string->addChar('(');
+					unsigned int len = pointerType->parameters.size;
+					if (len > 0){
+						data::Type*[] parameters = (data::Type*[])
+							(pointerType->parameters.data);
+						unsigned int i = 0;
+						while (true){
+							dataTypeToString(parameters[i], string);
+							i = i + 1;
+							if (i == len) {break;}
+							string->addChar(',');
+						}
+					}
+					string->addChar(')');
+					break;
+				}
+			case data::Types::specifiersT:
+				{
+					data::Specifiers* specifiersT =
+						(data::Specifiers*)dataType;
+					dataTypeToString(specifiersT->dataType, string);
+					data::SpecifierTypes::toString(
+						specifiersT->specifiers, string);
+					break;
+				}
+		}
+	}
+
+	static data::Type* getWithoutSpecifiers(Main* main,
+		lexical::Type* expression, data::ClassType* classType){
+		data::Type* type = dataTypeFromExpression(main,
+			expression, classType);
+		if (type != nullptr){
+			type = type->withoutSpecifiers();
+		}
+		return type;
+	}
+
+	static data::Type* dataTypeFromExpression(Main* main,
+		lexical::Type* expression, data::ClassType* classType){
+		lexical::Type** lexicalExpression =
+			&main->lexicalExpression;
+		switch (expression->type){
+			case lexical::Types::nullptrLiteral:
+				*lexicalExpression = expression;
+				return main->voidType->
+					getOrSetPtr(false)/*->getOrSetSpecifiers(
+						data::SpecifierTypes::isConstexpr)*/;
+			case lexical::Types::thisLiteral:
+				*lexicalExpression = expression;
+				if (classType->isAsync()){
+					return classType;
+				} else {
+					return classType->
+						getOrSetPtr(false)/*->getOrSetSpecifiers(
+							data::SpecifierTypes::isConstexpr)*/;
+				}
+			case lexical::Types::trueLiteral:
+			case lexical::Types::falseLiteral:
+				*lexicalExpression = expression;
+				return main->boolType/*->getOrSetSpecifiers(
+					data::SpecifierTypes::isConstexpr)*/;
+			case lexical::Types::characterLiteral:
+				*lexicalExpression = expression;
+				return main->ucharType/*->getOrSetSpecifiers(
+						data::SpecifierTypes::isConstexpr)*/;
+			case lexical::Types::stringLiteral:
+				*lexicalExpression = expression;
+				return main->ucharType->
+					getOrSetPtr(true)->getOrSetSpecifiers(
+						data::SpecifierTypes::isStatic);
+			case lexical::Types::integerLiteral:
+				*lexicalExpression = expression;
+				return main->intType/*->getOrSetSpecifiers(
+					data::SpecifierTypes::isConstexpr)*/;
+			case lexical::Types::floatingLiteral:
+				*lexicalExpression = expression;
+				return main->floatType/*->getOrSetSpecifiers(
+					data::SpecifierTypes::isConstexpr)*/;
+			case lexical::Types::localVariable:
+			case lexical::Types::functionParameter:
+			case lexical::Types::dataMember:
+				*lexicalExpression = expression;
+				return (lexical::Variable*)expression->dataType;
+			case lexical::Types::memberFunction:
+				*lexicalExpression = expression;
+				return (lexical::MemberFunction*)expression->
+					dataType;
+			case lexical::Types::parenthesized:
+				return dataTypeFromExpression(main,
+					(lexical::UnaryOperator*)
+						expression->operand, classType);
+			case lexical::Types::functionCall:
+				{
+					/* Error checking was already done at parsing. */
+					data::Type* type = getWithoutSpecifiers(main,
+						(lexical::FunctionCall*)
+							expression->operand, classType);
+					if (main->lexicalExpression->type !=
+						lexical::Types::memberFunction){
+						type = (data::FunctionPointerType*)type->
+							dataType;
+					}
+					*lexicalExpression = nullptr;
+					return type/*->getOrSetSpecifiers(
+						data::SpecifierTypes::isConstexpr)*/;
+				}
+			case lexical::Types::classMember:
+			case lexical::Types::memberPointer:
+				{
+					lexical::Type* operand =
+						(lexical::BinaryOperator*)expression->operand2;
+					if (operand->type == lexical::Types::dataMember){
+						classType = (lexical::DataMember*)
+							operand->parentClass;
+					} else {
+						classType = (lexical::MemberFunction*)
+							operand->parentClass;
+					}
+					return dataTypeFromExpression(
+						main, operand, classType);
+				}
+			case lexical::Types::cast:
+				*lexicalExpression = nullptr;
+				return (lexical::CastExpression*)
+					expression->dataType/*->getOrSetSpecifiers(
+						data::SpecifierTypes::isConstexpr)*/;
+			case lexical::Types::subscript:
+				/* Error checking was already done at parsing. */
+				return ((data::PointerType*)(
+					getWithoutSpecifiers(main,
+						(lexical::BinaryOperator*)
+							expression->operand1, classType)))->dataType;
+			case lexical::Types::indirection:
+				{
+					data::Type* type = getWithoutSpecifiers(main,
+						(lexical::UnaryOperator*)
+							expression->operand, classType);
+					if (type == nullptr) {return nullptr;}
+					if (type->type != data::Types::pointerT){
+						Parse::logErrorCString(main,
+							main->compileCursor, "Pointer data type has to be "
+							"after the indirection operator.");
+						return nullptr;
+					}
+					return (data::PointerType*)type->
+						dataType/*->getOrSetSpecifiers(
+							data::SpecifierTypes::isConstexpr)*/;
+				}
+			case lexical::Types::addressOf:
+				{
+					data::Type* type = getWithoutSpecifiers(main,
+						(lexical::UnaryOperator*)
+							expression->operand, classType);
+					if (type == nullptr) {return nullptr;}
+					expression = *lexicalExpression;
+					if (expression != nullptr){
+						switch (expression->type){
+							case lexical::Types::localVariable:
+							case lexical::Types::functionParameter:
+								if ((lexical::Variable*)expression->offset == -1){
+									(lexical::Variable*)expression->offset = 0;
+									ParseBlock::getFunctionToParse(
+										main)->setNeedStack();
+								}
+								/* No break. */
+							case lexical::Types::dataMember:
+								*lexicalExpression = nullptr;
+								return type->getOrSetPtr(false);
+						}
+					}
+					Parse::logErrorCString(main,
+						main->compileCursor,
+						"The operand of the & operator "
+						"has to be addressable.");
+					return nullptr;
+				}
+			case lexical::Types::plus:
+			case lexical::Types::minus:
+				{
+					data::Type* dataType = getWithoutSpecifiers(main,
+						(lexical::UnaryOperator*)
+							expression->operand, classType);
+					if (dataType == nullptr) {return nullptr;}
+					switch (dataType->type){
+						case data::Types::ucharT:
+						case data::Types::charT:
+						case data::Types::ushortT:
+						case data::Types::shortT:
+						case data::Types::uintT:
+						case data::Types::intT:
+							*lexicalExpression = nullptr;
+							return main->intType;
+						case data::Types::floatT:
+						case data::Types::doubleT:
+							*lexicalExpression = nullptr;
+							return dataType;
+					}
+					Parse::logErrorCString(main,
+						main->compileCursor,
+						"A numeric type has to be given "
+						"for the unary plus and minus operators.");
+					return nullptr;
+				}
+			case lexical::Types::bitwiseComplement:
+				{
+					data::Type* dataType = getWithoutSpecifiers(main,
+						(lexical::UnaryOperator*)
+							expression->operand, classType);
+					if (dataType == nullptr) {return nullptr;}
+					if (dataType->isIntegerType()){
+						*lexicalExpression = nullptr;
+						return main->intType;
+					}
+					Parse::logErrorCString(main,
+						main->compileCursor,
+						"An integer type has to be given "
+						"for the bitwise complement operators.");
+					return nullptr;
+				}
+			case lexical::Types::newExpression:
+				{
+					*lexicalExpression = nullptr;
+					data::Type* dataType =
+						(lexical::NewExpression*)
+							expression->dataType;
+					return dataType->getOrSetPtr(false);
+				}
+			case lexical::Types::newArray:
+				{
+					*lexicalExpression = nullptr;
+					data::Type* dataType =
+						(lexical::NewArrayExpression*)
+							expression->dataType;
+					return dataType->getOrSetPtr(true);
+				}
+			case lexical::Types::newAsync:
+				*lexicalExpression = nullptr;
+				return (lexical::NewAsyncExpression*)
+					expression->dataType;
+			case lexical::Types::addition:
+			case lexical::Types::substraction:
+			case lexical::Types::multiplication:
+			case lexical::Types::division:
+			case lexical::Types::modulus:
+				{
+					data::Type* dataType1 = getWithoutSpecifiers(main,
+						(lexical::BinaryOperator*)
+							expression->operand1, classType);
+					if (dataType1 == nullptr) {return nullptr;}
+					data::Type* dataType2 = getWithoutSpecifiers(main,
+						(lexical::BinaryOperator*)
+							expression->operand2, classType);
+					if (dataType2 == nullptr) {return nullptr;}
+					switch (dataType1->type){
+						case data::Types::ucharT:
+						case data::Types::charT:
+						case data::Types::ushortT:
+						case data::Types::shortT:
+						case data::Types::uintT:
+						case data::Types::intT:
+							switch (dataType2->type){
+								case data::Types::ucharT:
+								case data::Types::charT:
+								case data::Types::ushortT:
+								case data::Types::shortT:
+								case data::Types::uintT:
+								case data::Types::intT:
+									*lexicalExpression = nullptr;
+									return main->intType;
+								case data::Types::floatT:
+									*lexicalExpression = nullptr;
+									return main->floatType;
+								case data::Types::doubleT:
+									*lexicalExpression = nullptr;
+									return main->doubleType;
+							}
+							break;
+						case data::Types::floatT:
+							switch (dataType2->type){
+								case data::Types::ucharT:
+								case data::Types::charT:
+								case data::Types::ushortT:
+								case data::Types::shortT:
+								case data::Types::uintT:
+								case data::Types::intT:
+								case data::Types::floatT:
+									*lexicalExpression = nullptr;
+									return main->floatType;
+								case data::Types::doubleT:
+									*lexicalExpression = nullptr;
+									return main->doubleType;
+							}
+							break;
+						case data::Types::doubleT:
+							if (dataType2->isNumericType()){
+								*lexicalExpression = nullptr;
+								return main->doubleType;
+							}
+							break;
+					}
+					Parse::logErrorCString(main, main->compileCursor,
+						"Invalid arithmetic operands.");
+					return nullptr;
+				}
+			case lexical::Types::leftShift:
+			case lexical::Types::rightShift:
+			case lexical::Types::bitwiseAnd:
+			case lexical::Types::bitwiseExclusiveOr:
+			case lexical::Types::bitwiseInclusiveOr:
+				*lexicalExpression = nullptr;
+				return main->intType;
+			case lexical::Types::logicalNegation:
+			case lexical::Types::lessThan:
+			case lexical::Types::greaterThan:
+			case lexical::Types::lessThanOrEqual:
+			case lexical::Types::greaterThanOrEqual:
+			case lexical::Types::equalTo:
+			case lexical::Types::notEqualTo:
+			case lexical::Types::logicalAnd:
+			case lexical::Types::logicalOr:
+				*lexicalExpression = nullptr;
+				return main->boolType;
+			case lexical::Types::deleteStatement:
+			case lexical::Types::deleteArray:
+			case lexical::Types::assignment:
+			case lexical::Types::block:
+			case lexical::Types::constwriteStatement:
+			case lexical::Types::ifStatement:
+			case lexical::Types::whileStatement:
+			case lexical::Types::breakStatement:
+			case lexical::Types::continueStatement:
+			case lexical::Types::switchStatement:
+			case lexical::Types::caseLabel:
+			case lexical::Types::defaultLabel:
+				*lexicalExpression = nullptr;
+				return main->voidType;
+			case lexical::Types::variableDeclaration:
+				{
+					lexical::LocalVariable* variable =
+						(lexical::VariableDeclaration*)
+							expression->variable;
+					*lexicalExpression = variable;
+					return variable->dataType;
+				}
+			case lexical::Types::returnStatement:
+				{
+					lexical::Type* operand =
+						(lexical::UnaryOperator*)expression->operand;
+					if (operand == nullptr){
+						*lexicalExpression = nullptr;
+						return main->voidType;
+					} else {
+						return dataTypeFromExpression(
+							main, operand, classType);
+					}
+				}
+		}
+	}
+
+	static bool isAssignmentValid(Main* main,
+		data::Type* type1,
+		data::Type* type2,
+		data::ClassType* classType){
+		bool checkSame = true;
+		switch (type1->type){
+			case data::Types::ucharT:
+			case data::Types::charT:
+			case data::Types::ushortT:
+			case data::Types::shortT:
+			case data::Types::uintT:
+			case data::Types::intT:
+			case data::Types::floatT:
+			case data::Types::doubleT:
+				if (type2->isNumericType()) {return true;}
+				checkSame = false;
+				break;
+			case data::Types::pointerT:
+			case data::Types::arrayPointerT:
+				{
+					lexical::Type* lexicalExpression =
+						main->lexicalExpression;
+					if (lexicalExpression != nullptr &&
+						lexicalExpression->type ==
+							lexical::Types::nullptrLiteral){
+						return true;
+					}
+					break;
+				}
+			case data::Types::functionPointerT:
+				{
+					lexical::Type* lexicalExpression =
+						main->lexicalExpression;
+					if (lexicalExpression != nullptr){
+						switch (lexicalExpression->type){
+							case lexical::Types::nullptrLiteral:
+								return true;
+							case lexical::Types::memberFunction:
+								{
+									lexical::MemberFunction* memberFunction =
+										(lexical::MemberFunction*)lexicalExpression;
+									if (!memberFunction->isStatic()){
+										Parse::logErrorCString(main,
+											main->compileCursor,
+											"Assigning a non-static function "
+											"to a function pointer is "
+											"not supported.");
+										return false;
+									}
+									if (memberFunction->isAsync()){
+										Parse::logErrorCString(main,
+											main->compileCursor,
+											"Assigning an async function to a "
+											"function pointer is not supported.");
+										return false;
+									}
+									checkSame = false;
+									/* Placeholder value */
+									memberFunction->functionId = 0;
+									data::FunctionPointerType* pointerType =
+										(data::FunctionPointerType*)type1;
+									if (!isSameType(pointerType->dataType,
+										memberFunction->dataType)) {break;}
+									unsigned int parameters =
+										pointerType->parameters.size;
+									unsigned int parameters2 =
+										memberFunction->parameters.size;
+									if (parameters != parameters2) {break;}
+									parameters2 = 0;
+									data::Type*[] parameter = (data::Type*[])
+										(pointerType->parameters.data);
+									lexical::FunctionParameter*[] parameter2 =
+										(lexical::FunctionParameter*[])
+										(memberFunction->parameters.data);
+									while (parameters2 < parameters){
+										if (!isSameType(parameter[parameters2],
+											parameter2[parameters2]->dataType)) {break;}
+										parameters2 = parameters2 + 1;
+									}
+									if (parameters != parameters2) {break;}
+								}
+								return true;
+						}
+					}
+					break;
+				}
+			case data::Types::classT:
+				if (!(data::ClassType*)type1->isAsync()){
+					Parse::logErrorCString(main,
+						main->compileCursor,
+						"Assignment to a class variable.");
+					return false;
+				}
+				break;
+			case data::Types::specifiersT:
+				return isAssignmentValid(
+					main, (data::Specifiers*)type1->
+						dataType, type2, classType);
+		}
+		if (checkSame &&
+			isSameType(type1, type2)) {return true;}
+		std::DString error;
+		error.addCString("Assignment type mismatch: ");
+		dataTypeToString(type1, &error);
+		error.addCString(", ");
+		dataTypeToString(type2, &error);
+		error.addChar('.');
+		Parse::logError(main,
+			main->compileCursor, &error);
+		return false;
+	}
+
+	static bool isSameType(data::Type* type1,
+		data::Type* type2){
+		type2 = type2->withoutSpecifiers();
+		switch (type1->type){
+			case data::Types::pointerT:
+			case data::Types::arrayPointerT:
+				if (type1->type == type2->type){
+					type1 = (data::PointerType*)type1->
+						dataType->withoutSpecifiers();
+					type2 = (data::PointerType*)type2->
+						dataType->withoutSpecifiers();
+					return type1->type == data::Types::voidT ||
+						(type2->type == data::Types::classT &&
+							ParseBlock::isSubClass(
+								(data::ClassType*)type2, type1)) ||
+						isSameType(type1, type2);
+				}
+				break;
+			case data::Types::functionPointerT:
+				{
+					data::FunctionPointerType* pointerType =
+						(data::FunctionPointerType*)type1;
+					data::FunctionPointerType* pointerType2 =
+						(data::FunctionPointerType*)type2;
+					if (!isSameType(pointerType->dataType,
+						pointerType2->dataType)) {break;}
+					unsigned int parameters =
+						pointerType->parameters.size;
+					unsigned int parameters2 =
+						pointerType2->parameters.size;
+					if (parameters != parameters2) {break;}
+					parameters2 = 0;
+					data::Type*[] parameter = (data::Type*[])
+						(pointerType->parameters.data);
+					data::Type*[] parameter2 = (data::Type*[])
+						(pointerType2->parameters.data);
+					while (parameters2 < parameters){
+						if (!isSameType(parameter[parameters2],
+							parameter2[parameters2])) {break;}
+						parameters2 = parameters2 + 1;
+					}
+					if (parameters != parameters2) {break;}
+					return true;
+				}
+			case data::Types::specifiersT:
+				return isSameType((data::Specifiers*)
+					type1->dataType, type2);
+			default:
+				if (type1 == type2) {return true;}
+				break;
+		}
+		return false;
+	}
+
+	static bool popExpression(Main* main,
+		data::ClassType* classType){
+		lexical::Type* expression = (lexical::Type*)
+			(main->expressionStack->popBack());
+		switch (expression->type){
+			case lexical::Types::cast:
+				{
+					data::Type* dataType = dataTypeFromExpression(
+						main, (lexical::CastExpression*)
+							expression->operand, classType);
+					if (dataType == nullptr) {return false;}
+					lexical::Type* lexicalExpression =
+						main->lexicalExpression;
+					if (lexicalExpression != nullptr &&
+						lexicalExpression->type ==
+							lexical::Types::memberFunction){
+						/* Placeholder value */
+						(lexical::MemberFunction*)
+							lexicalExpression->functionId = 0;
+					}
+				}
+				break;
+			case lexical::Types::logicalNegation:
+				{
+					data::Type* dataType = getWithoutSpecifiers(
+						main, (lexical::UnaryOperator*)
+							expression->operand, classType);
+					if (dataType == nullptr) {return false;}
+					if (dataType->type != data::Types::boolT){
+						Parse::logErrorCString(main,
+							main->compileCursor,
+							"A boolean type has to be given "
+							"for the logical negation operators.");
+						return false;
+					}
+				}
+				break;
+			case lexical::Types::deleteStatement:
+				{
+					data::Type* dataType = getWithoutSpecifiers(
+						main, (lexical::UnaryOperator*)
+							expression->operand, classType);
+					if (dataType == nullptr) {return false;}
+					if (dataType->type != data::Types::pointerT){
+						Parse::logErrorCString(main,
+							main->compileCursor,
+							"A pointer type has to be given "
+							"for the delete operator.");
+						return false;
+					}
+				}
+				break;
+			case lexical::Types::deleteArray:
+				{
+					data::Type* dataType = getWithoutSpecifiers(
+						main, (lexical::UnaryOperator*)
+							expression->operand, classType);
+					if (dataType == nullptr) {return false;}
+					if (dataType->type != data::Types::arrayPointerT){
+						Parse::logErrorCString(main,
+							main->compileCursor,
+							"An array pointer type has to be given "
+							"for the delete[] operator.");
+						return false;
+					}
+				}
+				break;
+			case lexical::Types::leftShift:
+			case lexical::Types::rightShift:
+			case lexical::Types::bitwiseAnd:
+			case lexical::Types::bitwiseExclusiveOr:
+			case lexical::Types::bitwiseInclusiveOr:
+				{
+					data::Type* dataType1 = dataTypeFromExpression(
+						main, (lexical::BinaryOperator*)
+							expression->operand1, classType);
+					if (dataType1 == nullptr) {return false;}
+					data::Type* dataType2 = dataTypeFromExpression(
+						main, (lexical::BinaryOperator*)
+							expression->operand2, classType);
+					if (dataType2 == nullptr) {return false;}
+					if (!dataType1->isIntegerType() ||
+						!dataType2->isIntegerType()){
+						Parse::logErrorCString(main,
+							main->compileCursor,
+							"The shift and bitwise operators "
+							"require integer operands.");
+						return false;
+					}
+				}
+				break;
+			case lexical::Types::lessThan:
+			case lexical::Types::greaterThan:
+			case lexical::Types::lessThanOrEqual:
+			case lexical::Types::greaterThanOrEqual:
+			case lexical::Types::equalTo:
+			case lexical::Types::notEqualTo:
+				{
+					data::Type* dataType1 = dataTypeFromExpression(
+						main, (lexical::BinaryOperator*)
+							expression->operand1, classType);
+					if (dataType1 == nullptr) {return false;}
+					data::Type* dataType2 = dataTypeFromExpression(
+						main, (lexical::BinaryOperator*)
+							expression->operand2, classType);
+					if (dataType2 == nullptr) {return false;}
+					while (true){
+						switch (dataType1->type){
+							case data::Types::ucharT:
+							case data::Types::charT:
+							case data::Types::ushortT:
+							case data::Types::shortT:
+							case data::Types::uintT:
+							case data::Types::intT:
+							case data::Types::floatT:
+							case data::Types::doubleT:
+								if (dataType2->isNumericType()) {break;}
+								Parse::logErrorCString(main,
+									main->compileCursor, "In a relational "
+									"operator if the first operand is numeric, "
+									"the second has to be too.");
+								return false;
+							case data::Types::pointerT:
+							case data::Types::arrayPointerT:
+							case data::Types::functionPointerT:
+								if (dataType2->isPointerType()) {break;}
+								Parse::logErrorCString(main,
+									main->compileCursor, "In a relational "
+									"operator if the first operand is a pointer, "
+									"the second has to be too.");
+								return false;
+							case data::Types::boolT:
+								if (dataType2->isBooleanType()) {break;}
+								Parse::logErrorCString(main,
+									main->compileCursor, "In a relational "
+									"operator if the first operand is a boolean, "
+									"the second has to be too.");
+								return false;
+							case data::Types::specifiersT:
+								dataType1 = (data::Specifiers*)
+									dataType1->dataType;
+								continue;
+						}
+						break;
+					}
+					break;
+				}
+			case lexical::Types::logicalAnd:
+			case lexical::Types::logicalOr:
+				{
+					data::Type* dataType1 = getWithoutSpecifiers(
+						main, (lexical::BinaryOperator*)
+							expression->operand1, classType);
+					if (dataType1 == nullptr) {return false;}
+					data::Type* dataType2 = getWithoutSpecifiers(
+						main, (lexical::BinaryOperator*)
+							expression->operand2, classType);
+					if (dataType2 == nullptr) {return false;}
+					if (dataType1->type != data::Types::boolT ||
+						dataType2->type != data::Types::boolT){
+						Parse::logErrorCString(main,
+							main->compileCursor,
+							"The logical operators require boolean operands.");
+						return false;
+					}
+				}
+				break;
+			case lexical::Types::assignment:
+				{
+					data::Type* dataType1 = dataTypeFromExpression(
+						main, (lexical::BinaryOperator*)
+							expression->operand1, classType);
+					if (dataType1 == nullptr) {return false;}
+					lexical::Type* lexicalExpression =
+						main->lexicalExpression;
+					if (lexicalExpression != nullptr){
+						switch (lexicalExpression->type){
+							case lexical::Types::nullptrLiteral:
+							case lexical::Types::trueLiteral:
+							case lexical::Types::falseLiteral:
+							case lexical::Types::characterLiteral:
+							case lexical::Types::stringLiteral:
+							case lexical::Types::integerLiteral:
+							case lexical::Types::floatingLiteral:
+								{
+									std::DString error;
+									error.addCString("Assignment to ");
+									dataTypeToString(dataType1, &error);
+									error.addCString(" that is not addressable.");
+									Parse::logError(main,
+										main->compileCursor, &error);
+									return false;
+								}
+							case lexical::Types::localVariable:
+							case lexical::Types::functionParameter:
+							case lexical::Types::dataMember:
+								if (main->dataMembersStack.size == 0 &&
+									(lexical::Variable*)lexicalExpression->
+										isConst()){
+									Parse::logErrorCString(main,
+										main->compileCursor,
+											"Assignment to a const variable.");
+									return false;
+								}
+								break;
+							case lexical::Types::memberFunction:
+								Parse::logErrorCString(main,
+									main->compileCursor,
+									"Assignment to function member.");
+								return false;
+						}
+					} else {
+						std::DString error;
+						error.addCString("Assignment to ");
+						dataTypeToString(dataType1, &error);
+						error.addCString(" that is not addressable.");
+						Parse::logError(main,
+							main->compileCursor, &error);
+						return false;
+					}
+					data::Type* dataType2 = dataTypeFromExpression(
+						main, (lexical::BinaryOperator*)
+							expression->operand2, classType);
+					if (dataType2 == nullptr ||
+						!isAssignmentValid(main, dataType1,
+							dataType2, classType)) {return false;}
+				}
+				break;
+			case lexical::Types::returnStatement:
+				{	
+					data::Type* dataType = dataTypeFromExpression(
+						main, expression, classType);
+					if (dataType == nullptr ||
+						!isAssignmentValid(main, ParseBlock::
+							getFunctionToParse(main)->dataType,
+							dataType, classType)) {return false;}
+				}
+		}
+		lexical::Type* currentExpression =
+			(lexical::Type*)(main->expressionStack->getBack());
+		if (currentExpression != nullptr){
+			main->currentExpression = currentExpression;
+		}
+		return true;
+	}
+
+	static lexical::Type* setOrNewIntegerLiteral(Main* main,
+		int value, lexical::Type* expression){
+		if (main->isConstLiteral){
+			expression = 
+				lexical::IntegerLiteral::create(value);
+			main->isConstLiteral = false;
+		} else {
+			(lexical::IntegerLiteral*)
+				expression->number = value;
+		}
+		return expression;
+	}
+
+	static lexical::Type* setOrNewFloatingLiteral(Main* main,
+		float value, lexical::Type* expression){
+		if (main->isConstLiteral){
+			expression =
+				lexical::FloatingLiteral::create(value);
+			main->isConstLiteral = false;
+		} else {
+			(lexical::FloatingLiteral*)
+				expression->number = value;
+		}
+		return expression;
+	}
+
+	static lexical::Type* setIntegerOperand(Main* main,
+		int value, lexical::Type* operand1, bool new1,
+		lexical::Type* operand2, bool new2){
+		if (operand2->type == lexical::Types::integerLiteral && !new2){
+			(lexical::IntegerLiteral*)operand2->number = value;
+			if (!new1) {delete operand1;}
+			return operand2;
+		}
+		if (operand1->type != lexical::Types::integerLiteral || new1){
+			if (!new1) {delete operand1;}
+			operand1 =
+				lexical::IntegerLiteral::create(value);
+		} else {
+			(lexical::IntegerLiteral*)
+				operand1->number = value;
+		}
+		if (!new2){
+			main->isConstLiteral = false;
+			delete operand2;
+		}
+		return operand1;
+	}
+	
+	static lexical::Type* setFloatingOperand(Main* main,
+		float value, lexical::Type* operand1, bool new1,
+		lexical::Type* operand2, bool new2){
+		if (operand2->type == lexical::Types::floatingLiteral && !new2){
+			(lexical::FloatingLiteral*)operand2->number = value;
+			if (!new1) {delete operand1;}
+			return operand2;
+		}
+		if (operand1->type != lexical::Types::floatingLiteral || new1){
+			if (!new1) {delete operand1;}
+			operand1 =
+				lexical::FloatingLiteral::create(value);
+		} else {
+			(lexical::FloatingLiteral*)
+				operand1->number = value;
+		}
+		if (!new2){
+			main->isConstLiteral = false;
+			delete operand2;
+		}
+		return operand1;
+	}
+	
+	static void doConstParse(Main* main,
+		lexical::BinaryOperator* expression){
+		lexical::DataMember* dataMember =
+			(lexical::DataMember*)
+				(expression->operand1);
+		lexical::Type* value = 
+			constParse(main, expression->operand2);
+		if (!main->isConstLiteral){
+			switch (value->type){
+				case lexical::Types::integerLiteral:
+					value = insertIntegerLiteral(
+						main, (lexical::IntegerLiteral*)value);
+					break;
+				case lexical::Types::floatingLiteral:
+					value = insertFloatingLiteral(
+						main, (lexical::FloatingLiteral*)value);
+					break;
+			}
+		}
+		dataMember->value = value;
+		maybeDeleteExpression(main, expression);
+	}
+	
+	static lexical::Type* maybeDeleteExpressions(Main* main,
+		std::PtrDArray* expressions){
+		lexical::Type*[] expression =
+			(lexical::Type*[])(expressions->data);
+		unsigned int i = expressions->size;
+		while (i > 0){
+			i = i - 1;
+			maybeDeleteExpression(main, expression[i]);
+		}
+	}
+	
+	static void maybeDeleteExpression(Main* main,
+		lexical::Type* lexicalType){
+		if (lexicalType == nullptr) {return;}
+		switch (lexicalType->type){
+			case lexical::Types::deleteStatement:
+			case lexical::Types::returnStatement:
+				if (lexicalType == main->deleteStatement ||
+					lexicalType == main->returnStatement){
+					break;
+				}
+				/* No break. */
+			case lexical::Types::parenthesized:
+			case lexical::Types::indirection:
+			case lexical::Types::addressOf:
+			case lexical::Types::plus:
+			case lexical::Types::minus:
+			case lexical::Types::logicalNegation:
+			case lexical::Types::bitwiseComplement:
+			case lexical::Types::deleteArray:
+			case lexical::Types::caseLabel:
+				{
+					lexical::UnaryOperator* expression =
+						(lexical::UnaryOperator*)lexicalType;
+					maybeDeleteExpression(main,
+						expression->operand);
+					delete expression;
+					break;
+				}
+			case lexical::Types::constwriteStatement:
+				{
+					lexical::UnaryOperator* expression =
+						(lexical::UnaryOperator*)lexicalType;
+					lexical::Type* operand = expression->operand;
+					while (operand != nullptr){
+						switch (operand->type){
+							case lexical::Types::parenthesized:
+								lexicalType = operand;
+								operand = (lexical::UnaryOperator*)
+									lexicalType->operand;
+								continue;
+							case lexical::Types::stringLiteral:
+								delete (lexical::StringLiteral*)operand;
+								(lexical::UnaryOperator*)
+									lexicalType->operand = nullptr;
+						}
+						break;
+					}
+					maybeDeleteExpression(main, expression->operand);
+					delete expression;
+					break;
+				}
+			case lexical::Types::subscript:
+			case lexical::Types::classMember:
+			case lexical::Types::memberPointer:
+			case lexical::Types::multiplication:
+			case lexical::Types::division:
+			case lexical::Types::modulus:
+			case lexical::Types::addition:
+			case lexical::Types::substraction:
+			case lexical::Types::leftShift:
+			case lexical::Types::rightShift:
+			case lexical::Types::lessThan:
+			case lexical::Types::greaterThan:
+			case lexical::Types::lessThanOrEqual:
+			case lexical::Types::greaterThanOrEqual:
+			case lexical::Types::equalTo:
+			case lexical::Types::notEqualTo:
+			case lexical::Types::bitwiseAnd:
+			case lexical::Types::bitwiseExclusiveOr:
+			case lexical::Types::bitwiseInclusiveOr:
+			case lexical::Types::logicalAnd:
+			case lexical::Types::logicalOr:
+			case lexical::Types::assignment:
+			case lexical::Types::whileStatement:
+			case lexical::Types::switchStatement:
+				{
+					lexical::BinaryOperator* expression =
+						(lexical::BinaryOperator*)lexicalType;
+					maybeDeleteExpression(main,
+						expression->operand1);
+					maybeDeleteExpression(main,
+						expression->operand2);
+					delete expression;
+					break;
+				}
+			case lexical::Types::functionCall:
+				{
+					lexical::FunctionCall* expression =
+						(lexical::FunctionCall*)lexicalType;
+					maybeDeleteExpression(main,
+						expression->operand);
+					maybeDeleteExpressions(main,
+						&expression->arguments);
+					delete expression;
+					break;
+				}
+			case lexical::Types::cast:
+				{
+					lexical::CastExpression* expression =
+						(lexical::CastExpression*)lexicalType;
+					maybeDeleteExpression(main,
+						expression->operand);
+					delete expression;
+					break;
+				}
+			case lexical::Types::newExpression:
+				delete
+					((lexical::NewExpression*)lexicalType);
+				break;
+			case lexical::Types::newArray:
+				{
+					lexical::NewArrayExpression* expression =
+						(lexical::NewArrayExpression*)lexicalType;
+					maybeDeleteExpression(main,
+						expression->operand);
+					delete expression;
+					break;
+				}
+			case lexical::Types::newAsync:
+				{
+					lexical::NewAsyncExpression* expression =
+						(lexical::NewAsyncExpression*)lexicalType;
+					maybeDeleteExpression(main,
+						expression->instance);
+					maybeDeleteExpression(main,
+						expression->thread);
+					delete expression;
+					break;
+				}
+			case lexical::Types::block:
+				{
+					lexical::BlockStatement* expression =
+						(lexical::BlockStatement*)lexicalType;
+					maybeDeleteExpressions(main,
+						&expression->statements);
+					lexical::LocalVariable*[] variables =
+						(lexical::LocalVariable*[])
+							(expression->variables.data);
+					unsigned int i = expression->variables.size;
+					while (i > 0){
+						i = i - 1;
+						delete variables[i];
+					}
+					delete expression;
+					break;
+				}
+			case lexical::Types::variableDeclaration:
+				delete
+					((lexical::VariableDeclaration*)lexicalType);
+				break;
+			case lexical::Types::ifStatement:
+				{
+					lexical::IfStatement* expression =
+						(lexical::IfStatement*)lexicalType;
+					maybeDeleteExpression(main,
+						expression->operand1);
+					maybeDeleteExpression(main,
+						expression->operand2);
+					maybeDeleteExpression(main,
+						expression->operand3);
+					delete expression;
+					break;
+				}
+		}
+	}
+	
+	static lexical::Type* constParse(Main* main,
+		lexical::Type* expression){
+		switch (expression->type){
+			case lexical::Types::integerLiteral:
+			case lexical::Types::floatingLiteral:
+				main->isConstLiteral = true;
+				break;
+			case lexical::Types::dataMember:
+				main->isConstLiteral = true;
+				expression = (lexical::DataMember*)
+					expression->value;
+				break;
+			case lexical::Types::parenthesized:
+			case lexical::Types::plus:
+				expression = constParse(main,
+					(lexical::UnaryOperator*)expression->operand);
+				break;
+			case lexical::Types::minus:
+				expression = constParse(main,
+					(lexical::UnaryOperator*)expression->operand);
+				if (expression->type == lexical::Types::integerLiteral){
+					expression = setOrNewIntegerLiteral(main,
+						-(lexical::IntegerLiteral*)expression->number,
+						expression);
+				} else {
+					expression = setOrNewFloatingLiteral(main,
+						-(lexical::FloatingLiteral*)expression->number,
+						expression);
+				}
+				break;
+			case lexical::Types::logicalNegation:
+				expression = constParse(main,
+					(lexical::UnaryOperator*)expression->operand);
+				if (expression == main->trueLiteral){
+					expression = main->falseLiteral;
+				} else {
+					expression = main->trueLiteral;
+				}
+				break;
+			case lexical::Types::bitwiseComplement:
+				expression = constParse(main,
+					(lexical::UnaryOperator*)expression->operand);
+				expression = setOrNewIntegerLiteral(main,
+					~(lexical::IntegerLiteral*)expression->number,
+					expression);
+				break;
+			case lexical::Types::multiplication:
+			case lexical::Types::modulus:
+			case lexical::Types::addition:
+			case lexical::Types::substraction:
+			case lexical::Types::division:
+			case lexical::Types::leftShift:
+			case lexical::Types::rightShift:
+			case lexical::Types::bitwiseAnd:
+			case lexical::Types::bitwiseExclusiveOr:
+			case lexical::Types::bitwiseInclusiveOr:
+				{
+					lexical::Type* operand1 = constParse(main,
+						(lexical::BinaryOperator*)expression->operand1);
+					bool operand1Const = main->isConstLiteral;
+					lexical::Type* operand2 = constParse(main,
+						(lexical::BinaryOperator*)expression->operand2);
+					bool operand2Const = main->isConstLiteral;
+					if (operand1->type == lexical::Types::integerLiteral &&
+						operand2->type == lexical::Types::integerLiteral &&
+						expression->type != lexical::Types::division){
+						int integerValue = (lexical::IntegerLiteral*)
+							operand1->number;
+						int integerValue2 = (lexical::IntegerLiteral*)
+							operand2->number;
+						switch (expression->type){
+							case lexical::Types::multiplication:
+								integerValue = integerValue * integerValue2;
+								break;
+							case lexical::Types::modulus:
+								integerValue = integerValue % integerValue2;
+								break;
+							case lexical::Types::addition:
+								integerValue = integerValue + integerValue2;
+								break;
+							case lexical::Types::substraction:
+								integerValue = integerValue - integerValue2;
+								break;
+							case lexical::Types::leftShift:
+								integerValue = integerValue << integerValue2;
+								break;
+							case lexical::Types::rightShift:
+								integerValue = integerValue >> integerValue2;
+								break;
+							case lexical::Types::bitwiseAnd:
+								integerValue = integerValue & integerValue2;
+								break;
+							case lexical::Types::bitwiseExclusiveOr:
+								integerValue = integerValue ^ integerValue2;
+								break;
+							case lexical::Types::bitwiseInclusiveOr:
+								integerValue = integerValue | integerValue2;
+								break;
+						}
+						expression = setIntegerOperand(main, integerValue,
+							operand1, operand1Const, operand2, operand2Const);
+					} else {
+						float floatingValue;
+						float floatingValue2;
+						if (operand1->type == lexical::Types::integerLiteral){
+							floatingValue = (lexical::IntegerLiteral*)
+								operand1->number;
+						} else {
+							floatingValue = (lexical::FloatingLiteral*)
+								operand1->number;
+						}
+						if (operand2->type == lexical::Types::integerLiteral){
+							floatingValue2 = (lexical::IntegerLiteral*)
+								operand2->number;
+						} else {
+							floatingValue2 = (lexical::FloatingLiteral*)
+								operand2->number;
+						}
+						switch (expression->type){
+							case lexical::Types::multiplication:
+								floatingValue = floatingValue * floatingValue2;
+								break;
+							case lexical::Types::modulus:
+								floatingValue = floatingValue % floatingValue2;
+								break;
+							case lexical::Types::addition:
+								floatingValue = floatingValue + floatingValue2;
+								break;
+							case lexical::Types::substraction:
+								floatingValue = floatingValue - floatingValue2;
+								break;
+							case lexical::Types::division:
+								floatingValue = floatingValue / floatingValue2;
+								break;
+						}
+						expression = setFloatingOperand(main, floatingValue,
+							operand1, operand1Const, operand2, operand2Const);
+					}
+				}
+				break;
+			case lexical::Types::lessThan:
+			case lexical::Types::greaterThan:
+			case lexical::Types::lessThanOrEqual:
+			case lexical::Types::greaterThanOrEqual:
+			case lexical::Types::equalTo:
+			case lexical::Types::notEqualTo:
+				{
+					lexical::Type* operand1 = constParse(main,
+						(lexical::BinaryOperator*)expression->operand1);
+					lexical::Type* operand2 = constParse(main,
+						(lexical::BinaryOperator*)expression->operand2);
+					bool boolValue;
+					float floatingValue;
+					float floatingValue2;
+					if (operand1->type == lexical::Types::integerLiteral){
+						floatingValue = (lexical::IntegerLiteral*)
+							operand1->number;
+					} else {
+						floatingValue = (lexical::FloatingLiteral*)
+							operand1->number;
+					}
+					if (operand2->type == lexical::Types::integerLiteral){
+						floatingValue2 = (lexical::IntegerLiteral*)
+							operand2->number;
+					} else {
+						floatingValue2 = (lexical::FloatingLiteral*)
+							operand2->number;
+					}
+					switch (expression->type){
+						case lexical::Types::lessThan:
+							boolValue = floatingValue < floatingValue2;
+							break;
+						case lexical::Types::greaterThan:
+							boolValue = floatingValue > floatingValue2;
+							break;
+						case lexical::Types::lessThanOrEqual:
+							boolValue = floatingValue <= floatingValue2;
+							break;
+						case lexical::Types::greaterThanOrEqual:
+							boolValue = floatingValue >= floatingValue2;
+							break;
+						case lexical::Types::equalTo:
+							boolValue = floatingValue == floatingValue2;
+							break;
+						case lexical::Types::notEqualTo:
+							boolValue = floatingValue != floatingValue2;
+							break;
+					}
+					if (boolValue) {expression = main->trueLiteral;}
+					else {expression = main->falseLiteral;}
+				}
+				break;
+			case lexical::Types::logicalAnd:
+			case lexical::Types::logicalOr:
+				{
+					lexical::Type* operand1 = constParse(main,
+						(lexical::BinaryOperator*)expression->operand1);
+					lexical::Type* operand2 = constParse(main,
+						(lexical::BinaryOperator*)expression->operand2);
+					bool boolValue;
+					switch (expression->type){
+						case lexical::Types::logicalAnd:
+							boolValue = (operand1 == main->trueLiteral &&
+								operand2 == main->trueLiteral);
+							break;
+						case lexical::Types::logicalOr:
+							boolValue = (operand1 == main->trueLiteral) ||
+								(operand2 == main->trueLiteral);
+							break;
+					}
+					if (boolValue){
+						expression = main->trueLiteral;
+					} else {
+						expression = main->falseLiteral;
+					}
+				}
+				break;
+		}
+		return expression;
+	}
+	
+	static void tokenTypeToString(
+		unsigned char type, std::DString* string){
+		switch (type){
+			case TokenTypes::empty:
+				string->addCString("empty");
+				break;
+			case TokenTypes::error:
+				string->addCString("error");
+				break;
+			case TokenTypes::asyncKeyword:
+				string->addCString("async");
+				break;
+			case TokenTypes::classKeyword:
+				string->addCString("class");
+				break;
+			case TokenTypes::enumKeyword:
+				string->addCString("enum");
+				break;
+			case TokenTypes::staticKeyword:
+				string->addCString("static");
+				break;
+			case TokenTypes::constexprKeyword:
+				string->addCString("constexpr");
+				break;
+			case TokenTypes::constKeyword:
+				string->addCString("const");
+				break;
+			case TokenTypes::aptrKeyword:
+				string->addCString("aptr");
+				break;
+			case TokenTypes::alockKeyword:
+				string->addCString("alock");
+				break;
+			case TokenTypes::aexclKeyword:
+				string->addCString("aexcl");
+				break;
+			case TokenTypes::voidKeyword:
+				string->addCString("void");
+				break;
+			case TokenTypes::boolKeyword:
+				string->addCString("bool");
+				break;
+			case TokenTypes::unsignedKeyword:
+				string->addCString("unsigned");
+				break;
+			case TokenTypes::charKeyword:
+				string->addCString("char");
+				break;
+			case TokenTypes::shortKeyword:
+				string->addCString("short");
+				break;
+			case TokenTypes::longKeyword:
+				string->addCString("long");
+				break;
+			case TokenTypes::intKeyword:
+				string->addCString("int");
+				break;
+			case TokenTypes::floatKeyword:
+				string->addCString("float");
+				break;
+			case TokenTypes::doubleKeyword:
+				string->addCString("double");
+				break;
+			case TokenTypes::constwriteKeyword:
+				string->addCString("constwrite");
+				break;
+			case TokenTypes::returnKeyword:
+				string->addCString("return");
+				break;
+			case TokenTypes::newKeyword:
+				string->addCString("new");
+				break;
+			case TokenTypes::deleteKeyword:
+				string->addCString("delete");
+				break;
+			case TokenTypes::ifKeyword:
+				string->addCString("if");
+				break;
+			case TokenTypes::elseKeyword:
+				string->addCString("else");
+				break;
+			case TokenTypes::whileKeyword:
+				string->addCString("while");
+				break;
+			case TokenTypes::breakKeyword:
+				string->addCString("break");
+				break;
+			case TokenTypes::continueKeyword:
+				string->addCString("continue");
+				break;
+			case TokenTypes::switchKeyword:
+				string->addCString("switch");
+				break;
+			case TokenTypes::caseKeyword:
+				string->addCString("case");
+				break;
+			case TokenTypes::defaultKeyword:
+				string->addCString("default");
+				break;
+			case TokenTypes::identifier:
+				string->addCString("identifier");
+				break;
+			case TokenTypes::numberLiteral:
+				string->addCString("number");
+				break;
+			case TokenTypes::integerLiteral:
+				string->addCString("integer");
+				break;
+			case TokenTypes::floatingLiteral:
+				string->addCString("floating");
+				break;
+			case TokenTypes::characterLiteral:
+				string->addCString("character");
+				break;
+			case TokenTypes::stringLiteral:
+				string->addCString("string");
+				break;
+			case TokenTypes::trueLiteral:
+				string->addCString("true");
+				break;
+			case TokenTypes::falseLiteral:
+				string->addCString("false");
+				break;
+			case TokenTypes::nullptrLiteral:
+				string->addCString("nullptr");
+				break;
+			case TokenTypes::thisLiteral:
+				string->addCString("this");
+				break;
+			case TokenTypes::equalTo:
+				string->addCString("!=");
+				break;
+			case TokenTypes::assignment:
+				string->addChar('=');
+				break;
+			case TokenTypes::plus:
+				string->addChar('+');
+				break;
+			case TokenTypes::minus:
+				string->addChar('-');
+				break;
+			case TokenTypes::asterisk:
+				string->addChar('*');
+				break;
+			case TokenTypes::division:
+				string->addChar('/');
+				break;
+			case TokenTypes::modulus:
+				string->addChar('%');
+				break;
+			case TokenTypes::bitwiseComplement:
+				string->addChar('~');
+				break;
+			case TokenTypes::logicalAnd:
+				string->addCString("&&");
+				break;
+			case TokenTypes::andChar:
+				string->addChar('&');
+				break;
+			case TokenTypes::bitwiseExclusiveOr:
+				string->addChar('^');
+				break;
+			case TokenTypes::logicalOr:
+				string->addCString("||");
+				break;
+			case TokenTypes::bitwiseInclusiveOr:
+				string->addChar('|');
+				break;
+			case TokenTypes::leftShift:
+				string->addCString("<<");
+				break;
+			case TokenTypes::lessThanOrEqual:
+				string->addCString("<=");
+				break;
+			case TokenTypes::lessThan:
+				string->addChar('<');
+				break;
+			case TokenTypes::rightShift:
+				string->addCString(">>");
+				break;
+			case TokenTypes::greaterThanOrEqual:
+				string->addCString(">=");
+				break;
+			case TokenTypes::greaterThan:
+				string->addChar('>');
+				break;
+			case TokenTypes::notEqualTo:
+				string->addCString("!=");
+				break;
+			case TokenTypes::logicalNegation:
+				string->addChar('!');
+				break;
+			case TokenTypes::comma:
+				string->addChar(',');
+				break;
+			case TokenTypes::leftBrace:
+				string->addChar('{');
+				break;
+			case TokenTypes::rightBrace:
+				string->addChar('}');
+				break;
+			case TokenTypes::leftBracket:
+				string->addChar('[');
+				break;
+			case TokenTypes::rightBracket:
+				string->addChar(']');
+				break;
+			case TokenTypes::colon:
+				string->addChar(':');
+				break;
+			case TokenTypes::leftParenthesis:
+				string->addChar(':');
+				break;
+			case TokenTypes::rightParenthesis:
+				string->addChar(')');
+				break;
+			case TokenTypes::semicolon:
+				string->addChar(';');
+				break;
+			case TokenTypes::scopeResolution:
+				string->addCString("::");
+				break;
+			case TokenTypes::classMember:
+				string->addChar('.');
+				break;
+			case TokenTypes::memberPointer:
+				string->addCString("->");
+				break;
+		}
+	}
+		
+	static unsigned int getNextToken(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		compileCursor = Parse::ignoreWhitespaceAndComment(
+			classType, compileCursor);
+		unsigned int len = classType->code.length;
+		if (compileCursor >= len){
+			main->tokenType = TokenTypes::empty;
+			return compileCursor;
+		}
+		unsigned char[] data = classType->code.data;
+		switch (data[compileCursor]){
+			case 'A': case 'B': case 'C': case 'D': case 'E':
+			case 'F': case 'G': case 'H': case 'I': case 'J':
+			case 'K': case 'L': case 'M': case 'N': case 'O':
+			case 'P': case 'Q': case 'R': case 'S': case 'T':
+			case 'U': case 'V': case 'W': case 'Z':
+			case 'a': case 'b': case 'c': case 'd': case 'e':
+			case 'f': case 'g': case 'h': case 'i': case 'j':
+			case 'k': case 'l': case 'm': case 'n': case 'o':
+			case 'p': case 'q': case 'r': case 's': case 't':
+			case 'u': case 'v': case 'w': case 'z':
+				compileCursor = getIdentifierToken(main,
+					classType, compileCursor);
+				break;
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9':
+				main->tokenType = TokenTypes::numberLiteral;
+				break;
+			case '\'':
+				compileCursor = compileCursor + 1;
+				main->tokenType = TokenTypes::characterLiteral;
+				break;
+			case '"':
+				compileCursor = compileCursor + 1;
+				main->tokenType = TokenTypes::stringLiteral;
+				break;
+			case '=':
+				compileCursor = compileCursor + 1;
+				if (compileCursor < len &&
+					data[compileCursor] == '='){
+					main->tokenType = TokenTypes::equalTo;
+					compileCursor = compileCursor + 1;
+				} else {
+					main->tokenType = TokenTypes::assignment;
+				}
+				break;
+			case '+':
+				main->tokenType = TokenTypes::plus;
+				compileCursor = compileCursor + 1;
+				break;
+			case '-':
+				compileCursor = compileCursor + 1;
+				if (compileCursor < len &&
+					data[compileCursor] == '>'){
+					main->tokenType = TokenTypes::memberPointer;
+					compileCursor = compileCursor + 1;
+				} else {
+					main->tokenType = TokenTypes::minus;
+				}
+				break;
+			case '*':
+				main->tokenType = TokenTypes::asterisk;
+				compileCursor = compileCursor + 1;
+				break;
+			case '/':
+				main->tokenType = TokenTypes::division;
+				compileCursor = compileCursor + 1;
+				break;
+			case '%':
+				main->tokenType = TokenTypes::modulus;
+				compileCursor = compileCursor + 1;
+				break;
+			case '~':
+				main->tokenType = TokenTypes::bitwiseComplement;
+				compileCursor = compileCursor + 1;
+				break;
+			case '&':
+				compileCursor = compileCursor + 1;
+				if (compileCursor < len &&
+					data[compileCursor] == '&'){
+					main->tokenType = TokenTypes::logicalAnd;
+					compileCursor = compileCursor + 1;
+				} else {
+					main->tokenType = TokenTypes::andChar;
+				}
+				break;
+			case '^':
+				main->tokenType = TokenTypes::bitwiseExclusiveOr;
+				compileCursor = compileCursor + 1;
+				break;
+			case '|':
+				compileCursor = compileCursor + 1;
+				if (compileCursor < len &&
+					data[compileCursor] == '|'){
+					main->tokenType = TokenTypes::logicalOr;
+					compileCursor = compileCursor + 1;
+				} else {
+					main->tokenType = TokenTypes::bitwiseInclusiveOr;
+				}
+				break;
+			case '<':
+				compileCursor = compileCursor + 1;
+				if (compileCursor < len){
+					if (data[compileCursor] == '<'){
+						main->tokenType = TokenTypes::leftShift;
+						compileCursor = compileCursor + 1;
+						break;
+					} else if (data[compileCursor] == '='){
+						main->tokenType = TokenTypes::lessThanOrEqual;
+						compileCursor = compileCursor + 1;
+						break;
+					}
+				}
+				main->tokenType = TokenTypes::lessThan;
+				break;
+			case '>':
+				compileCursor = compileCursor + 1;
+				if (compileCursor < len){
+					if (data[compileCursor] == '>'){
+						main->tokenType = TokenTypes::rightShift;
+						compileCursor = compileCursor + 1;
+						break;
+					} else if (data[compileCursor] == '='){
+						main->tokenType = TokenTypes::greaterThanOrEqual;
+						compileCursor = compileCursor + 1;
+						break;
+					}
+				}
+				main->tokenType = TokenTypes::greaterThan;
+				break;
+			case '!':
+				compileCursor = compileCursor + 1;
+				if (compileCursor < len &&
+					data[compileCursor] == '='){
+					main->tokenType = TokenTypes::notEqualTo;
+					compileCursor = compileCursor + 1;
+				} else {
+					main->tokenType = TokenTypes::logicalNegation;
+				}
+				break;
+			case ',':
+				main->tokenType = TokenTypes::comma;
+				compileCursor = compileCursor + 1;
+				break;
+			case '{':
+				main->tokenType = TokenTypes::leftBrace;
+				compileCursor = compileCursor + 1;
+				break;
+			case '}':
+				main->tokenType = TokenTypes::rightBrace;
+				compileCursor = compileCursor + 1;
+				break;
+			case '[':
+				main->tokenType = TokenTypes::leftBracket;
+				compileCursor = compileCursor + 1;
+				break;
+			case ']':
+				main->tokenType = TokenTypes::rightBracket;
+				compileCursor = compileCursor + 1;
+				break;
+			case ':':
+				compileCursor = compileCursor + 1;
+				if (compileCursor < len &&
+					data[compileCursor] == ':'){
+					main->tokenType = TokenTypes::scopeResolution;
+					compileCursor = compileCursor + 1;
+				} else {
+					main->tokenType = TokenTypes::colon;
+				}
+				break;
+			case '(':
+				main->tokenType = TokenTypes::leftParenthesis;
+				compileCursor = compileCursor + 1;
+				break;
+			case ')':
+				main->tokenType = TokenTypes::rightParenthesis;
+				compileCursor = compileCursor + 1;
+				break;
+			case ';':
+				main->tokenType = TokenTypes::semicolon;
+				compileCursor = compileCursor + 1;
+				break;
+			case '.':
+				main->tokenType = TokenTypes::classMember;
+				compileCursor = compileCursor + 1;
+				break;
+			default:
+				Parse::logErrorCString(main,
+					compileCursor, "Invalid character.");
+				main->tokenType = TokenTypes::error;
+				break;
+		}
+		return compileCursor;
+	}
+
+	static char cmpKeyword(void* i, void* j){
+		return (std::StringView*)i->compareCString(
+			(unsigned char[])j, 0);
+	}
+
+	static unsigned int getIdentifierToken(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned int start = compileCursor;
+		compileCursor = compileCursor + 1;
+		unsigned int len = classType->code.length;
+		unsigned char character;
+		unsigned char[] data = classType->code.data;
+		while (compileCursor < len){
+			character = data[compileCursor];
+			if ((character >= 'a' && character <= 'z') ||
+				(character >= 'A' && character <= 'Z') ||
+				(character >= '0' && character <= '9')){
+				compileCursor = compileCursor + 1;
+			} else {break;}
+		}
+		std::StringView* token = &main->token;
+		token->setSubstring(data, start, compileCursor - start);
+		int i = main->keywords.indexOfSortedNew(
+			token, cmpKeyword);
+		unsigned int tokenType;
+		switch (i - 1){
+			case KeywordTypes::aexclT :
+				tokenType = TokenTypes::aexclKeyword;
+				break;
+			case KeywordTypes::alockT :
+				tokenType = TokenTypes::alockKeyword;
+				break;
+			case KeywordTypes::aptrT :
+				tokenType = TokenTypes::aptrKeyword;
+				break;
+			case KeywordTypes::asyncT :
+				tokenType = TokenTypes::asyncKeyword;
+				break;
+			case KeywordTypes::boolT :
+				tokenType = TokenTypes::boolKeyword;
+				break;
+			case KeywordTypes::breakT :
+				tokenType = TokenTypes::breakKeyword;
+				break;
+			case KeywordTypes::caseT :
+				tokenType = TokenTypes::caseKeyword;
+				break;
+			case KeywordTypes::charT :
+				tokenType = TokenTypes::charKeyword;
+				break;
+			case KeywordTypes::classT :
+				tokenType = TokenTypes::classKeyword;
+				break;
+			case KeywordTypes::constT :
+				tokenType = TokenTypes::constKeyword;
+				break;
+			case KeywordTypes::constexprT :
+				tokenType = TokenTypes::constexprKeyword;
+				break;
+			case KeywordTypes::constwriteT :
+				tokenType = TokenTypes::constwriteKeyword;
+				break;
+			case KeywordTypes::continueT :
+				tokenType = TokenTypes::continueKeyword;
+				break;
+			case KeywordTypes::defaultT :
+				tokenType = TokenTypes::defaultKeyword;
+				break;
+			case KeywordTypes::deleteT :
+				tokenType = TokenTypes::deleteKeyword;
+				break;
+			case KeywordTypes::doubleT :
+				tokenType = TokenTypes::doubleKeyword;
+				break;
+			case KeywordTypes::elseT :
+				tokenType = TokenTypes::elseKeyword;
+				break;
+			case KeywordTypes::enumT :
+				tokenType = TokenTypes::enumKeyword;
+				break;
+			case KeywordTypes::falseT :
+				tokenType = TokenTypes::falseLiteral;
+				break;
+			case KeywordTypes::floatT :
+				tokenType = TokenTypes::floatKeyword;
+				break;
+			case KeywordTypes::ifT :
+				tokenType = TokenTypes::ifKeyword;
+				break;
+			case KeywordTypes::intT :
+				tokenType = TokenTypes::intKeyword;
+				break;
+			case KeywordTypes::newT :
+				tokenType = TokenTypes::newKeyword;
+				break;
+			case KeywordTypes::nullptrT :
+				tokenType = TokenTypes::nullptrLiteral;
+				break;
+			case KeywordTypes::returnT :
+				tokenType = TokenTypes::returnKeyword;
+				break;
+			case KeywordTypes::shortT :
+				tokenType = TokenTypes::shortKeyword;
+				break;
+			case KeywordTypes::staticT :
+				tokenType = TokenTypes::staticKeyword;
+				break;
+			case KeywordTypes::switchT :
+				tokenType = TokenTypes::switchKeyword;
+				break;
+			case KeywordTypes::thisT :
+				tokenType = TokenTypes::thisLiteral;
+				break;
+			case KeywordTypes::trueT :
+				tokenType = TokenTypes::trueLiteral;
+				break;
+			case KeywordTypes::unsignedT :
+				tokenType = TokenTypes::unsignedKeyword;
+				break;
+			case KeywordTypes::voidT :
+				tokenType = TokenTypes::voidKeyword;
+				break;
+			case KeywordTypes::whileT :
+				tokenType = TokenTypes::whileKeyword;
+				break;
+			default:
+				tokenType = TokenTypes::identifier;
+				break;
+		}
+		main->tokenType = tokenType;
+		return compileCursor;
+	}
+	
+	static unsigned int getNumberToken(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned int len = classType->code.length;
+		unsigned char[] data = classType->code.data;
+		int integerValue = 0;
+		/* Trick to store the value after the . as an integer,
+				since integer math is simpler. */
+		int floatValue = 0;
+		unsigned char character = data[compileCursor];
+		unsigned int tokenType;
+		unsigned int bytes = 0;
+		if (character == '0'){
+			compileCursor = compileCursor + 1;
+			if (compileCursor >= len){
+				tokenType = TokenTypes::integerLiteral;
+			} else {
+				switch(data[compileCursor]){
+					case 'b':
+						compileCursor = compileCursor + 1;
+						integerValue = std::CString::getUint(
+							data, compileCursor, len - compileCursor,
+							&bytes, std::NumberBases::binary);
+						tokenType = TokenTypes::integerLiteral;
+						break;
+					case 'x': case 'X':
+						compileCursor = compileCursor + 1;
+						integerValue = std::CString::getUint(
+							data, compileCursor, len - compileCursor,
+							&bytes, std::NumberBases::hexadecimal);
+						tokenType = TokenTypes::integerLiteral;
+						break;
+					case '.':
+						compileCursor = compileCursor + 1;
+						floatValue = std::CString::getUint(
+							data, compileCursor, len - compileCursor,
+							&bytes, std::NumberBases::decimal);
+						tokenType = TokenTypes::floatingLiteral;
+						break;
+					default:
+						integerValue = std::CString::getUint(
+							data, compileCursor, len - compileCursor,
+							&bytes, std::NumberBases::octal);
+						tokenType = TokenTypes::integerLiteral;
+						break;
+				}
+			}
+		} else if (character >= '1' && character <= '9'){
+			integerValue = std::CString::getUint(
+				data, compileCursor, len - compileCursor,
+				&bytes, std::NumberBases::decimal);
+			compileCursor = compileCursor + bytes;
+			character = data[compileCursor];
+			if (compileCursor >= len || character != '.'){
+				compileCursor = compileCursor - bytes;
+				tokenType = TokenTypes::integerLiteral;
+			} else {
+				compileCursor = compileCursor + 1;
+				floatValue = std::CString::getUint(
+					data, compileCursor, len - compileCursor,
+					&bytes, std::NumberBases::decimal);
+				tokenType = TokenTypes::floatingLiteral;
+			}
+		} else {
+			tokenType = TokenTypes::empty;
+		}
+		if (tokenType == TokenTypes::integerLiteral){
+			main->lexicalToken =
+				getIntegerLiteral(main, integerValue);
+		} else if (tokenType == TokenTypes::floatingLiteral){
+			float number = 0.0 + integerValue;
+			if (bytes > 0){
+				number = number + floatValue / (bytes * 10);
+			}
+			main->lexicalToken =
+				getFloatingLiteral(main, number);
+		}
+		compileCursor = compileCursor + bytes;
+		main->tokenType = tokenType;
+		return compileCursor;
+	}
+	
+	static lexical::IntegerLiteral* getIntegerLiteral(
+		Main* main, int i){
+		lexical::IntegerLiteral* literal =
+			(lexical::IntegerLiteral*)
+				(main->integerLiterals.findSorted(&i,
+					lexical::IntegerLiteral::cmpInt));
+		if (literal == nullptr){
+			literal = lexical::IntegerLiteral::create(i);
+			main->integerLiterals.insertSorted(literal,
+				lexical::IntegerLiteral::cmp);
+		}
+		return literal;
+	}
+	
+	static lexical::IntegerLiteral* insertIntegerLiteral(
+		Main* main, lexical::IntegerLiteral* literal){
+		lexical::IntegerLiteral* i =
+			(lexical::IntegerLiteral*)
+				(main->integerLiterals.findSorted(
+					&literal->number,
+					lexical::IntegerLiteral::cmpInt));
+		if (i == nullptr){
+			main->integerLiterals.insertSorted(literal,
+				lexical::IntegerLiteral::cmp);
+			i = literal;
+		} else if (i != literal){
+			delete literal;
+		}
+		return i;
+	}
+	
+	static lexical::FloatingLiteral* getFloatingLiteral(
+		Main* main, float f){
+		lexical::FloatingLiteral* literal =
+			(lexical::FloatingLiteral*)
+				(main->floatingLiterals.findSorted(&f,
+					lexical::FloatingLiteral::cmpFloat));
+		if (literal == nullptr){
+			literal = lexical::FloatingLiteral::create(f);
+			main->floatingLiterals.insertSorted(literal,
+				lexical::FloatingLiteral::cmp);
+		}
+		return literal;
+	}
+	
+	static lexical::FloatingLiteral* insertFloatingLiteral(
+		Main* main, lexical::FloatingLiteral* literal){
+		lexical::FloatingLiteral* f =
+			(lexical::FloatingLiteral*)
+				(main->floatingLiterals.findSorted(
+					&literal->number,
+					lexical::FloatingLiteral::cmpFloat));
+		if (f == nullptr){
+			main->floatingLiterals.insertSorted(literal,
+				lexical::FloatingLiteral::cmp);
+			f = literal;
+		} else if (f != literal){
+			delete literal;
+		}
+		return f;
+	}
+
+	static unsigned char getEscapedChar(
+		unsigned char character){
+		unsigned char value;
+		switch (character){
+			case 't':
+				value = 9;
+				break;
+			case 'n':
+				value = 10;
+				break;
+			case 'r':
+				value = 13;
+				break;
+			default:
+				value = character;
+				break;
+		}
+		return value;
+	}
+	
+	static unsigned int getCharacterToken(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor){
+		unsigned int len = classType->code.length;
+		unsigned char[] data = classType->code.data;
+		unsigned char character = data[compileCursor];
+		unsigned char value;
+		/* No need for bound check as it was done beforehand. */
+		switch (character){
+			case '\'':
+				value = 0;
+				break;
+			case '\\':
+				value = getEscapedChar(data[compileCursor + 1]);
+				compileCursor = compileCursor + 2;
+				break;
+			default:
+				value = character;
+				compileCursor = compileCursor + 1;
+				break;
+		}
+		main->lexicalToken =
+			getCharacterLiteral(main, value);
+		return compileCursor + 1;
+	}
+	
+	static lexical::CharacterLiteral* getCharacterLiteral(
+		Main* main, unsigned char c){
+		lexical::CharacterLiteral* literal =
+			(lexical::CharacterLiteral*)
+				(main->characterLiterals.findSorted(&c,
+					lexical::CharacterLiteral::cmpUchar));
+		if (literal == nullptr){
+			literal = lexical::CharacterLiteral::create(c);
+			main->characterLiterals.insertSorted(literal,
+				lexical::CharacterLiteral::cmp);
+		}
+		return literal;
+	}
+	
+	static unsigned int getStringToken(Main* main,
+		data::ClassType* classType,
+		unsigned int compileCursor, std::String* string){
+		unsigned int characters =
+			setStringOrGetLength(classType,
+				compileCursor, nullptr);
+		string->setLength(characters);
+		compileCursor = setStringOrGetLength(classType,
+			compileCursor, string->data);
+		return compileCursor;
+	}
+	
+	static unsigned int setStringOrGetLength(
+		data::ClassType* classType,
+		unsigned int compileCursor, unsigned char[] dst){
+		unsigned int len = classType->code.length;
+		unsigned char[] data = classType->code.data;
+		unsigned int characters = 0;
+		unsigned char character;
+		/* No need for bound check as it was done beforehand. */
+		while (true){
+			character = data[compileCursor];
+			switch (character){
+				case '"':
+					compileCursor = Parse::ignoreWhitespaceAndComment(
+						classType, compileCursor + 1);
+					character = data[compileCursor];
+					if (character == '"'){
+						/* Merge adjancent string literals. */
+						compileCursor = compileCursor + 1;
+						continue;
+					}
+					break;
+				case '\\':
+					if (dst != nullptr){
+						dst[characters] =
+							getEscapedChar(data[compileCursor + 1]);
+					}
+					characters = characters + 1;
+					compileCursor = compileCursor + 2;
+					continue;
+				default:
+					if (dst != nullptr){
+						dst[characters] = character;
+					}
+					characters = characters + 1;
+					compileCursor = compileCursor + 1;
+					continue;
+			}
+			break;
+		}
+		if (dst == nullptr){
+			return characters;
+		} else {
+			return compileCursor;
+		}
+	}
+	
+}

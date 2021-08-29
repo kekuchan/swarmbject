@@ -1,0 +1,1496 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Main {
+	std::bom::Window appWindow;
+	std::dom::Node document;
+	std::dom::Node body;
+	std::dom::Node editorContainer;
+	std::dom::Node editorBar;
+	std::dom::Node elementWithText;
+	std::dom::Node menuContainer;
+	std::dom::Node compileContainer;
+	unsigned int savedScrollTop;
+	bool bottomBar;
+	bool mobileButtons;
+	/* 0 is auto, otherwise the value is used, as a
+		fix for browsers, where auto is not reliable. */
+	unsigned int windowHeight;
+	bool fileSaved;
+	std::DString currentClassPath;
+	std::DString clipboard;
+	std::dom::Node findContainer;
+	std::js::Object onRunHtml;
+
+	bool compileError;
+	Namespace* rootNamespace;
+	data::ClassType* currentParseClass;
+	lexical::DataMember* currentParseDataMember;
+	lexical::MemberFunction* currentParseFunction;
+	lexical::FunctionParameter* currentParseParameter;
+	std::PtrCircuralArray functionsToParse;
+	std::PtrDArray functionExpressionStack;
+	bool functionStatementEnd;
+	bool functionMaybeCast;
+	std::PtrDArray dataMembersStack;
+	/* Cache character, string, integer and floating literals,
+		instead of having multiple copies of them. */
+	std::PtrDArray characterLiterals;
+	std::PtrDArray stringLiterals;
+	std::PtrDArray integerLiterals;
+	std::PtrDArray floatingLiterals;
+	std::PtrDArray staticMembers;
+	std::PtrDArray sortedVariables;
+	bool needAsyncStaticObject;
+	data::ClassType* savedClassType;
+	unsigned int compileCursor;
+	std::StringView token;
+	unsigned char tokenType;
+	lexical::Type* lexicalToken;
+	std::PtrArray keywords;
+	lexical::Type* lexicalExpression;
+	std::PtrDArray* expressionStack;
+	bool statementEnd;
+	bool maybeCast;
+	lexical::Type* currentExpression;
+	bool isConstLiteral;
+	std::DString classOrMemberPath;
+	std::DString classMemberName;
+	unsigned int rootPath;
+
+	lexical::Type* nullptrLiteral;
+	lexical::Type* thisLiteral;
+	lexical::Type* trueLiteral;
+	lexical::Type* falseLiteral;
+	lexical::UnaryOperator* returnStatement;
+	lexical::Type* breakStatement;
+	lexical::Type* continueStatement;
+	lexical::Type* defaultLabel;
+	lexical::UnaryOperator* deleteStatement;
+
+	data::Type* voidType;
+	data::Type* boolType;
+	data::Type* ucharType;
+	data::Type* charType;
+	data::Type* ushortType;
+	data::Type* shortType;
+	data::Type* uintType;
+	data::Type* intType;
+	data::Type* floatType;
+	data::Type* doubleType;
+
+	std::DString compiledCode;
+	bool compileMemory;
+	std::PtrDArray classesStack;
+	unsigned int nestedBlocks;
+	unsigned int charsInLine;
+	unsigned int stackEnd;
+
+	static void onClickOnTitle(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		e->preventDefault();
+		Main* main = &app.main;
+		main->savedScrollTop = std::dom::Element::
+			getScrollTop(&main->elementWithText);
+		main->body.replaceChild(&main->menuContainer,
+			&main->editorContainer);
+	}
+
+	static void stringToCaret(unsigned char[] string,
+		unsigned int start, unsigned int len,
+		std::dom::Range* range, bool mergeAfter,
+		std::dom::Node* document){
+		std::dom::Node node;
+		range->getStartContainer(&node);
+		unsigned int offset = range->getStartOffset();
+		/* When between two nodes, inserting will be after the first. */
+		std::dom::Node sibling;
+		std::dom::Node parent;
+		if (node.getNodeType() != std::dom::NodeTypes::text){
+			parent.set(&node);
+			if (offset == 0){
+				node.getFirstChild(&sibling);
+			} else {
+				node.getChildNode(&node, offset - 1);
+				if (node.getNodeType() == std::dom::NodeTypes::text){
+					sibling.set(&node);
+					offset = std::dom::CharacterData::
+						getLength(&node);
+				} else {
+					node.getNextSibling(&sibling);
+					offset = 0;
+				}
+			}
+		} else {
+			sibling.set(&node);
+		}
+		if (sibling.isNull()){
+			std::dom::Text::create(
+				document, &sibling, string, start, len);
+			parent.appendChild(&sibling);
+			range->setStart(&sibling, len);
+			range->setEnd(&sibling, len);
+		} else if (sibling.getNodeType() !=
+				std::dom::NodeTypes::text ||
+			(!mergeAfter && node.getNodeType() !=
+				std::dom::NodeTypes::text)){
+			std::dom::Text::create(
+				document, &node, string, start, len);
+			parent.insertBefore(&node, &sibling);
+			range->setStart(&node, len);
+			range->setEnd(&node, len);
+		} else {
+			std::dom::CharacterData::insertData(
+				&sibling, offset, string, start, len);
+			range->setStart(&sibling, offset + len);
+			range->setEnd(&sibling, offset + len);
+		}
+	}
+	
+	/* Gets the BR element before the row where the node is,
+		or null if the beginning of the text is reached. */
+	static void elementBeforeRow(
+		std::dom::Node* node,
+		unsigned int offset){
+		if (node->getNodeType() != std::dom::NodeTypes::text){
+			if (offset == 0){
+				node->set(nullptr);
+			} else {
+				node->getChildNode(node, offset - 1);
+			}
+		}
+		while (node->getNodeType() ==
+			std::dom::NodeTypes::text){
+			node->getPreviousSibling(node);
+		}
+	}
+	
+	static void brToCaret(std::dom::Range* range,
+		std::dom::Node* document){
+		std::dom::Node node;
+		range->getStartContainer(&node);
+		unsigned int offset = range->getStartOffset();
+		std::dom::Node br;
+		std::html::BrElement::create(document, &br);
+		std::dom::Node sibling;
+		if (node.getNodeType() == std::dom::NodeTypes::text){
+			std::dom::Node parent;
+			node.getParentNode(&parent);
+			if (offset == 0){
+				parent.insertBefore(&br, &node);
+			} else {
+				unsigned int len =
+					std::dom::CharacterData::getLength(&node);
+				if (offset < len){
+					std::dom::Text::splitText(
+						&node, offset);
+				}
+				node.getNextSibling(&sibling);
+				parent.insertBefore(&br, &sibling);
+			}
+		} else {
+			unsigned int len = node.getChildNodesLength();
+			if (offset < len){
+				node.getChildNode(&sibling, offset);
+				node.insertBefore(&br, &sibling);
+			} else {
+				node.appendChild(&br);
+			}
+		}
+		br.getNextSibling(&sibling);
+		if (sibling.getNodeType() != std::dom::NodeTypes::text){
+			/* Empty text node is inserted for easier referencing. */
+			br.getParentNode(&node);
+			std::dom::Node text;
+			std::dom::Text::create(
+				document, &text, nullptr, 0, 0);
+			node.insertBefore(&text, &sibling);
+			br.getNextSibling(&sibling);
+		}
+		range->setStart(&sibling, 0);
+		range->setEnd(&sibling, 0);
+	}
+
+	void setTitle(){
+		if (!fileSaved){
+			currentClassPath.addChar('*');
+		}
+		unsigned int len = currentClassPath.length;
+		std::dom::Node node;
+		editorBar.getFirstChild(&node);
+		if (bottomBar){
+			std::html::InputElement::setValue(
+				&node, currentClassPath.data,
+				0, len);
+		} else {
+			std::dom::CharacterData::setData(
+				&node, currentClassPath.data,
+				0, len);
+		}
+		if (!fileSaved){
+			currentClassPath.trim(len - 1);
+		}
+	}
+
+	void setModifiedTitle(){
+		if (fileSaved){
+			fileSaved = false;
+			setTitle();
+		}
+	}
+	
+	static void onTabKey(Main* main,
+		bool shiftKey){
+		std::dom::Selection selection;
+		main->appWindow.getSelection(&selection);
+		std::dom::Range range;
+		selection.getRangeAt(&range, 0);
+		/* Nothing selected, insert the tab character. */
+		if (range.getCollapsed()){
+			stringToCaret("\t", 0, 1, &range, true, &main->document);
+		} else {
+			std::dom::Node start;
+			range.getStartContainer(&start);
+			elementBeforeRow(&start, range.getStartOffset());
+			std::dom::Node end;
+			range.getEndContainer(&end);
+			elementBeforeRow(&end, range.getEndOffset());
+			std::dom::Node sibling;
+			std::dom::Node parent;
+			std::DString data;
+			while (true){
+				if (start.isNull()){
+					main->elementWithText.getFirstChild(&sibling);
+				} else if (start.getNodeType() !=
+					std::dom::NodeTypes::text){
+					start.getNextSibling(&sibling);
+				} else {
+					start.getNextSibling(&start);
+					continue;
+				}
+				if (!shiftKey){
+					if (sibling.isNull()){
+						std::dom::Text::create(
+							&main->document, &start, "\t", 0, 1);
+						main->elementWithText.appendChild(&start);
+					} else if (sibling.getNodeType() ==
+						std::dom::NodeTypes::text){
+						std::dom::CharacterData::insertData(
+							&sibling, 0, "\t", 0, 1);
+					} else {
+						std::dom::Text::create(
+							&main->document, &start, "\t", 0, 1);
+						sibling.getParentNode(&parent);
+						parent.insertBefore(&start, &sibling);
+					}
+				} else if (sibling.getNodeType() ==
+					std::dom::NodeTypes::text){
+					data.clear();
+					std::dom::CharacterData::getData(
+						&sibling, &data);
+					if (data.data[0] == '\t'){
+						std::dom::CharacterData::deleteData(
+							&sibling, 0, 1);
+					}
+				}
+				if (start.isSameNode(&end)) {break;}
+				start.set(&sibling);
+			}
+		}
+	}
+
+	static void onKeyDownOnPre(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		unsigned int keyCode = e->getKeyCode();
+		Main* main = &app.main;
+		/* Ignore cursor keys. */
+		if (keyCode < 37 || keyCode > 40){
+			main->setModifiedTitle();
+		}
+		if (keyCode == '\t'){
+			e->preventDefault();
+			onTabKey(main, e->getShiftKey());
+		} else if (keyCode == 13){/* enter */
+			e->preventDefault();
+			std::dom::Selection selection;
+			main->appWindow.getSelection(&selection);
+			std::dom::Range range;
+			selection.getRangeAt(&range, 0);
+			std::dom::Node start;
+			range.getStartContainer(&start);
+			unsigned int offset = range.getStartOffset();
+			/* Search for the start of the line. */
+			std::dom::Node node;
+			node.set(&start);
+			if (node.getNodeType() != std::dom::NodeTypes::text){
+				if (offset == 0){
+					node.set(nullptr);
+				} else {
+					node.getChildNode(&node, offset - 1);
+				}
+			}
+			std::dom::Node sibling;
+			while (true){
+				node.getPreviousSibling(&sibling);
+				if (sibling.getNodeType() !=
+					std::dom::NodeTypes::text) {break;}
+				node.set(&sibling);
+			}
+			/* Count the tabs at the start of the line. */
+			unsigned int tabs = 0;
+			std::DString data;
+			while (node.getNodeType() ==
+				std::dom::NodeTypes::text){
+				bool tab = !node.isSameNode(&start);
+				unsigned int until;
+				if (tab){
+					until = std::dom::CharacterData::
+						getLength(&node);
+				} else {
+					/* Count only until the cursor. */
+					until = offset;
+				}
+				data.clear();
+				std::dom::CharacterData::getData(
+					&node, &data);
+				unsigned int i = 0;
+				while (i < until){
+					if (data.data[i] == '\t'){
+						tabs = tabs + 1;
+					} else {
+						tab = false;
+						break;
+					}
+					i = i + 1;
+				}
+				if (!tab) {break;}
+				node.getNextSibling(&node);
+			}
+			brToCaret(&range, &main->document);
+			data.clear();
+			data.reserve(tabs);
+			unsigned int i = 0;
+			while (i < tabs){
+				data.addChar('\t');
+				i = i + 1;
+			}
+			range.getStartContainer(&start);
+			std::dom::CharacterData::insertData(
+				&start, 0, data.data, 0, data.length);
+			range.setStart(&start, tabs);
+			range.setEnd(&start, tabs);
+		}
+	}
+	
+	static void rangeToString(std::DString* string,
+		std::dom::Node* startContainer,
+		unsigned int startOffset,
+		std::dom::Node* endContainer,
+		unsigned int endOffset){
+		if (startContainer->getNodeType() !=
+			std::dom::NodeTypes::text){
+			startContainer->getChildNode(
+				startContainer, startOffset);
+			if (startContainer->getNodeType() ==
+				std::dom::NodeTypes::text){
+				startOffset = 0;
+			}
+		}
+		if (endContainer->getNodeType() !=
+			std::dom::NodeTypes::text){
+			endContainer->getChildNode(
+				endContainer, endOffset - 1);
+			if (endContainer->getNodeType() ==
+				std::dom::NodeTypes::text){
+				endOffset = std::dom::CharacterData::
+					getLength(endContainer);
+			}
+		}
+		std::dom::Node node;
+		node.set(startContainer);
+		if (node.getNodeType() ==
+			std::dom::NodeTypes::text &&
+			!node.isSameNode(endContainer)){
+			std::dom::CharacterData::substringData(
+				&node, string, startOffset,
+				std::dom::CharacterData::
+					getLength(&node) - startOffset);
+			node.getNextSibling(&node);
+		}
+		while (!node.isSameNode(endContainer)){
+			if (node.getNodeType() ==
+				std::dom::NodeTypes::text){
+				std::dom::CharacterData::getData(
+					&node, string);
+			} else {
+				string->addChar('\n');
+			}
+			node.getNextSibling(&node);
+		}
+		if (node.getNodeType() ==
+			std::dom::NodeTypes::text){
+			if (node.isSameNode(startContainer)){
+			std::dom::CharacterData::substringData(
+				&node, string, startOffset,
+					endOffset - startOffset);
+			} else {
+				std::dom::CharacterData::substringData(
+					&node, string, 0, endOffset);
+			}
+		}
+	}
+	
+	static void getRangeToString(Main* main,
+		std::dom::Range* range,
+		std::DString* string){
+		std::dom::Selection selection;
+		main->appWindow.getSelection(&selection);
+		selection.getRangeAt(range, 0);
+		std::dom::Node startContainer;
+		range->getStartContainer(&startContainer);
+		std::dom::Node endContainer;
+		range->getEndContainer(&endContainer);
+		rangeToString(string,
+			&startContainer, range->getStartOffset(),
+			&endContainer, range->getEndOffset());
+	}
+
+	static void onCutOnPre(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		e->preventDefault();
+		Main* main = &app.main;
+		main->setModifiedTitle();
+		std::dom::Range range;
+		std::DString string;
+		getRangeToString(main, &range, &string);
+		range.deleteContents();
+		e->setTextClipboardData(string.data, 0, string.length);
+	}
+
+	static void onCopyOnPre(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		e->preventDefault();
+		Main* main = &app.main;
+		std::dom::Range range;
+		std::DString string;
+		getRangeToString(main, &range, &string);
+		e->setTextClipboardData(string.data, 0, string.length);
+	}
+	
+	static void stringToRange(std::DString* string,
+		std::dom::Range* range, std::dom::Node* document){
+		unsigned int start = 0;
+		unsigned int i = 0;
+		unsigned int len = string->length;
+		unsigned char[] data = string->data;
+		unsigned int end;
+		while (i < len){
+			if (data[i] == '\n'){
+				if (i > 0 && data[i - 1] == '\r'){
+					end = i - 1;
+				} else {
+					end = i;
+				}
+				if (start < end){
+					stringToCaret(data, start, end - start,
+						range, false, document);
+				}
+				start = i + 1;
+				brToCaret(range, document);
+			}
+			i = i + 1;
+		}
+		if (start < i){
+			stringToCaret(data, start, i - start,
+				range, true, document);
+		}
+	}
+
+	static void onPasteOnPre(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		e->preventDefault();
+		Main* main = &app.main;
+		std::DString string;
+		e->getTextClipboardData(&string);
+		main->doPaste(&string);
+	}
+
+	void doPaste(std::DString* string){
+		std::dom::Selection selection;
+		appWindow.getSelection(&selection);
+		std::dom::Range range;
+		selection.getRangeAt(&range, 0);
+		/* To remove flickering on mobile and caret display recalculations. */
+		selection.removeAllRanges();
+		std::css::Declaration style;
+		std::html::Element::getStyle(
+			&editorContainer, &style);
+		std::css::Keyword keyword;
+		/* To increase performance. */
+		style.setDisplay(keyword.set(
+			std::css::DisplayTypes::none));
+		range.deleteContents();
+		stringToRange(string, &range, &document);
+		setModifiedTitle();
+		style.setDisplay(keyword.set(
+			std::css::DisplayTypes::block));
+		selection.addRange(&range);
+	}
+
+	static void onClickCancel(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		if (e != nullptr){
+			main->body.replaceChild(
+				&main->editorContainer, &main->menuContainer);
+		} else {
+			main->body.appendChild(&main->editorContainer);
+		}
+		std::dom::Element::setScrollTop(
+			&main->elementWithText, main->savedScrollTop);
+	}
+	
+	static void onClickOnOpenClass(
+		std::ApplicationInstance aexcl app,
+		std::DString* path){
+		if (path != nullptr){
+			app.fileSystem.openFile(path->data, onClassOpened,
+				std::fs::OpenFileModes::readBinary);
+		} else {
+			onClickCancel(nullptr, app);
+		}
+	}
+	
+	static void onClassOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		Main* main = &app.main;
+		if (main->currentClassPath.length == 0){
+			main->elementWithText.setOnKeyDown(onKeyDownOnPre);
+			main->elementWithText.setOnCut(onCutOnPre);
+			main->elementWithText.setOnCopy(onCopyOnPre);
+			main->elementWithText.setOnPaste(onPasteOnPre);
+			main->elementWithText.setContentEditable(true);
+		}
+		main->currentClassPath.setSubstring(
+			file->path.data, 0, file->path.length);
+		unsigned int len = file->getSize();
+		unsigned char[] data = new unsigned char[len];
+		file->read(data, 0, len);
+		std::dom::Selection selection;
+		main->appWindow.getSelection(&selection);
+		std::dom::Range range;
+		selection.getRangeAt(&range, 0);
+		selection.removeAllRanges();
+		std::html::Element::removeChildren(
+			&main->elementWithText);
+		stringToEditor(main, data, len);
+		delete[] data;
+		main->fileSaved = true;
+		main->setTitle();
+		main->body.appendChild(&main->editorContainer);
+	}
+	
+	static void stringToEditor(
+		Main* main,unsigned char[] data,
+		unsigned int len){
+		unsigned int start = 0;
+		unsigned int end;
+		unsigned int i = 0;
+		std::dom::Node node;
+		while (i < len){
+			if (data[i] == '\n'){
+				if (i > 0 && data[i - 1] == '\r'){
+					end = i - 1;
+				} else {
+					end = i;
+				}
+				if (start < end){
+					std::dom::Text::create(&main->document,
+						&node, data, start, end - start);
+					main->elementWithText.appendChild(&node);
+				}
+				start = i + 1;
+				std::html::BrElement::create(
+					&main->document, &node);
+				main->elementWithText.appendChild(&node);
+			}
+			i = i + 1;
+		}
+		if (start < i){
+			std::dom::Text::create(&main->document,
+				&node, data, start, i - start);
+			main->elementWithText.appendChild(&node);
+		}
+	}
+
+	static void onClickOnBrowse(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		main->body.removeChild(&main->menuContainer);
+		app.fileSystem.gui.select(onClickOnOpenClass, true);
+	}
+
+	static void onClickOnSaveClass(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		if (main->fileSaved){
+			onClickCancel(e, app);
+		} else {
+			main->body.removeChild(&main->menuContainer);
+			app.fileSystem.openFile(
+				main->currentClassPath.data, onSaveClass,
+				std::fs::OpenFileModes::writeBinary);
+		}
+	}
+
+	static void onSaveClass(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		Main* main = &app.main;
+		std::DString string;
+		std::dom::Node startContainer;
+		startContainer.set(&main->elementWithText);
+		std::dom::Node endContainer;
+		endContainer.set(&startContainer);
+		rangeToString(&string,
+			&startContainer, 0,
+			&endContainer, startContainer.getChildNodesLength());
+		file->write(string.data, 0, string.length);
+		main->fileSaved = true;
+		main->setTitle();
+		onClickCancel(nullptr, app);
+	}
+
+	static void onClickOnCopy(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		e->preventDefault();
+		e->stopPropagation();
+		Main* main = &app.main;
+		std::dom::Range range;
+		std::DString* string = &main->clipboard;
+		string->clear();
+		getRangeToString(main, &range, string);
+	}
+
+	static void onClickOnPaste(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		e->preventDefault();
+		e->stopPropagation();
+		Main* main = &app.main;
+		main->doPaste(&main->clipboard);
+	}
+	
+	static void onClickOnCut(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		e->preventDefault();
+		e->stopPropagation();
+		Main* main = &app.main;
+		main->setModifiedTitle();
+		std::dom::Range range;
+		std::DString* string = &main->clipboard;
+		string->clear();
+		getRangeToString(main, &range, string);
+		range.deleteContents();
+	}
+
+	static void onClickOnShiftTab(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		e->preventDefault();
+		e->stopPropagation();
+		Main* main = &app.main;
+		onTabKey(main, true);
+	}
+	
+	void find(bool next){
+		std::dom::Selection selection;
+		appWindow.getSelection(&selection);
+		std::dom::Range range;
+		selection.getRangeAt(&range, 0);
+		std::DString find;
+		std::html::InputElement::getValue(
+			&findContainer, &find);
+		std::dom::Node node;
+		range.getStartContainer(&node);
+		std::DString string;
+		unsigned int offset = range.getStartOffset();
+		unsigned int i;
+		if (node.getNodeType() !=
+			std::dom::NodeTypes::text){
+			if (node.isSameNode(&elementWithText)){
+				node.getChildNode(&node, offset);
+			} else {
+				elementWithText.getFirstChild(&node);
+			}
+			i = 0;
+		} else {
+			node.getParentNode(&node);
+			if (node.isSameNode(&elementWithText)){
+				range.getStartContainer(&node);
+				std::dom::CharacterData::getData(
+					&node, &string);
+				if (next){
+					i = string.indexOf(find.data, 0,
+						find.length, offset + 1);
+				} else if (offset > 0){
+					i = std::Memory::indexOfReverse(
+						find.data, 0, find.length,
+						string.data, 0, offset);
+				} else {i = 0;}
+			} else {
+				elementWithText.getFirstChild(&node);
+				i = 0;
+			}
+		}
+		while (!node.isNull()){
+			if (i > 0){
+				offset = i - 1;
+				range.setStart(&node, offset);
+				range.setEnd(&node, offset + find.length);
+				node.getPreviousSibling(&node);
+				node.scrollIntoView();
+				break;
+			}
+			if (next){
+				node.getNextSibling(&node);
+			} else {
+				node.getPreviousSibling(&node);
+			}
+			if (node.getNodeType() ==
+				std::dom::NodeTypes::text){
+				string.clear();
+				std::dom::CharacterData::getData(
+					&node, &string);
+				if (next){
+					i = string.indexOf(find.data, 0,
+						find.length, 0);
+				} else {
+					i = std::Memory::indexOfReverse(
+						find.data, 0, find.length,
+						string.data, 0, string.length);
+				}
+			}
+		}
+	}
+
+	static void onClickOnFindUp(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		e->preventDefault();
+		e->stopPropagation();
+		app.main.find(false);
+	}
+
+	static void onClickOnFindDown(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		e->preventDefault();
+		e->stopPropagation();
+		app.main.find(true);
+	}
+	
+	static void setButtonStyle(
+		std::dom::Node* element, unsigned int width){
+		std::css::Declaration style;
+		std::html::Element::getStyle(element, &style);
+		std::css::Short len;
+		std::css::Keyword keyword;
+		style.setFontSize(len.set(
+			30, std::css::Units::px));
+		style.setPaddingBottom(len.set(
+			0, std::css::Units::px));
+		style.setPaddingTop(&len);
+		style.setMargin(&len);
+		style.setBorderWidth(len.set(
+			1, std::css::Units::px));
+		style.setBorderStyle(keyword.set(
+			std::css::BorderStyles::solid));
+		if (width != 0){
+			style.setWidth(len.set(
+				width, std::css::Units::px));
+		}
+	}
+	
+	static void addButton(std::dom::Node* document,
+		std::dom::Node* element,
+		unsigned char[] text,
+		std::dom::Node* container,
+		void(std::dom::Event*,
+			std::ApplicationInstance) onMouseDown){
+		std::html::InputElement::create(
+			document, element);
+		setButtonStyle(element, 0);
+		std::html::InputElement::setType(
+			element, std::html::InputTypes::button);
+		std::html::InputElement::setValue(
+			element, text, 0,
+			std::CString::length(text, 0));
+		element->setOnMouseDown(onMouseDown);
+		container->appendChild(element);
+	}
+
+	static void onClickOnCompile(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		main->body.replaceChild(
+			&main->compileContainer, &main->menuContainer);
+	}
+
+	static void onClickOnCancelCompile(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		main->body.replaceChild(
+			&main->menuContainer, &main->compileContainer);
+	}
+
+	static void onClickOnRun(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::DString* classOrMemberPath =
+			&app.main.classOrMemberPath;
+		classOrMemberPath->trim(app.main.rootPath);
+		classOrMemberPath->addCString("html/compiled.html");
+		app.fileSystem.openFile(
+			classOrMemberPath->data, onRunHtmlOpened,
+			std::fs::OpenFileModes::readBinary);
+	}
+
+	static void onRunHtmlOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		if (file == nullptr) {return;}
+		void* content = file->fileObject.getJsObject();
+		void* stringObject;
+		constwrite
+			"	stringObject = _textDecoder.decode(content);\n";
+		Main* main = &app.main;
+		main->onRunHtml.setJsObject(stringObject);
+		main->classOrMemberPath.trim(main->rootPath);
+		main->classOrMemberPath.addCString("html/compiled.js");
+		app.fileSystem.openFile(
+			main->classOrMemberPath.data, onRunJsOpened,
+			std::fs::OpenFileModes::readBinary);
+	}
+	
+	static void onRunJsOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* file){
+		if (file == nullptr) {return;}
+		void* content = file->fileObject.getJsObject();
+		void* js;
+		constwrite
+			"	js = _textDecoder.decode(content);\n";
+		void* html = app.main.onRunHtml.getJsObject();
+		constwrite
+			"	var compiledJs = ' src=\"compiled.js\">';\n"
+			"	var indexOf = html.indexOf(compiledJs);\n"
+			"	var popup = window.open('');\n"
+			"	if (popup !== null){\n"
+			"		popup.document.write(html.substring(0, indexOf));\n"
+			"		popup.document.write('>');\n"
+			"		popup.document.write(js);\n"
+			"		indexOf += compiledJs.length;\n"
+			"		var indexOf2 = html.indexOf('for ', indexOf);\n"
+			"		popup.document.write(html.substring(indexOf, indexOf2));\n"
+			"		popup.document.write(\"var objectURL;"
+					"if (threads > 0) objectURL = "
+						"URL.createObjectURL(new Blob("
+							"[document.getElementsByTagName('script')[0].innerHTML], "
+							"{type: 'application/javascript'}));\");\n"
+			"		indexOf = indexOf2;\n"
+			"		compiledJs = \"'compiled.js'\";\n"
+			"		indexOf2 = html.indexOf(compiledJs, indexOf);\n"
+			"		popup.document.write(html.substring(indexOf, indexOf2));\n"
+			"		popup.document.write('objectURL');\n"
+			"		popup.document.write(html.substring(\n"
+			"			indexOf2 + compiledJs.length));\n"
+			"		popup.document.close();\n"
+			"	}\n";
+			"	html = null;\n";
+		app.main.onRunHtml.setJsObject(html);
+	}
+
+	static void addRow(std::dom::Node* document,
+		std::dom::Node* element,
+		std::dom::Node* textNode,
+		unsigned char[] text,
+		std::dom::Node* container){
+		std::html::DivElement::create(
+			document, element);
+		std::dom::Text::create(document, textNode,
+			text, 0, std::CString::length(text, 0));
+		element->appendChild(textNode);
+		std::css::Declaration style;
+		std::html::Element::getStyle(element, &style);
+		std::css::Keyword keyword;
+		std::css::Short len;
+		style.setMarginLeft(keyword.set(
+			std::css::MarginTypes::auto));
+		style.setMarginRight(&keyword);
+		style.setMarginTop(len.set(
+			0, std::css::Units::px));
+		style.setMarginBottom(&len);
+		style.setBorderBottomWidth(len.set(
+			1, std::css::Units::px));
+		style.setBorderBottomStyle(keyword.set(
+			std::css::BorderStyles::solid));
+		style.setFontSize(len.set(
+			30, std::css::Units::px));
+		container->appendChild(element);
+	}
+	
+	void setTextHeight(){
+		std::css::Declaration style;
+		std::css::Short len;
+		unsigned short height = windowHeight;
+		std::html::Element::getStyle(
+			&elementWithText, &style);
+		if (height == 0){
+			if (bottomBar){
+				height = appWindow.getInnerHeight() - 60;
+			} else {
+				style.setMinHeight(len.set(
+					100, std::css::Units::px));
+				style.setHeight(nullptr);
+				std::html::Element::getStyle(
+					&editorContainer, &style);
+				style.setOverflow(nullptr);
+				return;
+			}
+		} else if (bottomBar){
+			height = height - 60;
+		} else {
+			style.setHeight(nullptr);
+			std::html::Element::getStyle(
+				&editorContainer, &style);
+			std::css::Keyword keyword;
+			style.setOverflow(keyword.set(
+				std::css::OverflowTypes::auto));
+		}
+		style.setMinHeight(nullptr);
+		style.setHeight(len.set(height,
+			std::css::Units::px));
+	}
+	
+	static void onResize(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		app.main.setTextHeight();
+	}
+
+	void saveSettings(std::dom::Node* node){
+		std::dom::Node element;
+		node->getNextSibling(node);
+		node->getLastChild(&element);
+		bool checkedBar = std::html::
+			InputElement::getChecked(&element);
+		node->getNextSibling(node);
+		node->getLastChild(&element);
+		bool checkedButtons = std::html::
+			InputElement::getChecked(&element);
+		node->getNextSibling(node);
+		node->getLastChild(&element);
+		std::DString value;
+		std::html::InputElement::getValue(
+			&element, &value);
+		unsigned int height = std::CString::getUint(
+			value.data, 0, value.length, nullptr,
+			std::NumberBases::decimal);
+		node->getParentNode(node);
+		body.replaceChild(&menuContainer, node);
+		
+		if (checkedBar != bottomBar){
+			std::html::Element::removeChildren(
+				&editorContainer);
+			bottomBar = checkedBar;
+			mobileButtons = checkedButtons;
+			if (checkedBar){
+				editorContainer.appendChild(&elementWithText);
+				createBar(&element);
+			} else {
+				createBar(&element);
+				editorContainer.appendChild(&elementWithText);
+			}
+		} else if (checkedButtons != mobileButtons){
+			mobileButtons = checkedButtons;
+			if (checkedBar){
+				if (checkedButtons){
+					addMobileButtons(&element);
+				} else {
+					editorBar.getFirstChild(&element);
+					std::html::Element::removeChildren(
+						&editorBar);
+					editorBar.appendChild(&element);
+				}
+			}
+		}
+		
+		if (checkedBar && height == 0){
+			appWindow.setOnResize(onResize);
+		} else {
+			appWindow.setOnResize(nullptr);
+		}
+
+		windowHeight = height;
+		setTextHeight();
+	}
+	
+	static void onClickOnSaveSettings(
+		std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		std::dom::Node node;
+		e->getTarget(&node);
+		main->saveSettings(&node);
+	}
+
+	static void addCheckbox(std::dom::Node* document,
+		std::dom::Node* div, std::dom::Node* textNode,
+		unsigned char[] text, std::dom::Node* container,
+		std::dom::Node* element, bool setIf){
+		addRow(document, div, textNode,
+			text, container);
+		std::html::InputElement::create(
+			document, element);
+		std::html::InputElement::setType(
+			element, std::html::InputTypes::checkbox);
+		if (setIf){
+			std::html::InputElement::setChecked(
+				element, true);
+		}
+		div->appendChild(element);
+	}
+
+	static void onClickOnSettings(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		/* Unlike other menus, settings are not cached,
+			as it is expected to be accessed less. */
+		Main* main = &app.main;
+		std::dom::Node* document = &main->document;
+		std::dom::Node container;
+		std::dom::Node div;
+		std::dom::Node textNode;
+		std::dom::Node element;
+		std::css::Declaration style;
+		std::css::Keyword keyword;
+		std::css::Short len;
+
+		std::html::DivElement::create(
+			document, &container);
+		std::html::Element::getStyle(&container, &style);
+		style.setTextAlign(keyword.set(
+			std::css::TextAlignTypes::center));
+
+		addRow(document, &div, &textNode,
+			"Save", &container);
+		std::html::Element::getStyle(&div, &style);
+		style.setBorderTopWidth(len.set(
+			1, std::css::Units::px));
+		style.setBorderTopStyle(keyword.set(
+			std::css::BorderStyles::solid));
+		div.setOnClick(onClickOnSaveSettings);
+
+		addCheckbox(document, &div, &textNode,
+			"Bottom bar: ", &container,
+			&element, main->bottomBar);
+
+		addCheckbox(document, &div, &textNode,
+			"Mobile buttons: ", &container,
+			&element, main->mobileButtons);
+
+		addRow(document, &div, &textNode,
+			"Window height: ", &container);
+		std::html::InputElement::create(
+			document, &element);
+		std::DString value;
+		value.addUint(main->windowHeight,
+			std::NumberBases::decimal);
+		std::html::InputElement::setValue(
+			&element, value.data, 0, value.length);
+		div.appendChild(&element);
+		
+		main->body.replaceChild(
+			&container, &main->menuContainer);
+	}
+
+	static void onClickOnCompilePath(
+		std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		main->body.removeChild(&main->compileContainer);
+		app.fileSystem.gui.select(
+			onChangeCompilePath, false);
+	}
+	
+	static void onChangeCompilePath(
+		std::ApplicationInstance aexcl app,
+		std::DString* path){
+		Main* main = &app.main;
+		if (path != nullptr){
+			std::dom::Node node;
+			main->compileContainer.getFirstChild(&node);
+			node.getNextSibling(&node);
+			node.getFirstChild(&node);
+			unsigned int len = path->length;
+			std::dom::CharacterData::setData(
+				&node, path->data, 0, len);
+			main->classOrMemberPath.setSubstring(
+				path->data, 0, len);
+			main->rootPath = len;
+		}
+		main->body.appendChild(&main->compileContainer);
+	}
+	
+	void addMobileButtons(
+		std::dom::Node* element){
+		addButton(&document, element,
+			"Copy", &editorBar, onClickOnCopy);
+		addButton(&document, element,
+			"Paste", &editorBar, onClickOnPaste);
+		addButton(&document, element,
+			"Cut", &editorBar, onClickOnCut);
+		addButton(&document, element,
+			"|<-", &editorBar, onClickOnShiftTab);
+
+		std::html::InputElement::create(
+			&document, element);
+		setButtonStyle(element, 240);
+		editorBar.appendChild(element);
+		findContainer.set(element);
+
+		addButton(&document, element,
+			"<", &editorBar, onClickOnFindUp);
+		addButton(&document, element,
+			">", &editorBar, onClickOnFindDown);
+	}
+
+	void createBar(std::dom::Node* node){
+		std::css::Declaration style;
+		std::css::Keyword keyword;
+		std::css::Short len;
+		std::css::RGB rgb;
+		std::html::DivElement::create(
+			&document, &editorBar);
+		std::html::Element::getStyle(&editorBar, &style);
+		style.setOverflow(keyword.set(
+			std::css::OverflowTypes::auto));
+		style.setWhiteSpace(keyword.set(
+			std::css::WhiteSpaceTypes::nowrap));
+		if (bottomBar){
+			style.setPadding(len.set(
+				0, std::css::Units::px));
+			style.setMargin(&len);
+			addButton(&document, node,
+				currentClassPath.data, &editorBar,
+				onClickOnTitle);
+			if (mobileButtons){
+				addMobileButtons(node);
+			}
+		} else {
+			std::dom::Text::create(&document,
+				node, currentClassPath.data,
+				0, currentClassPath.length);
+			editorBar.appendChild(node);
+			style.setTextAlign(keyword.set(
+				std::css::TextAlignTypes::center));
+			rgb.color.set(140, 140, 140);
+			style.setBackgroundColor(&rgb);
+			style.setHeight(len.set(
+				40, std::css::Units::px));
+			style.setLineHeight(&len);
+			style.setAlign(keyword.set(
+				std::css::AlignTypes::middle));
+			style.setFontSize(len.set(
+				30, std::css::Units::px));
+			style.setBorderBottomWidth(len.set(
+				1, std::css::Units::px));
+			style.setBorderBottomStyle(keyword.set(
+				std::css::BorderStyles::solid));
+			editorBar.setOnClick(onClickOnTitle);
+		}
+		editorContainer.appendChild(&editorBar);
+	}
+
+	static unsigned char[] getLicense(){
+		return
+			"Copyright (c) 2021 SWARMBJECT contributors\n"
+			"\n"
+			"Redistribution and use in source and binary forms,\n"
+			"with or without modification, are permitted\n"
+			"provided that the following conditions are met:\n"
+			"\n"
+			"1. Redistributions of source code must\n"
+			"retain the above copyright notice, this list\n"
+			"of conditions and the following disclaimer.\n"
+			"\n"
+			"2. Redistributions in binary form must\n"
+			"reproduce the above copyright notice,\n"
+			"this list of conditions and the following\n"
+			"disclaimer in the documentation and/or other\n"
+			"materials provided with the distribution.\n"
+			"\n"
+			"Subject to the terms and conditions of this\n"
+			"license, each copyright holder and contributor\n"
+			"hereby grants to those receiving rights under this\n"
+			"license a perpetual, worldwide, non-exclusive,\n"
+			"no-charge, royalty-free, irrevocable (except for\n"
+			"failure to satisfy the conditions of this license)\n"
+			"patent license to make, have made, use, offer to\n"
+			"sell, sell, import, and otherwise transfer this\n"
+			"software, where such license applies only to\n"
+			"those patent claims, already acquired or hereafter\n"
+			"acquired, licensable by such copyright holder or\n"
+			"contributor that are necessarily infringed by:\n"
+			"\n"
+			"(a) their Contribution(s) (the licensed\n"
+			"copyrights of copyright holders and\n"
+			"non-copyrightable additions of contributors,\n"
+			"in source or binary form) alone; or\n"
+			"\n"
+			"(b) combination of their Contribution(s)\n"
+			"with the work of authorship to which such\n"
+			"Contribution(s) was added by such copyright\n"
+			"holder or contributor, if, at the time the\n"
+			"Contribution is added, such addition causes\n"
+			"such combination to be necessarily infringed.\n"
+			"The patent license shall not apply to any other\n"
+			"combinations which include the Contribution.\n"
+			"\n"
+			"Except as expressly stated above, no rights or\n"
+			"licenses from any copyright holder or contributor\n"
+			"is granted under this license, whether expressly,\n"
+			"by implication, estoppel or otherwise.\n"
+			"\n"
+			"DISCLAIMER\n"
+			"\n"
+			"THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS\n"
+			"AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR\n"
+			"IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,\n"
+			"THE IMPLIED WARRANTIES OF MERCHANTABILITY AND\n"
+			"FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.\n"
+			"IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR\n"
+			"CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,\n"
+			"INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\n"
+			"DAMAGES (INCLUDING, BUT NOT LIMITED TO,\n"
+			"PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;\n"
+			"LOSS OF USE, DATA, OR PROFITS; OR BUSINESS\n"
+			"INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF\n"
+			"LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\n"
+			"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)\n"
+			"ARISING IN ANY WAY OUT OF THE USE OF THIS\n"
+			"SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF\n"
+			"SUCH DAMAGE.\n";
+	}
+	
+	void init(std::ApplicationInstance aexcl app){
+		bottomBar = false;
+		mobileButtons = false;
+		windowHeight = 0;
+		fileSaved = true;
+		nullptrLiteral = nullptr;
+		app.getWindow(&appWindow);
+		appWindow.getDocumentNode(&document);
+		std::dom::Node div;
+		std::dom::Node textNode;
+		std::css::Declaration style;
+		std::css::Keyword keyword;
+		std::css::Short len;
+		std::css::RGB rgb;
+
+		std::html::DivElement::create(
+			&document, &editorContainer);
+		std::html::Element::getStyle(
+			&elementWithText, &style);
+		style.setPadding(len.set(
+			0, std::css::Units::px));
+		style.setMargin(&len);
+
+		createBar(&textNode);
+
+		std::html::PreElement::create(
+			&document, &elementWithText);
+		std::html::Element::getStyle(
+			&elementWithText, &style);
+		style.setBorderBottomWidth(len.set(
+			1, std::css::Units::px));
+		style.setBorderBottomStyle(keyword.set(
+			std::css::BorderStyles::solid));
+		style.setOverflow(keyword.set(
+			std::css::OverflowTypes::auto));
+		style.setTabSize(len.set(
+			2, std::css::Units::integer));
+		style.setPadding(len.set(
+			10, std::css::Units::px));
+		style.setMargin(len.set(
+			0, std::css::Units::px));
+		style.setMinHeight(len.set(
+			100, std::css::Units::px));
+		unsigned char[] text =
+			"Welcome to the SWARMBJECT developement environment!\n\n"
+			"License\n\n";
+		stringToEditor(this, text,
+			std::CString::length(text, 0));
+		stringToEditor(this, getLicense(),
+			std::CString::length(getLicense(), 0));
+		editorContainer.appendChild(&elementWithText);
+
+		std::html::DivElement::create(
+			&document, &menuContainer);
+		std::html::Element::getStyle(&menuContainer, &style);
+		style.setTextAlign(keyword.set(
+			std::css::TextAlignTypes::center));
+		
+		addRow(&document, &div, &textNode,
+			"Cancel", &menuContainer);
+		std::html::Element::getStyle(&div, &style);
+		style.setBorderTopWidth(len.set(
+			1, std::css::Units::px));
+		style.setBorderTopStyle(keyword.set(
+			std::css::BorderStyles::solid));
+		div.setOnClick(onClickCancel);
+		
+		addRow(&document, &div, &textNode,
+			"Browse", &menuContainer);
+		div.setOnClick(onClickOnBrowse);
+		
+		addRow(&document, &div, &textNode,
+			"Save opened file", &menuContainer);
+		div.setOnClick(onClickOnSaveClass);
+
+		addRow(&document, &div, &textNode,
+			"Settings", &menuContainer);
+		div.setOnClick(onClickOnSettings);
+		
+		addRow(&document, &div, &textNode,
+			"Compile", &menuContainer);
+		div.setOnClick(onClickOnCompile);
+		
+		std::html::DivElement::create(
+			&document, &compileContainer);
+		std::html::Element::getStyle(&compileContainer, &style);
+		style.setTextAlign(keyword.set(
+			std::css::TextAlignTypes::center));
+		
+		addRow(&document, &div, &textNode,
+			"Cancel", &compileContainer);
+		std::html::Element::getStyle(&div, &style);
+		style.setBorderTopWidth(len.set(
+			1, std::css::Units::px));
+		style.setBorderTopStyle(keyword.set(
+			std::css::BorderStyles::solid));
+		div.setOnClick(onClickOnCancelCompile);
+		
+		addRow(&document, &div, &textNode,
+			"/", &compileContainer);
+		rootPath = 1;
+		classOrMemberPath.setSubstring("/", 0, 1);
+		div.setOnClick(onClickOnCompilePath);
+		
+		addRow(&document, &div, &textNode,
+			"Compile", &compileContainer);
+		div.setOnClick(Parse::onClickOnDoCompile);
+
+		std::html::DivElement::create(
+			&document, &div);
+		std::dom::Text::create(&document,
+			&textNode, "Compile log:", 0, 12);
+		div.appendChild(&textNode);
+		std::html::Element::getStyle(&div, &style);
+		style.setMarginLeft(keyword.set(
+			std::css::MarginTypes::auto));
+		style.setMarginRight(&keyword);
+		style.setMarginTop(len.set(
+			0, std::css::Units::px));
+		style.setMarginBottom(&len);
+		style.setBorderBottomWidth(len.set(
+			1, std::css::Units::px));
+		style.setBorderBottomStyle(keyword.set(
+			std::css::BorderStyles::solid));
+		style.setFontSize(len.set(
+			12, std::css::Units::px));
+		style.setHeight(len.set(
+			appWindow.getInnerHeight() - 150,
+			std::css::Units::px));
+		style.setOverflow(keyword.set(
+			std::css::OverflowTypes::auto));
+		compileContainer.appendChild(&div);
+		
+		addRow(&document, &div, &textNode,
+			"Run", &compileContainer);
+		div.setOnClick(onClickOnRun);
+
+		std::html::Document::getBody(&document, &body);
+		std::html::Element::getStyle(&body, &style);
+		style.setMargin(len.set(
+			0, std::css::Units::px));
+		style.setPadding(&len);
+		body.appendChild(&editorContainer);
+	}
+
+	void main(std::ApplicationInstance aexcl app){
+		init(app);
+	}
+
+}
