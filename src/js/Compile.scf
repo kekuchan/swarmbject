@@ -1,1 +1,3803 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
 
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Compile {
+
+	static void compileToJs(
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		main->compileMemory = true;
+		if (!setSizeofsInNamespace(main,
+			main->rootNamespace)) {return;}
+		main->classOrMemberPath.trim(main->rootPath);
+		main->classOrMemberPath.addCString(
+			"html/compiled.js");
+		app.fileSystem.openFile(
+			main->classOrMemberPath.data,
+			compiledJsOpened,
+			std::fs::OpenFileModes::writeBinary);
+	}
+
+	static bool setSizeofsInNamespace(Main* main,
+		Namespace* compileNamespace){
+		Namespace*[] namespaces = (Namespace*[])
+			(compileNamespace->namespaces.data);
+		unsigned int i = 0;
+		unsigned int len = compileNamespace->namespaces.size;
+		while (i < len){
+			if (!setSizeofsInNamespace(main,
+				namespaces[i])) {return false;}
+			i = i + 1;
+		}
+		data::ClassType*[] classes = (data::ClassType*[])
+			(compileNamespace->classes.data);
+		i = 0;
+		len = compileNamespace->classes.size;
+		while (i < len){
+			data::ClassType* classType = classes[i];
+			if (classType->size == -1){
+				main->classesStack.pushBack(classType);
+				if (!setSizeofClass(main,
+					classType)) {return false;}
+				main->classesStack.popBack();
+			}
+			i = i + 1;
+		}
+		return true;
+	}
+
+	static int getSizeOfDataType(
+		data::Type* dataType){
+		int size;
+		switch (dataType->type){
+			case data::Types::boolT:
+			case data::Types::ucharT:
+			case data::Types::charT:
+				size = 1;
+				break;
+			case data::Types::ushortT:
+			case data::Types::shortT:
+				size = 2;
+				break;
+			case data::Types::uintT:
+			case data::Types::intT:
+			case data::Types::floatT:
+			case data::Types::pointerT:
+			case data::Types::arrayPointerT:
+			case data::Types::functionPointerT:
+				size = 4;
+				break;
+			case data::Types::doubleT:
+				size = 8;
+				break;
+			case data::Types::classT:
+				{
+					data::ClassType* classType =
+						(data::ClassType*)dataType;
+					if (classType->isAsync()){
+						size = js::AsyncRefMembers::size;
+					} else {
+						size = classType->size;
+					}
+					break;
+				}
+			case data::Types::specifiersT:
+				size = getSizeOfDataType(
+					(data::Specifiers*)dataType->dataType);
+				break;
+			default:
+				size = -1;
+				break;
+		}
+		return size;
+	}
+
+	static int getAlignOfDataType(
+		data::Type* dataType){
+		int align;
+		switch (dataType->type){
+			case data::Types::classT:
+				{
+					data::ClassType* classType =
+						(data::ClassType*)dataType;
+					if (classType->isAsync()){
+						align = 4;
+					} else {
+						align = classType->alignTo;
+					}
+					break;
+				}
+			case data::Types::specifiersT:
+				align = getAlignOfDataType(
+					(data::Specifiers*)dataType->dataType);
+				break;
+			default:
+				align = getSizeOfDataType(dataType);
+				break;
+		}
+		return align;
+	}
+
+	static bool setSizeofClass(Main* main,
+		data::ClassType* classType){
+		data::ClassType*[] classes = (data::ClassType*[])
+			(main->classesStack.data);
+		unsigned int i = 0;
+		unsigned int len = main->classesStack.size - 1;
+		while (i < len){
+			if (classes[i] == classType){
+				std::DString error;
+				error.addString(&classType->name);
+				error.addCString(" has infinite size as it");
+				while (i <= len){
+					error.addCString(" contains '");
+					error.addString(&classes[i]->name);
+					i = i + 1;
+				}
+				error.addChar('.');
+				Parse::logError(main, 0, &error);
+				return false;
+			}
+			i = i + 1;
+		}
+	
+		int align;
+		int size;
+	
+		data::ClassType* base = classType->base;
+		if (base != nullptr){
+			if (base->size == -1){
+				main->classesStack.pushBack(base);
+				if (!setSizeofClass(main,
+					base)) {return false;}
+				main->classesStack.popBack();
+			}
+			classType->specifiers = classType->specifiers |
+				(base->specifiers &
+					(data::ClassSpecifierTypes::needCallConstructors |
+					data::ClassSpecifierTypes::needCallDestructors));
+			align = base->alignTo;
+			size = base->size;
+		} else if (classType->isAsync()){
+			align = 4;
+			size = js::AsyncObjectMembers::size;
+		} else {
+			align = 1;
+			size = 0;
+		}
+	
+		bool needCallConstructors =
+			classType->needCallConstructors();
+		bool needCallDestructors =
+			classType->needCallDestructors();
+
+		main->sortedVariables.clear();
+		lexical::DataMember*[] dataMembers =
+			(lexical::DataMember*[])
+				(classType->dataMembers.data);
+		i = 0;
+		len = classType->dataMembers.size;
+		while (i < len){
+			lexical::DataMember* dataMember =
+				dataMembers[i];
+			data::Type* dataType = dataMember->dataType;
+			if (dataType == nullptr ||
+				(dataMember->getSpecifiers() &
+					(data::SpecifierTypes::isStatic |
+					data::SpecifierTypes::isConstexpr)) != 0){
+				i = i + 1;
+				continue;
+			}
+			main->sortedVariables.pushBack(
+				dataMember);
+			while (true){
+				switch (dataType->type){
+					case data::Types::boolT:
+					case data::Types::ucharT:
+					case data::Types::charT:
+						break;
+					case data::Types::ushortT:
+					case data::Types::shortT:
+						if (align < 2) {align = 2;}
+						break;
+					case data::Types::uintT:
+					case data::Types::intT:
+					case data::Types::floatT:
+					case data::Types::pointerT:
+					case data::Types::arrayPointerT:
+					case data::Types::functionPointerT:
+						if (align < 4) {align = 4;}
+						break;
+					case data::Types::doubleT:
+						if (align < 8) {align = 8;}
+						break;
+					case data::Types::classT:
+						{
+							data::ClassType* classMember =
+								(data::ClassType*)(dataMember->dataType);
+							if (classMember->isAsync()){
+								if (!needCallConstructors){
+									classType->setNeedCallConstructors();
+									needCallConstructors = true;
+								}
+								if (!needCallDestructors){
+									classType->setNeedCallDestructors();
+									needCallDestructors = true;
+								}
+								if (align < 4) {align = 4;}
+							} else {
+								if (classMember->size == -1){
+									main->classesStack.pushBack(
+										classMember);
+									if (!setSizeofClass(main,
+										classMember)) {return false;}
+									main->classesStack.popBack();
+									/* As sortedMembers changed. */
+									main->sortedVariables.clear();
+									unsigned int j = 0;
+									while (j <= i){
+										dataMember = dataMembers[j];
+										dataType = dataMember->dataType;
+										if (dataType != nullptr &&
+											(dataMember->getSpecifiers() &
+												(data::SpecifierTypes::isStatic |
+												data::SpecifierTypes::isConstexpr)) == 0){
+											main->sortedVariables.pushBack(
+												dataMember);
+										}
+										j = j + 1;
+									}
+								}
+								if (!needCallConstructors &&
+									classMember->needCallConstructors()){
+									classType->setNeedCallConstructors();
+									needCallConstructors = true;
+								}
+								if (!needCallDestructors && 
+									classMember->needCallDestructors()){
+									classType->setNeedCallDestructors();
+									needCallDestructors = true;
+								}
+								if (align < classMember->alignTo){
+									align = classMember->alignTo;
+								}
+							}
+						}
+						break;
+					case data::Types::specifiersT:
+						dataType = (data::Specifiers*)
+							dataType->dataType;
+						continue;
+				}
+				break;
+			}
+			i = i + 1;
+		}
+		classType->alignTo = align;
+		classType->size = sortVariables(
+			size, &main->sortedVariables);
+		return true;
+	}
+
+	static int getAsyncCallSize(
+		lexical::MemberFunction* asyncFunction){
+		int size = js::AsyncCallMembers::sizeof;
+		lexical::FunctionParameter*[] parameters =
+			(lexical::FunctionParameter*[])
+				(asyncFunction->parameters.data);
+		unsigned int i = 0;
+		unsigned int len = asyncFunction->parameters.size;
+		while (i < len){
+			lexical::FunctionParameter* parameter =
+				parameters[i];
+			int offset = alignTo(size,
+				getAlignOfDataType(parameter->dataType));
+			if (offset == -1) {return -1;}
+			size = offset +
+				getSizeOfDataType(parameter->dataType);
+			i = i + 1;
+		}
+		return size;
+	}
+	
+	static void addLicense(
+		std::DString* code){
+		code->addCString(
+			"Generated with the SWARMBJECT compiler.\n"
+			"The SWARMBJECT compiler and the SWARMBJECT std namespace\n"
+			"are under the license:\n");
+		code->addCString(Main::getLicense());
+	}
+
+	static void compiledHtmlOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* openedFile){
+		Main* main = &app.main;
+		std::StringView name;
+		name.setCString("std");
+		Namespace* stdNamespace =
+			main->rootNamespace->getNamespace(&name);
+		name.setCString("ApplicationInstance");
+		data::ClassType* appClass =
+			stdNamespace->getClass(&name);
+		std::DString* code = &main->compiledCode;
+		code->setCString(
+			"<!DOCTYPE HTML>"
+			"<html>\n"
+				"<head>\n"
+					"<title>Compiled project</title>\n"
+					"<meta name=\"viewport\" content="
+							"\"width=device-width, initial-scale=1\" />\n"
+					"<script src=\"compiled.js\"></script>\n"
+					"<script>\n/*\n");
+		addLicense(code);
+		code->addCString("*/\n"
+					"var _webWorkers = [];\n"
+					"var _appObject;\n"
+					"function _run(threads){\n"
+					"	_threadId = 0;\n");
+		if (main->needAsyncStaticObject){
+			code->addCString(
+					"	_asyncStaticObject = _dlmalloc(");
+							code->addUint(
+								js::AsyncObjectMembers::size,
+								std::NumberBases::decimal);
+							code->addCString(");\n"
+					"	_initAsyncObject(_asyncStaticObject, 0, 0);\n");
+		}
+		code->addCString(
+					"	_nextAsyncKey = 1;\n"
+					"	for (var i = 1; i <= threads; ++i){\n"
+					"		var webWorker = new Worker('compiled.js');\n"
+					"		webWorker.onmessage = _onThreadMessage;\n"
+					"		_webWorkers.push(webWorker);\n"
+					"		var dataView = new DataView(new ArrayBuffer(");
+								code->addUint(js::PostThreadId::size,
+									std::NumberBases::decimal);
+								code->addCString("));\n"
+					"		dataView.setUint8(");
+								code->addUint(js::PostThreadId::postType,
+									std::NumberBases::decimal);
+								code->addCString(", ");
+								code->addUint(js::PostTypes::setThreadId,
+									std::NumberBases::decimal);
+								code->addCString(");\n"
+					"		dataView.setUint16(");
+								code->addUint(js::PostThreadId::id,
+									std::NumberBases::decimal);
+								code->addCString(", i);\n"
+					"		webWorker.postMessage(dataView);\n"
+					"	}\n"
+					"	_appObject = std_ApplicationInstance__new();\n"
+					"	_initAsyncObject(_appObject, _nextAsyncKey++, ");
+							code->addUint(appClass->asyncId,
+								std::NumberBases::decimal);
+							code->addCString(");\n"
+					"	std_ApplicationInstance_run__async(_appObject);\n"
+					"	_callObjects();\n"
+					"}\n"
+					"</script>\n"
+				"</head>\n"
+				"<body onload=\"_run(1);\">\n"
+				"</body>\n"
+			"</html>\n");
+		openedFile->write(code->data, 0, code->length);
+		onCompiledHtmlSaved(main);
+	}
+
+	static void onCompiledHtmlSaved(Main* main){
+		Parse::logInfoCString(main, "finished compiling", 1);
+		Parse::scrollLog(main);
+	}
+
+	static unsigned int alignTo(
+		unsigned int end, unsigned int alignment){
+		return ((end + (alignment-1)) & (~(alignment-1)));
+	}
+
+	static void addTabs(Main* main){
+		unsigned int i = main->nestedBlocks;
+		main->charsInLine = main->charsInLine + i;
+		std::DString* code = &main->compiledCode;
+		while (i > 0){
+			code->addChar('\t');
+			i = i - 1;
+		}
+	}
+
+	static void addCString(Main* main,
+		unsigned char[] string){
+		addSubstring(main, string,
+			std::CString::length(string, 0));
+	}
+	
+	static void addDString(Main* main,
+		std::DString* string){
+		addSubstring(main, string->data, string->length);
+	}
+	
+	static void addString(Main* main,
+		std::String* string){
+		addSubstring(main, string->data, string->length);
+	}
+
+	static void addSubstring(Main* main,
+		unsigned char[] string, unsigned int len){
+		splitIfLongLine(main, len);
+		main->compiledCode.addSubstring(string, 0, len);
+	}
+
+	unsigned int constexpr maxLineLength = 50;
+
+	static void splitIfLongLine(Main* main,
+		unsigned int len){
+		std::DString* code = &main->compiledCode;
+		unsigned int lineLength =
+			main->charsInLine + len;
+		if (lineLength <= maxLineLength){
+			main->charsInLine = lineLength;
+			return;
+		}
+		code->addChar('\n');
+		addTabs(main);
+		code->addChar('\t');
+		main->charsInLine = main->nestedBlocks + 1 + len;
+	}
+
+	static void addUint(Main* main,
+		unsigned int i){
+		unsigned int len = std::CString::uintLength(
+			i, std::NumberBases::decimal);
+		splitIfLongLine(main, len);
+		std::DString* code = &main->compiledCode;
+		code->addLength(len, true, true);
+		std::CString::setUintEnd(
+			i, code->data, code->length - 1,
+			std::NumberBases::decimal);
+	}
+	
+	static void addFloat(Main* main, float f){
+		/*todo*/
+	}
+	
+	static void addChar(Main* main,
+		unsigned char c){
+		splitIfLongLine(main, 1);
+		main->compiledCode.addChar(c);
+	}
+	
+	static unsigned int encodeString(Main* main,
+		std::String* string){
+		unsigned int i = 0;
+		unsigned char[] data = string->data;
+		unsigned int len = string->length;
+		while (i < len){
+			addChar(main, ',');
+			addUint(main, data[i]);
+			i = i + 1;
+		}
+		/* End of string. */
+		addCString(main, ",0");
+		return len + 1;
+	}
+
+	static unsigned int sortVariables(
+		unsigned int offset,
+		std::PtrDArray* array){
+		lexical::Variable*[] variables =
+			(lexical::Variable*[])
+			(array->data);
+		unsigned int len = array->size;
+		int maxAlign = 8;
+		unsigned int i = 0;
+		while (i < len){
+			unsigned int j = i;
+			unsigned int maybeMax;
+			int maybeMaxAlign = -1;
+			lexical::Variable* variable;
+			unsigned int align;
+			while (j < len){
+				variable = variables[j];
+				align = getAlignOfDataType(
+					variable->dataType);
+				if (align > maybeMaxAlign){
+					maybeMaxAlign = align;
+					maybeMax = j;
+					if (align == maxAlign) {break;}
+				}
+				j = j + 1;
+			}
+			while (true){
+				align = alignTo(offset, maybeMaxAlign) - offset;
+				if (align == 0) {break;}
+				int max = -1;
+				unsigned int maxVariable;
+				switch (align){
+					case 1:
+					case 3:
+					case 7:
+						maxAlign = 1;
+						break;
+					case 2:
+					case 6:
+						maxAlign = 2;
+						break;
+					case 4:
+						maxAlign = 4;
+						break;
+				}
+				j = i;
+				while (j < len){
+					variable = variables[j];
+					align = getAlignOfDataType(
+						variable->dataType);
+					if (align > max && align <= maxAlign){
+						max = align;
+						maxVariable = j;
+						if (align == maxAlign) {break;}
+					}
+					j = j + 1;
+				}
+				if (max != -1){
+					variable = variables[maxVariable];
+					variables[maxVariable] = variables[i];
+					variables[i] = variable;
+					if (maybeMax == i){
+						maybeMax = maxVariable;
+					}
+					variable->offset = offset;
+					offset = offset +
+						getSizeOfDataType(variable->dataType);
+					i = i + 1;
+				} else {
+					offset = offset + maxAlign;
+				}
+			}
+			variable = variables[maybeMax];
+			variables[maybeMax] = variables[i];
+			variables[i] = variable;
+			maxAlign = maybeMaxAlign;
+			variable->offset = offset;
+			offset = offset +
+				getSizeOfDataType(variable->dataType);
+			i = i + 1;
+		}
+		return offset;
+	}
+	
+	static void compileStaticMember(Main* main,
+		lexical::DataMember* dataMember){
+		data::Type* dataType = dataMember->dataType;
+		unsigned char[] string =
+			dataTypeToMemoryStart(dataType);
+		unsigned int len =
+			std::CString::length(string, 0);
+		unsigned int align =
+			getAlignOfDataType(dataType);
+		if (align > 1) {len = len - 1;}
+		addSubstring(main, string, len);
+		addUint(main, dataMember->offset / align);
+		addChar(main, ']');
+	}
+
+	static unsigned int compileGlobals(Main* main){
+		std::DString* code = &main->compiledCode;
+		code->addCString(
+			"function _setGlobals(){\n\t");
+		main->charsInLine = 0;
+		main->nestedBlocks = 1;
+		/* 0 is used for nullptr. */
+		addCString(main, "_memoryU8.set([0");
+		unsigned int offset = 1;
+		lexical::StringLiteral*[] strings =
+			(lexical::StringLiteral*[])
+			(main->stringLiterals.data);
+		unsigned int i = 0;
+		unsigned int len = main->stringLiterals.size;
+		while (i < len){
+			lexical::StringLiteral* stringLiteral = strings[i];
+			stringLiteral->address = offset;
+			offset = offset +
+				encodeString(main, &stringLiteral->string);
+			i = i + 1;
+		}
+		addCString(main, "]);");
+			
+		len = main->staticMembers.size;
+		if (len > 0){
+			offset = sortVariables(
+				offset, &main->staticMembers);
+			lexical::DataMember*[] members =
+				(lexical::DataMember*[])
+				(main->staticMembers.data);
+			i = 0;
+			lexical::DataMember* member;
+			while (i < len){
+				member = members[i];
+				code->addCString("\n\t");
+				main->charsInLine = 1;
+				compileStaticMember(main, member);
+				addCString(main, " = ");
+				compileExpression(main, member->value);
+				addCString(main, "; /*");
+				addString(main, &member->name);
+				addCString(main, "*/");
+				i = i + 1;
+			}
+		}
+
+		code->addCString("\n}\n");
+		return offset;
+	}
+		
+	static void compiledJsOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::File* openedFile){
+		Main* main = &app.main;
+		std::DString* code = &main->compiledCode;
+		unsigned int* nestedBlocks = &main->nestedBlocks;
+		Namespace* rootNamespace = main->rootNamespace;
+		code->setCString("/*\n");
+		addLicense(code);
+		code->addCString("*/\n"
+			"var _memory;\n"
+			"var _memoryI8;\n"
+			"var _memoryU8;\n"
+			"var _memoryI16;\n"
+			"var _memoryU16;\n"
+			"var _memoryI32;\n"
+			"var _memoryU32;\n"
+			"var _memoryF32;\n"
+			"var _memoryF64;\n"
+			"var _heapEnd;\n"
+			"var _stackEnd;\n"
+			"var _asyncObjects = new Map();\n"
+			/* Unique across all instances and threads. 4 bytes, first half
+					is the creator threadId, second half is a sequental number.
+					0 is nullptr. */
+			"var _nextAsyncKey;\n"
+			/* 4 bytes, first half is the instance id, second half is the
+					thread, 0 is the main thread. */
+			"var _threadId;\n"
+			"var _parentInstance = null;\n"
+			"var _objectsToCallStart = 0;\n"
+			"var _objectsToCallEnd = 0;\n"
+			"var _jsObjects = [];\n"
+			"var _freeObject = null;\n"
+			"var _textDecoder = new TextDecoder();\n"
+	
+			"function _JsObject(){\n"
+			"	this.id;\n"
+			"	this.next;\n"
+			"}\n"
+	
+			"function _setMemoryArrays(){\n"
+			"	var bufferLength = _memory.byteLength;\n"
+			"	_memoryI8 = new Int8Array(\n"
+			"		_memory, 0, bufferLength);\n"
+			"	_memoryU8 = new Uint8Array(\n"
+			"		_memory, 0, bufferLength);\n"
+			"	_memoryI16 = new Int16Array(\n"
+			"		_memory, 0, bufferLength / 2);\n"
+			"	_memoryU16 = new Uint16Array(\n"
+			"		_memory, 0, bufferLength / 2);\n"
+			"	_memoryI32 = new Int32Array(\n"
+			"		_memory, 0, bufferLength / 4);\n"
+			"	_memoryU32 = new Uint32Array(\n"
+			"		_memory, 0, bufferLength / 4);\n"
+			"	_memoryF32 = new Float32Array(\n"
+			"		_memory, 0, bufferLength / 4);\n"
+			"	_memoryF64 = new Float64Array(\n"
+			"		_memory, 0, bufferLength / 8);\n"
+			"}\n"
+			"function _setU8(i, value){_memoryU8[i] = value;}\n"
+			"function _setI8(i, value){_memoryI8[i] = value;}\n"
+			"function _setU16(i, value){_memoryU16[i/2] = value;}\n"
+			"function _setI16(i, value){_memoryI16[i/2] = value;}\n"
+			"function _setU32(i, value){_memoryU32[i/4] = value;}\n"
+			"function _setI32(i, value){_memoryI32[i/4] = value;}\n"
+			"function _setF32(i, value){_memoryF32[i/4] = value;}\n"
+			"function _setF64(i, value){_memoryF64[i/8] = value;}\n");
+		unsigned int dlGlobalsStart =
+			compileGlobals(main);
+		unsigned int stackStart =
+			alignTo(js::Malloc::dlToCode(
+				code, dlGlobalsStart), 8);
+		unsigned int stackSize = 1024;
+		unsigned int heapStart =
+			alignTo(stackStart + stackSize, 8);
+		code->addCString(
+			"function _setup(){\n"
+			"	_stackEnd = ");
+					code->addUint(stackStart,
+						std::NumberBases::decimal);
+					code->addCString(";\n"
+			"	_heapEnd = ");
+					code->addUint(heapStart,
+						std::NumberBases::decimal);
+					code->addCString(";\n"
+			"	_memory = new ArrayBuffer(");
+					code->addUint(heapStart,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"	_setMemoryArrays();\n"
+			"	_setGlobals();\n"
+			"}\n"
+	
+			"function _postAlert(integer){\n"
+			"	if ((_threadId & 0xFF) === 0){\n"
+			"		_doAlert(_threadId, integer);\n"
+			"	}\n"
+			"	var dataView = new DataView(new ArrayBuffer(");
+					code->addUint(js::PostDebug::size,
+						std::NumberBases::decimal);
+					code->addCString("));\n"
+			"	dataView.setUint8(");
+					code->addUint(js::PostDebug::postType,
+						std::NumberBases::decimal);
+					code->addCString(", ");
+					code->addUint(js::PostTypes::alert,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"	dataView.setUint16(");
+					code->addUint(js::PostDebug::thread,
+						std::NumberBases::decimal);
+					code->addCString(", _threadId);\n"
+			"	dataView.setInt32(");
+					code->addUint(js::PostDebug::integer,
+						std::NumberBases::decimal);
+					code->addCString(", integer);\n"
+			"	postMessage(dataView);\n"
+			"}\n"
+	
+			"function _doAlert(thread, integer){\n"
+			"	alert('Instance: ' + (thread >> 16) +\n"
+			"	 ', thread: ' + (thread & 0xFF) +\n"
+			"		', ' + integer);\n"
+			"}\n"
+	
+			"function _getPostNewAsync(asyncKey, type, thread){\n"
+			"	var dataView = new DataView(new ArrayBuffer(");
+					code->addUint(js::PostNewAsync::size,
+						std::NumberBases::decimal);
+					code->addCString("));\n"
+			"	dataView.setUint8(");
+					code->addUint(js::PostNewAsync::postType,
+						std::NumberBases::decimal);
+					code->addCString(", ");
+					code->addUint(js::PostTypes::newAsync,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"	dataView.setUint32(");
+					code->addUint(js::PostNewAsync::asyncKey,
+						std::NumberBases::decimal);
+					code->addCString(", asyncKey);\n"
+			"	dataView.setUint16(");
+					code->addUint(js::PostNewAsync::type,
+						std::NumberBases::decimal);
+					code->addCString(", type);\n"
+			"	dataView.setUint16(");
+					code->addUint(js::PostNewAsync::thread,
+						std::NumberBases::decimal);
+					code->addCString(", thread);\n"
+			"	return dataView;\n"
+			"}\n"
+
+			"function _getDstThread(thread, src){\n"
+			"	var i = 1;\n"
+			"	var len = _webWorkers.length;\n"
+			"	while (i <= len) i *= 2;\n"
+			"	thread &= (i - 1);\n"
+			"	if (thread > len) return 0;\n"
+				/* The destination is not be corrected to be the source
+						as maybe it is already calling its methods. */
+			"	if (thread === src) return 0;\n"
+			"	return thread;\n"
+			"}\n"
+	
+			"function _newAsyncObject(instance, thread, type){\n"
+			"	var dst;\n"
+			"	var asyncKey = _nextAsyncKey++;\n"
+			"	if (instance === 0){\n"
+					/* Random destination, does not matter if not exists, as
+							it will be updated at the storing instance. */
+			"		dst = Math.floor(Math.random() * 0xF000);\n"
+			"	} else {\n"
+			"		var dstId = _memoryU16[(instance + ");
+						code->addUint(js::AsyncObjectMembers::dst,
+							std::NumberBases::decimal);
+						code->addCString(")/2];\n"
+			"		if (thread === -2){\n" /* Random. */
+			"			dst = (dstId & 0xFF00) |\n"
+			"				Math.floor(Math.random() * 0xF00);\n"
+			"		} else if (thread === -1){\n" /* Same. */
+			"			dst = dstId;\n"
+			"		} else if (thread >= 0){\n"
+			"			dst = thread | (dstId & 0xFF00);\n"
+			"		} else {\n"
+			"			dst = dstId & 0xFF00;\n"
+			"		}\n"
+			"	}\n"
+			"	return _setNewAsyncObject(asyncKey, type, dst);\n"
+			"}\n"
+	
+			"function _deleteAsyncObject(asyncObject, dataView){\n"
+			"	var ref = _memoryU32[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::references,
+						std::NumberBases::decimal);
+					code->addCString(")/4];\n"
+			"	while (true){\n"
+			"		if (ref === 0) break;\n"
+			"		_memoryU32[(ref+");
+						code->addUint(js::AsyncRefMembers::asyncObject,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = 0;\n"
+			"		ref = _memoryU32[(ref+");
+						code->addUint(js::AsyncRefMembers::nextSibling,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"	}\n"
+			"	if (dataView === null){\n"
+			"		var asyncCall = _memoryU32[(asyncObject+");
+						code->addUint(js::AsyncObjectMembers::callFunctionsStart,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"		while (true){\n"
+			"			var asyncCallSibling = _memoryU32[(asyncCall+");
+							code->addUint(js::AsyncCallMembers::nextSibling,
+								std::NumberBases::decimal);
+							code->addCString(")/4];\n"
+			"			_dlfree(asyncCall);\n"
+			"			if (asyncCallSibling === 0) break;\n"
+			"			asyncCall = asyncCallSibling;\n"
+			"		}\n"
+					/* As deleting can only be from async functions,
+						thus the object is the first in the queue. */
+			"		_objectsToCallStart = _memoryU32[(asyncObject+");
+						code->addUint(js::AsyncObjectMembers::nextCallObjectSibling,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"		var id = _memoryU32[(asyncObject + ");
+						code->addUint(js::AsyncObjectMembers::id,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"		_asyncObjects.delete(id);\n"
+			"		dataView = new DataView(new ArrayBuffer(");
+						code->addUint(js::PostDelete::size,
+							std::NumberBases::decimal);
+						code->addCString("));\n"
+			"		dataView.setUint8(");
+						code->addUint(js::PostDelete::postType,
+							std::NumberBases::decimal);
+						code->addCString(", ");
+						code->addUint(js::PostTypes::deleteAsync,
+							std::NumberBases::decimal);
+						code->addCString(");\n"
+			"		dataView.setUint32(");
+						code->addUint(js::PostDelete::asyncKey,
+							std::NumberBases::decimal);
+						code->addCString(", id);\n"
+			"		if ((_threadId & 0xFF) === 0){\n"
+			"			for (var i = 0; i < _webWorkers.length; ++i){\n"
+			"				_webWorkers[i].postMessage(dataView);\n"
+			"			}\n"
+			"		} else {\n"
+			"			postMessage(dataView);\n"
+			"		}\n"
+			"	} else {\n"
+			"		if ((_threadId & 0xFF) === 0){\n"
+			"			var thread = (_memoryU16[(asyncObject + ");
+							code->addUint(js::AsyncObjectMembers::dst,
+								std::NumberBases::decimal);
+							code->addCString(")/2] & 0xFF);\n"
+			"			for (var i = 0; i < _webWorkers.length; ++i){\n"
+			"				if (i !== thread)\n"
+			"					_webWorkers[i].postMessage(dataView);\n"
+			"			}\n"
+			"		}\n"
+			"	}\n"
+			"	_dlfree(asyncObject);\n"
+			"}\n"
+	
+			"function _getAsyncPointer(asyncKey, dst){\n"
+			"	var asyncObject = _dlmalloc(");
+					code->addUint(js::AsyncObjectMembers::type,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"	_memoryU32[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::id,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = asyncKey;\n"
+			"	_memoryU32[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::references,
+						std::NumberBases::decimal);
+					code->addCString(")/2] = 0;\n"
+			"	_memoryU16[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::dst,
+						std::NumberBases::decimal);
+					code->addCString(")/2] = dst;\n"
+			"	_asyncObjects.set(asyncKey, asyncObject);\n"
+			"	return asyncObject;\n"
+			"}\n"
+	
+			"function _setNewAsyncObject(asyncKey, type, thread){\n"
+			"	if ((_threadId & 0xFF) === 0){\n"
+					/* In instance's main thread. */
+			"		if (_parentInstance === null){\n"
+			"			if (((thread >> 8) !== 0) || (thread >= _webWorkers.length)){\n"
+			"				var src = asyncKey >> 16;\n"
+							/* Can not simply randomize, as the creator thread is maybe
+									creating new objects to be at the same thread. */
+			"				thread = _getDstThread(thread, src);\n"
+			"				if (src !== 0){\n"
+			"					var dataView = new DataView(new ArrayBuffer(");
+									code->addUint(js::PostUpdateDst::size,
+										std::NumberBases::decimal);
+									code->addCString("));\n"
+			"					dataView.setUint8(");
+									code->addUint(js::PostUpdateDst::postType,
+										std::NumberBases::decimal);
+									code->addCString(", ");
+									code->addUint(js::PostTypes::updateDst,
+										std::NumberBases::decimal);
+									code->addCString(");\n"
+			"					dataView.setUint32(");
+									code->addUint(js::PostUpdateDst::asyncKey,
+										std::NumberBases::decimal);
+									code->addCString(", asyncKey);\n"
+			"					dataView.setUint16(");
+								code->addUint(js::PostUpdateDst::dst,
+									std::NumberBases::decimal);
+								code->addCString(", thread);\n"
+			"					_webWorkers[src-1].postMessage(dataView);\n"
+			"				}\n"
+			"			}\n"
+			"			if (thread > 0){\n"
+			"				_webWorkers[thread-1].postMessage(\n"
+			"					_getPostNewAsync(asyncKey, type, thread));\n"
+			"				return _getAsyncPointer(asyncKey, thread);\n"
+			"			}\n"
+			"		} else {\n"
+			"		}\n"
+			"	} else if (thread != _threadId){\n"
+			"		postMessage(_getPostNewAsync(asyncKey, type, thread));\n"
+			"		return _getAsyncPointer(asyncKey, thread);\n"
+			"	}\n"
+			"	var asyncObject;\n"
+			"	switch(type){\n");
+		*nestedBlocks = 3;
+		compileAsyncNew(main, rootNamespace, 0);
+		code->addCString(
+			"	}\n"
+			"	_initAsyncObject(asyncObject, asyncKey, type);\n"
+			"	return asyncObject;\n"
+			"}\n"
+
+			"function _postAsyncCall(_this, dataView){\n"
+			"	if ((_threadId & 0xFF) === 0){\n"
+			"		if (_parentInstance === null){\n"
+			"			_webWorkers[(_memoryU16[(_this + ");
+							code->addUint(js::AsyncObjectMembers::dst,
+								std::NumberBases::decimal);
+							code->addCString(")/2] & 0xFF)-1].postMessage(\n"
+			"					dataView);\n"
+			"		} else {\n"
+			"		}\n"
+			"	} else {\n"
+			"		postMessage(dataView);\n"
+			"	}\n"
+			"}\n"
+
+			"function _initAsyncObject(asyncObject, id, type){\n"
+			"	_memoryU32[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::id,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = id;\n"
+			"	_memoryU32[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::references,
+						std::NumberBases::decimal);
+					code->addCString(")/2] = 0;\n"
+			"	_memoryU16[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::dst,
+						std::NumberBases::decimal);
+					code->addCString(")/2] = _threadId;\n"
+			"	_memoryU16[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::type,
+						std::NumberBases::decimal);
+					code->addCString(")/2] = type;\n"
+			"	_memoryU32[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::nextCallObjectSibling,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = 0;\n"
+			"	_memoryU32[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::callFunctionsStart,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = 0;\n"
+			"	_memoryU32[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::callFunctionsEnd,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = 0;\n"
+			"	_asyncObjects.set(id, asyncObject);\n"
+			"}\n"
+	
+			"function _pushToObjectsQueue(asyncObject){\n"
+			"	if (_objectsToCallStart === 0){\n"
+			"		_objectsToCallStart = asyncObject;\n"
+			"		_objectsToCallEnd = asyncObject;\n"
+			"	} else {\n"
+			"		_memoryU32[(_objectsToCallEnd+");
+						code->addUint(js::AsyncObjectMembers::nextCallObjectSibling,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = asyncObject;\n"
+			"		_objectsToCallEnd = asyncObject;\n"
+			"	}\n"
+			"}\n"
+	
+			"function _initAsyncCallObject(asyncCall, functionId){\n"
+			"	_memoryU32[(asyncCall+");
+					code->addUint(js::AsyncCallMembers::nextSibling,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = 0;\n"
+			"	_memoryU32[(asyncCall+");
+					code->addUint(js::AsyncCallMembers::functionId,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = functionId;\n"
+			"}\n"
+	
+			"function _pushToAsyncCallQueue(asyncObject, asyncCall){\n"
+			"	if (_memoryU32[(asyncObject+");
+					code->addUint(js::AsyncObjectMembers::callFunctionsStart,
+						std::NumberBases::decimal);
+					code->addCString(")/4] === 0){\n"
+			"		_memoryU32[(asyncObject+");
+						code->addUint(js::AsyncObjectMembers::callFunctionsStart,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = asyncCall;\n"
+			"		_memoryU32[(asyncObject+");
+						code->addUint(js::AsyncObjectMembers::callFunctionsEnd,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = asyncCall;\n"
+			"		_pushToObjectsQueue(asyncObject);\n"
+			"	} else {\n"
+			"		var callFunctionsEnd = _memoryU32[(asyncObject+");
+						code->addUint(js::AsyncObjectMembers::callFunctionsEnd,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"		_memoryU32[(callFunctionsEnd+");
+						code->addUint(js::AsyncCallMembers::nextSibling,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = asyncCall;\n"
+			"		_memoryU32[(asyncObject+");
+						code->addUint(js::AsyncObjectMembers::callFunctionsEnd,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = asyncCall;\n"
+			"	}\n"
+			"}\n"
+	
+			"function _callObjects(){\n"
+			/* Alternative code to insert the object back to the
+				 end of the queue if it has more pending functions,
+				 instead of immediately calling its next function.
+			"	var asyncObject = _objectsToCallStart;\n"
+			"	if (asyncObject === 0) return;\n"
+			"	while (true){\n"
+			"		var asyncCall = _memoryU32[(asyncObject+");
+						code->addUint(js::AsyncObjectMembers::callFunctionsStart,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"		_callAsyncFunction(asyncObject, asyncCall);\n"
+			"		var callStart = _objectsToCallStart;\n"
+			"		if (asyncObject !== callStart){\n"
+						*//* The object was deleted. *//*
+			"			if (callStart === 0) return;\n"
+			"			asyncObject = callStart;\n"
+			"		} else {\n"
+			"			var asyncCallSibling = _memoryU32[(asyncCall+");
+							code->addUint(js::AsyncCallMembers::nextSibling,
+								std::NumberBases::decimal);
+			"			_dlfree(asyncCall);\n"
+			"			_memoryU32[(asyncObject+");
+							code->addUint(js::AsyncObjectMembers::callFunctionsStart,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = asyncCallSibling;\n"
+			"			callStart = _memoryU32[(asyncObject+");
+							code->addUint(js::AsyncObjectMembers::nextCallObjectSibling,
+								std::NumberBases::decimal);
+							code->addCString(")/4];\n"
+			"			if (asyncCallSibling === 0){\n"
+			"				_memoryU32[(asyncObject+");
+								code->addUint(js::AsyncObjectMembers::callFunctionsEnd,
+									std::NumberBases::decimal);
+								code->addCString(")/4] = 0;\n"
+			"				if (callStart === 0){\n"
+			"					_objectsToCallStart = 0;\n"
+			"					_objectsToCallEnd = 0;\n"
+			"					return;\n"
+			"				}\n"
+			"				_memoryU32[(asyncObject+");
+								code->addUint(js::AsyncObjectMembers::nextCallObjectSibling,
+									std::NumberBases::decimal);
+								code->addCString(")/4] = 0;\n"
+			"				_objectsToCallStart = callStart;\n"
+			"				asyncObject = callStart;\n"
+			"			} else if (callStart !== 0){\n"
+			"				_memoryU32[(_objectsToCallEnd+");
+								code->addUint(js::AsyncObjectMembers::nextCallObjectSibling,
+									std::NumberBases::decimal);
+								code->addCString(")/4] = asyncObject;\n"
+			"				_objectsToCallEnd = asyncObject;\n"
+			"				_memoryU32[(asyncObject+");
+								code->addUint(js::AsyncObjectMembers::nextCallObjectSibling,
+									std::NumberBases::decimal);
+								code->addCString(")/4] = 0;\n"
+			"				_objectsToCallStart = callStart;\n"
+			"				asyncObject = callStart;\n"
+			"			}\n"
+			"		}\n"
+			"	}\n"*/
+			
+			"	while (true){\n"
+			"		var asyncObject = _objectsToCallStart;\n"
+			"		if (asyncObject === 0) return;\n"
+			"		var asyncCall = _memoryU32[(asyncObject+");
+						code->addUint(js::AsyncObjectMembers::callFunctionsStart,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"		while (true){\n"
+			"			_callAsyncFunction(asyncObject, asyncCall);\n"
+						/* The object was deleted. */
+			"			if (asyncObject !== _objectsToCallStart) break;\n"
+			"			var asyncCallSibling = _memoryU32[(asyncCall+");
+							code->addUint(js::AsyncCallMembers::nextSibling,
+								std::NumberBases::decimal);
+							code->addCString(")/4];\n"
+			"			_memoryU32[(asyncObject+");
+							code->addUint(js::AsyncObjectMembers::callFunctionsStart,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = asyncCallSibling;\n"
+			"			_dlfree(asyncCall);\n"
+			"			if (asyncCallSibling === 0){\n"
+			"				_memoryU32[(asyncObject+");
+								code->addUint(js::AsyncObjectMembers::callFunctionsEnd,
+									std::NumberBases::decimal);
+							code->addCString(")/4] = 0;\n"
+			"				var asyncObjectSibling = _memoryU32[(asyncObject+");
+								code->addUint(js::AsyncObjectMembers::nextCallObjectSibling,
+									std::NumberBases::decimal);
+								code->addCString(")/4];\n"
+			"				_objectsToCallStart = asyncObjectSibling;\n"
+			"				_memoryU32[(asyncObject+");
+								code->addUint(js::AsyncObjectMembers::nextCallObjectSibling,
+									std::NumberBases::decimal);
+								code->addCString(")/4] = 0;\n"
+			"				if (asyncObjectSibling === 0){\n"
+			"					_objectsToCallEnd = 0;\n"
+			"					return;\n"
+			"				}\n"
+			"				asyncObject = asyncObjectSibling;\n"
+			"				asyncCall = _memoryU32[(asyncObject+");
+								code->addUint(js::AsyncObjectMembers::callFunctionsStart,
+									std::NumberBases::decimal);
+								code->addCString(")/4];\n"
+			"			} else {\n"
+			"				asyncCall = asyncCallSibling;\n"
+			"			}\n"
+			"		}\n"
+			"	}\n"
+			"}\n"
+	
+			"function _getFunctionById(functionId){\n"
+			"	switch(functionId){\n");
+		*nestedBlocks = 3;
+		/* 0 is nullptr */
+		compileGetFunctionById(main, rootNamespace, 1);
+		code->addCString(
+			"	}\n"
+			"}\n"
+	
+			"function _callAsyncFunction(asyncClass, asyncCall){\n"
+			"	switch(_memoryU32[(asyncCall+");
+					code->addUint(js::AsyncCallMembers::functionId,
+						std::NumberBases::decimal);
+					code->addCString(")/4]){\n");
+		*nestedBlocks = 3;
+		compileAsyncCalls(main, rootNamespace, 0);
+		code->addCString(
+			"	}\n"
+			"}\n"
+	
+			"function _getOrSetAsync(src, id, dst){\n"
+			"	if (id === 0) return 0;\n" /* nullptr */
+				/* If the message is sent towards where the object is stored (dst),
+						then it has to be available already along that path, or deleted.
+						Otherwise it is stored. */
+			"	if (_asyncObjects.has(id)){\n"
+			"		return _asyncObjects.get(id);\n"
+			"	} else {\n"
+			"		if ((src & 0xFF) !== 0){\n"
+			"			if ((_threadId & 0xFF) === 0){\n"
+			"				if (src !== dst) return 0;\n"
+			"			} else if (_threadId === dst) return 0;\n"
+			"		} else if (_threadId === dst) return 0;\n"
+			"		return _getAsyncPointer(id, dst);\n"
+			"	}\n"
+			"}\n"
+	
+			"function _maybeUpdateCall(dataView, i){\n"
+			"	var dst = dataView.getUint16(i + 4);\n"
+			"	var asyncObject = _getOrSetAsync(dataView.getUint16(");
+					code->addUint(js::PostCall::src,
+						std::NumberBases::decimal);
+					code->addCString("),\n"
+			"		dataView.getUint32(i), dst);\n"
+			"	if (asyncObject === 0){\n"
+			"		dataView.setUint32(i, 0);\n"
+			"	} else {\n"
+			"		var storedDst = _memoryU16[(asyncObject + ");
+						code->addUint(js::AsyncObjectMembers::dst,
+							std::NumberBases::decimal);
+						code->addCString(")/2];\n"
+			"		if (storedDst != dst){\n"
+			"			dataView.setUint16(i + 4, storedDst);\n"
+			"		}\n"
+			"	}\n"
+			"}\n"
+	
+			"function _onPostCall(dataView){\n"
+			"	var callStart = _objectsToCallStart;\n"
+			"	var id = dataView.getUint32(");
+					code->addUint(js::PostCall::asyncKey,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"	if (!_asyncObjects.has(id)) return;\n" /* If deleted. */
+			"	var asyncObject = _asyncObjects.get(id);\n"
+			"	var post = ((_memoryU16[(asyncObject + ");
+					code->addUint(js::AsyncObjectMembers::dst,
+						std::NumberBases::decimal);
+					code->addCString(")/2]) !== _threadId);\n"
+			"	switch(dataView.getUint32(");
+					code->addUint(js::PostCall::functionId,
+						std::NumberBases::decimal);
+					code->addCString(")){\n");
+		*nestedBlocks = 3;
+		compilePostCalls(main, rootNamespace);
+		code->addCString(
+			"	}\n"
+			/* !== 0 can occur when using alert for debugging */
+			"	if (callStart === 0) _callObjects();\n"
+			"}\n");
+		if (main->needAsyncStaticObject){
+			code->addCString(
+				/* Not actually an async object, just used to call async static
+						functions without an aexcl object. */
+				"var _asyncStaticObject = 0;\n");
+		}
+	
+		code->addCString(
+			"function _onThreadMessage(e){\n"
+			"	var dataView = e.data;\n"
+			"	switch (dataView.getUint8(0)){\n"
+			"		case ");
+						code->addUint(js::PostTypes::setThreadId,
+							std::NumberBases::decimal);
+						code->addCString(":\n"
+			"			_threadId = dataView.getUint16(");
+							code->addUint(js::PostThreadId::id,
+								std::NumberBases::decimal);
+							code->addCString(");\n"
+			"			_nextAsyncKey = _threadId << 16;\n");
+		if (main->needAsyncStaticObject){
+			code->addCString(
+				"			_asyncStaticObject = _dlmalloc(");
+								code->addUint(js::AsyncObjectMembers::size,
+									std::NumberBases::decimal);
+								code->addCString(");\n"
+				"			_initAsyncObject(_asyncStaticObject, 0, 0);\n");
+		}
+		code->addCString(
+			"			break;\n"
+			"		case ");
+						code->addUint(js::PostTypes::newAsync,
+							std::NumberBases::decimal);
+						code->addCString(":\n"
+			"			_setNewAsyncObject(\n"
+			"				dataView.getUint32(");
+								code->addUint(js::PostNewAsync::asyncKey,
+									std::NumberBases::decimal);
+								code->addCString("),\n"
+			"				dataView.getUint16(");
+								code->addUint(js::PostNewAsync::type,
+									std::NumberBases::decimal);
+								code->addCString("),\n"
+			"				dataView.getUint16(");
+								code->addUint(js::PostNewAsync::thread,
+									std::NumberBases::decimal);
+								code->addCString("));\n"
+			"			break;\n"
+			"		case ");
+						code->addUint(js::PostTypes::call,
+							std::NumberBases::decimal);
+						code->addCString(":\n"
+			"			_onPostCall(dataView);\n"
+			"			break;\n"
+			"		case ");
+						code->addUint(js::PostTypes::updateDst,
+							std::NumberBases::decimal);
+						code->addCString(":\n"
+			"			_onUpdateDst(dataView);\n"
+			"			break;\n"
+			"		case ");
+						code->addUint(js::PostTypes::deleteAsync,
+							std::NumberBases::decimal);
+						code->addCString(":\n"
+			"			var id = dataView.getUint32(");
+							code->addUint(js::PostDelete::asyncKey,
+								std::NumberBases::decimal);
+							code->addCString(");\n"
+			"			if (_asyncObjects.has(id)){\n"
+			"				_deleteAsyncObject(_asyncObjects.get(id), dataView);\n"
+			"				_asyncObjects.delete(id);\n"
+			"			}\n"
+			"			break;\n"
+			"		case ");
+						code->addUint(js::PostTypes::alert,
+							std::NumberBases::decimal);
+						code->addCString(":\n"
+			"			_doAlert(\n"
+			"				dataView.getUint16(");
+								code->addUint(js::PostDebug::thread,
+									std::NumberBases::decimal);
+								code->addCString("),\n"
+			"				dataView.getUint32(");
+								code->addUint(js::PostDebug::integer,
+									std::NumberBases::decimal);
+								code->addCString("));\n"
+			"			break;\n"
+			"	}\n"
+			"}\n"
+			"onmessage = _onThreadMessage;\n"
+	
+			"function _onUpdateDst(dataView){\n"
+			"	var id = dataView.getUint32(");
+					code->addUint(js::PostUpdateDst::asyncKey,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"	var asyncObject = _asyncObjects.get(id);\n"
+			"	var i = (asyncObject + ");
+					code->addUint(js::AsyncObjectMembers::dst,
+						std::NumberBases::decimal);
+					code->addCString(")/2;\n"
+			"	_memoryU16[i] = dataView.getUint16(");
+					code->addUint(js::PostUpdateDst::dst,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"}\n"
+	
+			"function _setAsyncRef(ref, asyncObject){\n"
+			"	_unsetAsyncRef(ref);\n"
+			"	_memoryU32[(ref+");
+					code->addUint(js::AsyncRefMembers::asyncObject,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = asyncObject;\n"
+			"	if (asyncObject != 0){\n"
+			"		_memoryU32[(ref+");
+						code->addUint(js::AsyncRefMembers::previousSibling,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = 0;\n"
+			"		var next = _memoryU32[(asyncObject+");
+						code->addUint(js::AsyncObjectMembers::references,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"		_memoryU32[(ref+");
+						code->addUint(js::AsyncRefMembers::nextSibling,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = next;\n"
+			"		if (next != 0){\n"
+			"			_memoryU32[(next+");
+							code->addUint(js::AsyncRefMembers::previousSibling,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = ref;\n"
+			"		}\n"
+			"		_memoryU32[(asyncObject+");
+						code->addUint(js::AsyncObjectMembers::references,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = ref;\n"
+			"	}\n"
+			"}\n"
+	
+			"function _unsetAsyncRef(ref){\n"
+			"	var asyncObject = _memoryU32[(ref+");
+					code->addUint(js::AsyncRefMembers::asyncObject,
+						std::NumberBases::decimal);
+					code->addCString(")/4];\n"
+			"	if (asyncObject != 0){\n"
+			"		var previous = _memoryU32[(ref+");
+						code->addUint(js::AsyncRefMembers::previousSibling,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"		var next = _memoryU32[(ref+");
+						code->addUint(js::AsyncRefMembers::nextSibling,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"		if (previous != 0){\n"
+			"			_memoryU32[(previous+");
+							code->addUint(js::AsyncRefMembers::nextSibling,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = next;\n"
+			"		} else {\n"
+			"			_memoryU32[(asyncObject+");
+							code->addUint(js::AsyncObjectMembers::references,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = next;\n"
+			"		}\n"
+			"		if (next != 0){\n"
+			"			_memoryU32[(next+");
+							code->addUint(js::AsyncRefMembers::previousSibling,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = previous;\n"
+			"		}\n"
+			"	}\n"
+			"}\n"
+	
+			"function _setStackEnd(end){\n"
+			"	if (end >= ");
+					code->addUint(heapStart,
+						std::NumberBases::decimal);
+					code->addCString("){\n"
+			"		var error = 'Error: The stack can not grow more.';\n"
+			"		alert(error);\n"
+			"		throw error;\n"
+			"	} else _stackEnd = end;\n"
+			"}\n"
+	
+			"_setup();\n");
+	
+		*nestedBlocks = 0;
+		doCompileNamespace(main, rootNamespace);
+		openedFile->write(code->data, 0, code->length);
+		onCompiledJsSaved(app);
+	}
+
+	static unsigned int compileGetFunctionById(Main* main,
+		Namespace* compileNamespace, unsigned int functionId){
+		Namespace*[] namespaces = (Namespace*[])
+			(compileNamespace->namespaces.data);
+		unsigned int i = 0;
+		unsigned int len = compileNamespace->namespaces.size;
+		while (i < len){
+			functionId = compileGetFunctionById(main,
+				namespaces[i], functionId);
+			i = i + 1;
+		}
+		data::ClassType*[] classes = (data::ClassType*[])
+			(compileNamespace->classes.data);
+		len = compileNamespace->classes.size;
+		if (len > 0){
+			std::DString* code = &main->compiledCode;
+			i = 0;
+			while (i < len){
+				data::ClassType* classType = classes[i];
+				lexical::MemberFunction*[] functions =
+					(lexical::MemberFunction*[])
+						(classType->functions.data);
+				unsigned int j = 0;
+				unsigned int functionsLen =
+					classType->functions.size;
+				while (j < functionsLen){
+					lexical::MemberFunction* compileFunction =
+						functions[j];
+					if (compileFunction->functionId == -1 ||
+						compileFunction->isAsync()){
+						j = j + 1;
+						continue;
+					}
+					code->addCString("		case ");
+						code->addUint(functionId,
+							std::NumberBases::decimal);
+						code->addCString(":\n			return ");
+					getFunctionName(code, compileFunction);
+					code->addCString(";\n");
+					compileFunction->functionId = functionId;
+					functionId = functionId + 1;
+					j = j + 1;
+				}
+				i = i + 1;
+			}
+		}
+		return functionId;
+	}
+
+	static unsigned int compileAsyncCalls(Main* main,
+		Namespace* compileNamespace, unsigned int functionId){
+		Namespace*[] namespaces = (Namespace*[])
+			(compileNamespace->namespaces.data);
+		unsigned int i = 0;
+		unsigned int len = compileNamespace->namespaces.size;
+		while (i < len){
+			functionId = compileAsyncCalls(
+				main, namespaces[i], functionId);
+			i = i + 1;
+		}
+		data::ClassType*[] classes = (data::ClassType*[])
+			(compileNamespace->classes.data);
+		len = compileNamespace->classes.size;
+		std::DString* code = &main->compiledCode;
+		i = 0;
+		while (i < len){
+			data::ClassType* classType = classes[i];
+			lexical::MemberFunction*[] functions =
+				(lexical::MemberFunction*[])
+					(classType->functions.data);
+			unsigned int j = 0;
+			unsigned int functionsLen = classType->functions.size;
+			while (j < functionsLen){
+				lexical::MemberFunction* compileFunction = functions[j];
+				if (compileFunction->dataType == nullptr ||
+					!(compileFunction->isAsync())){
+					j = j + 1;
+					continue;
+				}
+				code->addCString("		case ");
+					code->addUint(functionId,
+						std::NumberBases::decimal);
+					code->addCString(":\n			");
+				getFunctionName(code, compileFunction);
+				code->addCString("(\n				");
+				main->charsInLine = 0;
+				bool first = true;
+				if (!(compileFunction->isStatic())){
+					addCString(main, "asyncClass");
+					first = false;
+				}
+				unsigned int offset = js::AsyncCallMembers::size;
+				lexical::FunctionParameter*[] parameters =
+					(lexical::FunctionParameter*[])
+						(compileFunction->parameters.data);
+				unsigned int k = 0;
+				unsigned int parametersLen =
+					compileFunction->parameters.size;
+				while (k < parametersLen){
+					lexical::FunctionParameter* parameter =
+						parameters[k];
+					if (!first){
+						addCString(main, ", ");
+					} else {first = false;}
+					if (parameter->isAexcl()){
+						addCString(main, "asyncClass");
+					} else {
+						data::Type* dataType = parameter->dataType;
+						offset = alignTo(offset,
+							getAlignOfDataType(dataType));
+						addMemoryStart(main, dataType);
+						addCString(main, "asyncCall + ");
+						addUint(main, offset);
+						addMemoryEnd(main, dataType);
+						offset = offset + getSizeOfDataType(dataType);
+					}
+					k = k + 1;
+				}
+				code->addCString(");\n"
+					"			break;\n");
+				compileFunction->functionId = functionId;
+				functionId = functionId + 1;
+				j = j + 1;
+			}
+			i = i + 1;
+		}
+		return functionId;
+	}
+		
+	static void compilePostCalls(Main* main,
+		Namespace* compileNamespace){
+		Namespace*[] namespaces = (Namespace*[])
+			(compileNamespace->namespaces.data);
+		unsigned int i = 0;
+		unsigned int len = compileNamespace->namespaces.size;
+		while (i < len){
+			compilePostCalls(main, namespaces[i]);
+			i = i + 1;
+		}
+		data::ClassType*[] classes = (data::ClassType*[])
+			(compileNamespace->classes.data);
+		len = compileNamespace->classes.size;
+		std::DString* code = &main->compiledCode;
+		i = 0;
+		while (i < len){
+			data::ClassType* classType = classes[i];
+			lexical::MemberFunction*[] functions =
+				(lexical::MemberFunction*[])
+					(classType->functions.data);
+			unsigned int j = 0;
+			unsigned int functionsLen = classType->functions.size;
+			while (j < functionsLen){
+				lexical::MemberFunction* compileFunction = functions[j];
+				if (compileFunction->dataType == nullptr ||
+					!compileFunction->isAsync()){
+					j = j + 1;
+					continue;
+				}
+				code->addCString("		case ");
+					code->addUint(compileFunction->functionId,
+						std::NumberBases::decimal);
+					code->addCString(":\n");
+				if (!compileFunction->asyncHasAexcl()){
+					main->needAsyncStaticObject = true;
+					code->addCString("			break;\n");
+					j = j + 1;
+					continue;
+				}
+				code->addCString("			if (post){\n");
+				unsigned int postSize = js::PostCall::size;
+				lexical::FunctionParameter*[] parameters =
+					(lexical::FunctionParameter*[])
+						(compileFunction->parameters.data);
+				unsigned int k = 0;
+				unsigned int parametersLen =
+					compileFunction->parameters.size;
+				while (k < parametersLen){
+					lexical::FunctionParameter* parameter =
+						parameters[k];
+					data::Type* dataType = parameter->dataType->
+						withoutSpecifiers();
+					if (dataType->type != data::Types::classT){
+						postSize = postSize + getSizeOfDataType(dataType);
+					} else if (!parameter->isAexcl()){
+						code->addCString(
+							"				_maybeUpdateCall(dataView, ");
+						code->addUint(postSize,
+							std::NumberBases::decimal);
+						code->addCString(");\n");
+						postSize = postSize + 8;
+					}
+					k = k + 1;
+				}
+				code->addCString(
+					"				return _postAsyncCall(asyncObject, dataView);\n"
+					"			}\n			");
+				getFunctionName(code, compileFunction);
+				code->addCString("__async(\n				");
+				main->charsInLine = 0;
+				bool first = true;
+				if (!compileFunction->isStatic()){
+					addCString(main, "asyncObject");
+					first = false;
+				}
+				postSize = js::PostCall::size;
+				k = 0;
+				while (k < parametersLen){
+					lexical::FunctionParameter* parameter =
+						parameters[k];
+					if (!first){
+						addCString(main, ", ");
+					} else {first = false;}
+					data::Type* dataType = parameter->dataType->
+						withoutSpecifiers();
+					if (dataType->type != data::Types::classT){
+						addCString(main, "dataView.get");
+						unsigned int typeSize = getDataType(code, dataType);
+						addCString(main, "(");
+						addUint(main, postSize);
+						addCString(main, ")");
+						postSize = postSize + typeSize;
+					} else if (parameter->isAexcl()){
+						addCString(main, "asyncObject");
+					} else {
+						addCString(main, "_getOrSetAsync(");
+						addCString(main, "dataView.getUint16(");
+						addUint(main, js::PostCall::src);
+						addCString(main, "), dataView.getUint32(");
+						addUint(main, postSize);
+						addCString(main, "), dataView.getUint16(");
+						addUint(main, postSize + 4);
+						addCString(main, "))");
+						postSize = postSize + 4 + 2;
+					}
+					k = k + 1;
+				}
+				addCString(main, ");\n			break;\n");
+				j = j + 1;
+			}
+			i = i + 1;
+		}
+	}
+
+	static unsigned int compileAsyncNew(Main* main,
+		Namespace* compileNamespace, unsigned int classId){
+		Namespace*[] namespaces = (Namespace*[])
+			(compileNamespace->namespaces.data);
+		unsigned int i = 0;
+		unsigned int len = compileNamespace->namespaces.size;
+		while (i < len){
+			classId = compileAsyncNew(main, namespaces[i], classId);
+			i = i + 1;
+		}
+		data::ClassType*[] classes = (data::ClassType*[])
+			(compileNamespace->classes.data);
+		len = compileNamespace->classes.size;
+		std::DString* code = &main->compiledCode;
+		i = 0;
+		while (i < len){
+			data::ClassType* classType = classes[i];
+			if (classType->isAsync()){
+				code->addCString("		case ");
+				code->addUint(classId,
+					std::NumberBases::decimal);
+				code->addCString(":\n			asyncObject = ");
+				getCall(code, classType,
+					"__new();\n			break;\n");
+				classType->asyncId = classId;
+				classId = classId + 1;
+			}
+			i = i + 1;
+		}
+		return classId;
+	}
+
+	static void onCompiledJsSaved(
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		main->classOrMemberPath.trim(
+			main->rootPath + 5/*html/*/);
+		main->classOrMemberPath.addCString(
+			"compiled.html");
+		app.fileSystem.openFile(
+			main->classOrMemberPath.data,
+			compiledHtmlOpened,
+			std::fs::OpenFileModes::writeBinary);
+	}
+
+	static void getNamespacePrefix(std::DString* code,
+		Namespace* compileNamespace){
+		Namespace* ns = compileNamespace->parentNamespace;
+		if (ns != nullptr){
+			getNamespacePrefix(code, ns);
+			code->addString(&compileNamespace->name);
+			code->addChar('_');
+		}
+	}
+
+	static unsigned int getNsPrefixLength(
+		Namespace* compileNamespace){
+		Namespace* ns = compileNamespace->parentNamespace;
+		if (ns != nullptr){
+			return getNsPrefixLength(ns) +
+				compileNamespace->name.length + 1;
+		} else {
+			return 0;
+		}
+	}
+
+	static void addFunctionSpecifiers(Main* main,
+		unsigned char specifiers){
+		if (specifiers != 0){
+			if ((specifiers &
+				lexical::FunctionSpecifierTypes::isStatic) != 0){
+				addCString(main, "static ");
+			}
+			if ((specifiers &
+				lexical::FunctionSpecifierTypes::isAsync) != 0){
+				addCString(main, "async ");
+			}
+		}
+	}
+
+	static void getClassPrefix(std::DString* code,
+		data::ClassType* compileClass){
+		getNamespacePrefix(code, compileClass->parentNamespace);
+		code->addString(&compileClass->name);
+	}
+
+	static void getDataMemberName(std::DString* code,
+		lexical::DataMember* dataMember){
+		getClassPrefix(code, dataMember->parentClass);
+		code->addChar('_');
+		code->addString(&dataMember->name);
+	}
+
+	static void getFunctionName(std::DString* code,
+		lexical::MemberFunction* memberFunction){
+		getClassPrefix(code, memberFunction->parentClass);
+		code->addChar('_');
+		code->addString(&memberFunction->name);
+	}
+
+	static void addFunctionName(Main* main,
+		lexical::MemberFunction* memberFunction){
+		data::ClassType* compileClass =
+			memberFunction->parentClass;
+		unsigned int len = getNsPrefixLength(
+				compileClass->parentNamespace) +
+			compileClass->name.length + 1 +
+			memberFunction->name.length;
+		splitIfLongLine(main, len);
+		getFunctionName(&main->compiledCode, memberFunction);
+	}
+
+	static unsigned char getDataType(
+		std::DString* code, data::Type* dataType){
+		switch (dataType->type){
+			case data::Types::boolT:
+			case data::Types::ucharT:
+				code->addCString("Uint8");
+				return 1;
+			case data::Types::charT:
+				code->addCString("Int8");
+				return 1;
+			case data::Types::ushortT:
+				code->addCString("Uint16");
+				return 2;
+			case data::Types::shortT:
+				code->addCString("Int16");
+				return 2;
+			case data::Types::uintT:
+			case data::Types::classT:
+				code->addCString("Uint32");
+				return 4;
+			case data::Types::intT:
+				code->addCString("Int32");
+				return 4;
+			case data::Types::floatT:
+				code->addCString("Float32");
+				return 4;
+			case data::Types::doubleT:
+				code->addCString("Float64");
+				return 8;
+			case data::Types::specifiersT:
+				return getDataType(code,
+					(data::Specifiers*)dataType->dataType);
+		}
+	}
+
+	static void getMemberOffset(std::DString* code,
+		lexical::DataMember* dataMember){
+		code->addUint(dataMember->offset,
+			std::NumberBases::decimal);
+		code->addCString("/*");
+		code->addString(&dataMember->name);
+		code->addCString("*/);");
+	}
+
+	static void doCompileNamespace(Main* main,
+		Namespace* compileNamespace){
+		std::DString* code = &main->compiledCode;
+		code->addCString("//start of namespace: ");
+		code->addString(&compileNamespace->name);
+		code->addCString("\n\n");
+		Namespace*[] namespaces = (Namespace*[])
+			(compileNamespace->namespaces.data);
+		unsigned int i = 0;
+		unsigned int len = compileNamespace->namespaces.size;
+		while (i < len){
+			doCompileNamespace(main, namespaces[i]);
+			i = i + 1;
+		}
+		data::ClassType*[] classes = (data::ClassType*[])
+			(compileNamespace->classes.data);
+		len = compileNamespace->classes.size;
+		i = 0;
+		std::StringView constructor;
+		constructor.setCString("_constructor");
+		std::StringView destructor;
+		destructor.setCString("_destructor");
+		while (i < len){
+			data::ClassType* classType = classes[i];
+			code->addCString("//start of ");
+			if (classType->isAsync()){
+				code->addCString("async ");
+			}
+			code->addCString("class: ");
+			code->addString(&classType->name);
+			data::ClassType* base = classType->base;
+			if (base != nullptr){
+				code->addCString(" : ");
+				code->addString(&base->name);
+			}
+			code->addCString("\n\n");
+			lexical::DataMember*[] dataMembers =
+				(lexical::DataMember*[])
+					(classType->dataMembers.data);
+			unsigned int dataMembersLen =
+				classType->dataMembers.size;
+			unsigned int j = 0;
+			while (j < dataMembersLen){
+				lexical::DataMember* dataMember = dataMembers[j];
+				if (dataMember->dataType != nullptr &&
+					(dataMember->getSpecifiers() & (
+						data::SpecifierTypes::isStatic |
+						data::SpecifierTypes::isConstexpr)) == 0){
+					code->addCString("/*");
+					Lexical::dataTypeToString(dataMember->dataType, code);
+					code->addChar(' ');
+					code->addString(&dataMember->name);
+					code->addCString("; //@this+");
+					code->addUint(dataMember->offset,
+						std::NumberBases::decimal);
+					code->addCString("*/\n");
+				}
+				j = j + 1;
+			}
+			bool needCallConstructors =
+				classType->needCallConstructors();
+			bool needCallDestructors =
+				classType->needCallDestructors();
+			if (needCallConstructors){
+				code->addCString("function ");
+				getCall(code, classType,
+					"__callConstructors(_this){");
+				if (base != nullptr &&
+					base->needCallConstructors()){
+					code->addCString("\n\t");
+					getCall(code, base,
+						"__callConstructors(_this);");
+				}
+				j = 0;
+				while (j < dataMembersLen){
+					lexical::DataMember* dataMember = dataMembers[j];
+					data::Type* dataType = dataMember->dataType;
+					if (dataType != nullptr){
+						switch (dataType->type){
+							case data::Types::classT:
+								{
+									data::ClassType* classMember =
+										(data::ClassType*)dataType;
+									if (classMember->needCallConstructors()){
+										code->addCString("\n\t");
+										getCall(code, classMember,
+											"__callConstructors(_this + ");
+										getMemberOffset(code, dataMember);
+									}
+								}
+								break;
+							case data::Types::specifiersT:
+								if ((data::Specifiers*)dataType->
+									dataType->type == data::Types::classT){
+									code->addCString(
+										"\n\t_memoryU32[(_this + ");
+									code->addUint(dataMember->offset,
+										std::NumberBases::decimal);
+									code->addCString("/*");
+									code->addString(&dataMember->name);
+									code->addCString("*/)/4] = 0;");
+								}
+								break;
+						}
+					}
+					j = j + 1;
+				}
+				if (classType->getFunction(&constructor) != nullptr){
+					code->addCString("\n\t");
+					getCall(code, classType,
+						"__constructor(_this);");
+				}
+				code->addCString("\n}\n");
+			}
+			if (needCallDestructors){
+				code->addCString("function ");
+				getCall(code, classType,
+					"__callDestructors(_this){");
+				/* The class destructor is run before its members. */
+				if (classType->getFunction(&destructor) != nullptr){
+					code->addCString("\n\t");
+					getCall(code, classType,
+						"__destructor(_this);");
+				}
+				if (base != nullptr &&
+					base->needCallDestructors()){
+					code->addCString("\n\t");
+					getCall(code, base,
+						"__callDestructors(_this);");
+				}
+				j = 0;
+				while (j < dataMembersLen){
+					lexical::DataMember* dataMember = dataMembers[j];
+					data::Type* dataType = dataMember->dataType;
+					if (dataType != nullptr){
+						switch (dataType->type){
+							case data::Types::classT:
+								{
+									data::ClassType* classMember =
+										(data::ClassType*)dataType;
+									if (classMember->needCallDestructors()){
+										code->addCString("\n\t");
+										getCall(code, classMember,
+											"__callDestructors(_this + ");
+										getMemberOffset(code, dataMember);
+									}
+								}
+								break;
+							case data::Types::specifiersT:
+								if ((data::Specifiers*)dataType->
+									dataType->type == data::Types::classT){
+									code->addCString(
+										"\n\t_unsetAsyncRef(_this + ");
+									getMemberOffset(code, dataMember);
+								}
+								break;
+						}
+					}
+					j = j + 1;
+				}
+				code->addCString("\n}\n");
+			}
+			if (classType->needNew()){
+				code->addCString("function ");
+				getCall(code, classType, "__new(){"
+					"\n\tvar _this = _dlmalloc(");
+				code->addUint(classType->size,
+					std::NumberBases::decimal);
+				code->addCString(");");
+				if (needCallConstructors){
+					code->addCString("\n\t");
+					getCall(code, classType,
+						"__callConstructors(_this);");
+				}
+				code->addCString("\n\treturn _this;\n}\n"
+					"function ");
+				getCall(code, classType, "__delete(_this){");
+				if (needCallDestructors){
+					code->addCString("\n\t");
+					getCall(code, classType,
+						"__callDestructors(_this);");
+				}
+				if (classType->isAsync()){
+					code->addCString(
+						"\n\t_deleteAsyncObject(_this, null);\n}\n");
+				} else {
+					code->addCString("\n\t_dlfree(_this);\n}\n");
+				}
+			}
+			if (classType->needNewArray()){
+				code->addCString("function ");
+				getCall(code, classType,
+					"__newArray(length){\n");
+				unsigned int alignedSize =
+					alignTo(classType->size, classType->alignTo);
+				code->addCString(
+					"	if (length < 0) length = 0;\n"
+					"	var size = ");
+				/* Allocate space to store the number of elements,
+						to be able to call the destructors. */
+				if (needCallDestructors){
+					code->addCString("4 + ");
+				}
+				code->addUint(alignedSize,
+					std::NumberBases::decimal);
+				code->addCString(" * length;\n"
+					"	var _this = _dlmalloc(size);");
+				if (needCallDestructors){
+					code->addCString("\n\t_memoryU32[_this / 4] = length;");
+				}
+				if (needCallConstructors){
+					code->addCString("\n\tfor(var i = _this");
+					if (needCallDestructors){
+						code->addCString(" + 4");
+					}
+					code->addCString("; i < _this + size; i += ");
+					code->addUint(alignedSize,
+						std::NumberBases::decimal);
+					code->addCString("){\n\t\t");
+					getCall(code, classType,
+						"__callConstructors(i);\n\t}");
+				}
+				code->addCString("\n\treturn _this");
+				if (needCallDestructors){
+					code->addCString(" + 4");
+				}
+				code->addCString(";\n}\nfunction ");
+				getCall(code, classType,
+					"__deleteArray(_this){");
+				if (needCallDestructors){
+					code->addCString("\n\tvar size = "
+						"_memoryU32[(_this - 4) / 4] * ");
+					code->addUint(alignedSize,
+						std::NumberBases::decimal);
+					code->addCString(
+						";\n\tfor(var i = _this; i < _this + size; i += ");
+					code->addUint(alignedSize,
+						std::NumberBases::decimal);
+					getCall(code, classType,
+						"__callDestructors(i);\n\t}");
+				}
+				code->addCString("\n\t_dlfree(_this");
+				if (needCallDestructors){
+					code->addCString(" - 4");
+				}
+				code->addCString(");\n}\n");
+			}
+			lexical::MemberFunction*[] functions =
+				(lexical::MemberFunction*[])
+					(classType->functions.data);
+			j = 0;
+			unsigned int functionsLen = classType->functions.size;
+			while (j < functionsLen){
+				lexical::MemberFunction* compileFunction = functions[j];
+				if (compileFunction->dataType == nullptr){
+					j = j + 1;
+					continue;
+				}
+				main->currentParseFunction = compileFunction;
+				lexical::FunctionParameter*[] parameters =
+					(lexical::FunctionParameter*[])
+						(compileFunction->parameters.data);
+				unsigned int parametersLen =
+					compileFunction->parameters.size;
+				if (compileFunction->isAsync()){
+					unsigned int savedLen = code->length;
+					code->addCString("function ");
+					getFunctionName(code, compileFunction);
+					code->addCString("__async(");
+					main->charsInLine = code->length - savedLen;
+					bool first = true;
+					lexical::FunctionParameter* aexclParam = nullptr;
+					if (!compileFunction->isStatic()){
+						addCString(main, "_this");
+						first = false;
+					}
+					unsigned int postSize = js::PostCall::size;
+					unsigned int size = js::AsyncCallMembers::size;
+					unsigned int k = 0;
+					while (k < parametersLen){
+						lexical::FunctionParameter* parameter =
+							parameters[k];
+						if (first){
+							first = false;
+						} else {
+							addCString(main, ", ");
+						}
+						addString(main, &parameter->name);
+						if (parameter->isAexcl()){
+							aexclParam = parameter;
+						} else {
+							data::Type* dataType = parameter->dataType->
+								withoutSpecifiers();
+							int typeSize =
+								getSizeOfDataType(dataType);
+							size = alignTo(size,
+								getAlignOfDataType(dataType)) + typeSize;
+							if (dataType->type != data::Types::classT){
+								postSize = postSize + typeSize;
+							} else {
+								postSize = postSize + 4 + 2;
+							}
+						}
+						k = k + 1;
+					}
+					code->addCString("){\n");
+					if (compileFunction->asyncHasAexcl()){
+						code->addCString(
+							"	if (_memoryU16[(");
+									if (aexclParam == nullptr){
+										code->addCString("_this");
+									} else {
+										code->addString(&aexclParam->name);
+									}
+									code->addCString(" + ");
+									code->addUint(js::AsyncObjectMembers::dst,
+										std::NumberBases::decimal);
+									code->addCString(
+										")/2] !== _threadId){\n"
+							"		var dataView = new DataView(new ArrayBuffer(");
+										code->addUint(postSize,
+											std::NumberBases::decimal);
+										code->addCString("));\n"
+							"		dataView.setUint8(");
+										code->addUint(js::PostCall::postType,
+											std::NumberBases::decimal);
+										code->addCString(", ");
+										code->addUint(js::PostTypes::call,
+											std::NumberBases::decimal);
+										code->addCString(");\n"
+							"		dataView.setUint16(");
+										code->addUint(js::PostCall::src,
+											std::NumberBases::decimal);
+										code->addCString(", _threadId);\n"
+							"		dataView.setUint32(");
+										code->addUint(js::PostCall::functionId,
+											std::NumberBases::decimal);
+										code->addCString(", ");
+										code->addUint(compileFunction->functionId,
+											std::NumberBases::decimal);
+										code->addCString(");\n"
+							"		dataView.setUint32(");
+										code->addUint(js::PostCall::asyncKey,
+											std::NumberBases::decimal);
+										code->addCString(", _memoryU32[(");
+										if (aexclParam == nullptr){
+											code->addCString("_this");
+										} else {
+											code->addString(&aexclParam->name);
+										}
+										code->addCString(" + ");
+										code->addUint(js::AsyncObjectMembers::id,
+											std::NumberBases::decimal);
+										code->addCString(")/4]);\n");
+						postSize = js::PostCall::size;
+						k = 0;
+						while (k < parametersLen){
+							lexical::FunctionParameter* parameter =
+								parameters[k];
+							data::Type* dataType = parameter->dataType->
+								withoutSpecifiers();
+							if (dataType->type != data::Types::classT){
+								code->addCString("		dataView.set");
+								unsigned int typeSize =
+									getDataType(code, dataType);
+								code->addChar('(');
+								code->addUint(postSize,
+									std::NumberBases::decimal);
+								code->addCString(", ");
+								code->addString(&parameter->name);
+								code->addCString(");\n");
+								postSize = postSize + typeSize;
+							} else if (aexclParam != parameter){
+								code->addCString("		if (");
+								code->addString(&parameter->name);
+								code->addCString(" !== 0){\n"
+									"			dataView.setUint32(");
+								code->addUint(postSize,
+									std::NumberBases::decimal);
+								code->addCString(", _memoryU32[(");
+								code->addString(&parameter->name);
+								code->addCString(" + ");
+								code->addUint(js::AsyncObjectMembers::id,
+									std::NumberBases::decimal);
+								code->addCString(")/4]);\n");
+								postSize = postSize + 4;
+								code->addCString("			dataView.setUint16(");
+								code->addUint(postSize,
+									std::NumberBases::decimal);
+								code->addCString(", _memoryU16[(");
+								code->addString(&parameter->name);
+								code->addCString(" + ");
+								code->addUint(js::AsyncObjectMembers::dst,
+									std::NumberBases::decimal);
+								code->addCString(")/2]);\n		}\n");
+								postSize = postSize + 2;
+							}
+							k = k + 1;
+						}
+						code->addCString("		return _postAsyncCall(");
+						if (aexclParam == nullptr){
+							code->addCString("_this");
+						} else {
+							code->addString(&aexclParam->name);
+						}
+						code->addCString(", dataView);\n	}\n");
+					}
+					code->addCString(
+						"	var call = _dlmalloc(");
+								code->addUint(size,
+									std::NumberBases::decimal);
+								code->addCString(");\n"
+						"	_initAsyncCallObject(call, ");
+								code->addUint(compileFunction->functionId,
+									std::NumberBases::decimal);
+								code->addCString(");\n\t");
+					size = js::AsyncCallMembers::size;
+					k = 0;
+					while (k < parametersLen){
+						lexical::FunctionParameter* parameter =
+							parameters[k];
+						if (aexclParam != parameter){
+							data::Type* dataType = parameter->dataType->
+								withoutSpecifiers();
+							unsigned int offset =
+								alignTo(size, getAlignOfDataType(dataType));
+							size = offset + getSizeOfDataType(dataType);
+							if (dataType->type != data::Types::classT){
+								getMemoryStart(code, dataType);
+								code->addCString("call + ");
+								code->addUint(offset,
+									std::NumberBases::decimal);
+								getMemoryEnd(code, dataType);
+								code->addCString(" = ");
+								code->addString(&parameter->name);
+							} else {
+								code->addCString("_setAsyncRef(call + ");
+								code->addUint(offset,
+									std::NumberBases::decimal);
+								code->addCString(", ");
+								code->addString(&parameter->name);
+								code->addChar(')');
+							}
+							code->addCString(";\n\t");
+						}
+						k = k + 1;
+					}
+					code->addCString("_pushToAsyncCallQueue(");
+					if (aexclParam == nullptr){
+						if (!compileFunction->isStatic()){
+							code->addCString("_this");
+						} else {
+							code->addCString("_asyncStaticObject");
+						}
+					} else {
+						code->addString(&aexclParam->name);
+					}
+					code->addCString(", call);\n}\n");
+				}
+				code->addCString("function /*");
+				addFunctionSpecifiers(main, compileFunction->specifiers);
+				Lexical::dataTypeToString(
+					compileFunction->dataType, code);
+				code->addCString("*/ ");
+				getFunctionName(code, compileFunction);
+				code->addChar('(');
+				bool first = true;
+				if (!compileFunction->isStatic()){
+					code->addCString("\n\t");
+					if (classType->isAsync()){
+						code->addCString("/*");
+						getClassPrefix(code, classType);
+						code->addCString(" aexcl*/ _this");
+					} else {
+						code->addCString("/*");
+						getClassPrefix(code, classType);
+						code->addCString("**/ _this");
+					}
+					first = false;
+				}
+				unsigned int k = 0;
+				main->sortedVariables.clear();
+				while (k < parametersLen){
+					/* Use the stack. */
+					lexical::FunctionParameter* parameter =
+						parameters[k];
+					if (parameter->offset != -1){
+						main->sortedVariables.pushBack(
+							parameter);
+					}
+					code->addCString("\n\t");
+					if (first){
+						first = false;
+					} else {
+						code->addCString(", ");
+					}
+					code->addCString("/*");
+					Lexical::dataTypeToString(parameter->dataType, code);
+					code->addCString("*/ ");
+					code->addString(&parameter->name);
+					k = k + 1;
+				}
+				code->addChar(')');
+				if (compileFunction->needStack()){
+					unsigned int size = sortVariables(
+						0, &main->sortedVariables);
+					code->addCString("{\n"
+						"	var _savedStackEnd = _stackEnd;\n"
+						"	var _sp = ((_savedStackEnd + (8-1)) & (~(8-1)));\n"
+						"	_setStackEnd(_sp + ");
+								code->addUint(size,
+									std::NumberBases::decimal);
+								code->addCString(");\n\t");
+					main->stackEnd = size;
+					k = 0;
+					parametersLen = main->sortedVariables.size;
+					parameters = (lexical::FunctionParameter*[])
+						(main->sortedVariables.data);
+					while (k < parametersLen){
+						lexical::FunctionParameter* parameter =
+							parameters[k];
+						data::Type* dataType = parameter->dataType;
+						getMemoryStart(code, dataType);
+						code->addCString("_sp + ");
+						code->addUint(parameter->offset,
+							std::NumberBases::decimal);
+						getMemoryEnd(code, dataType);
+						code->addCString(" = ");
+						code->addString(&parameter->name);
+						code->addCString(";\n\t");
+						k = k + 1;
+					}
+					main->charsInLine = 0;
+					main->nestedBlocks = main->nestedBlocks + 1;
+					blockToJs(main, compileFunction->block);
+					main->nestedBlocks = main->nestedBlocks - 1;
+					code->addCString("\n"
+						"	_stackEnd = _savedStackEnd;\n"
+						"}");
+					main->charsInLine = 0;
+				} else {
+					main->stackEnd = 0;
+					blockToJs(main, compileFunction->block);
+				}
+				code->addCString("\n");
+				j = j + 1;
+			}
+			code->addCString("\n//end of class: ");
+			code->addString(&classType->name);
+			code->addCString("\n\n");
+			i = i + 1;
+		}
+		code->addCString("\n//end of namespace: ");
+		code->addString(&compileNamespace->name);
+		code->addCString("\n\n");
+	}
+
+	static unsigned char[] dataTypeToMemoryStart(
+		data::Type* dataType){
+		unsigned char[] string;
+		switch (dataType->type){
+			case data::Types::boolT:
+				string = "(_memoryU8[";
+				break;
+			case data::Types::ucharT:
+				string = "_memoryU8[";
+				break;
+			case data::Types::charT:
+				string = "_memoryI8[";
+				break;
+			case data::Types::ushortT:
+				string = "_memoryU16[(";
+				break;
+			case data::Types::shortT:
+				string = "_memoryI16[(";
+				break;
+			case data::Types::uintT:
+			case data::Types::pointerT:
+			case data::Types::arrayPointerT:
+			case data::Types::functionPointerT:
+				string = "_memoryU32[(";
+				break;
+			case data::Types::intT:
+				string = "_memoryI32[(";
+				break;
+			case data::Types::floatT:
+				string = "_memoryF32[(";
+				break;
+			case data::Types::doubleT:
+				string = "_memoryF64[(";
+				break;
+			case data::Types::classT:
+				if (((data::ClassType*)dataType)->isAsync()){
+					string = "_memoryU32[(";
+					break;
+				}
+				/* No break. */
+			case data::Types::specifiersT:
+				string = dataTypeToMemoryStart(
+					(data::Specifiers*)dataType->dataType);
+				break;
+			default:
+				string = "";
+				break;
+		}
+		return string;
+	}
+	
+	static void getMemoryStart(std::DString* code,
+		data::Type* dataType){
+		code->addCString(
+			dataTypeToMemoryStart(dataType));
+	}
+	
+	static bool addMemoryStart(Main* main,
+		data::Type* dataType){
+		if (!main->compileMemory){
+			main->compileMemory = true;
+			return false;
+		}
+		addCString(main,
+			dataTypeToMemoryStart(dataType));
+		return true;
+	}
+
+	static unsigned char[] dataTypeToMemoryEnd(
+		data::Type* dataType){
+		unsigned char[] string;
+		switch (dataType->type){
+			case data::Types::boolT:
+				string = "]!==0)";
+				break;
+			case data::Types::ucharT:
+			case data::Types::charT:
+				string = "]";
+				break;
+			case data::Types::ushortT:
+			case data::Types::shortT:
+				string = ")/2]";
+				break;
+			case data::Types::uintT:
+			case data::Types::intT:
+			case data::Types::floatT:
+			case data::Types::pointerT:
+			case data::Types::arrayPointerT:
+			case data::Types::functionPointerT:
+				string = ")/4]";
+				break;
+			case data::Types::doubleT:
+				string = ")/8]";
+				break;
+			case data::Types::classT:
+				if (((data::ClassType*)dataType)->isAsync()){
+					string = ")/4]";
+					break;
+				}
+				/* No break. */
+			case data::Types::specifiersT:
+				string = dataTypeToMemoryEnd(
+					(data::Specifiers*)dataType->dataType);
+				break;
+			default:
+				string = "";
+				break;
+		}
+		return string;
+	}
+	
+	static void getMemoryEnd(
+		std::DString* code, data::Type* dataType){
+		code->addCString(
+			dataTypeToMemoryEnd(dataType));
+	}
+	
+	static void addMemoryEnd(
+		Main* main, data::Type* dataType){
+		addCString(main,
+			dataTypeToMemoryEnd(dataType));
+	}
+
+	static int getAlignedSize(
+		data::Type* dataType){
+		dataType = dataType->withoutSpecifiers();
+		int size = getSizeOfDataType(dataType);
+		if (dataType->type == data::Types::classT){
+			size = alignTo(size, getAlignOfDataType(dataType));
+		}
+		return size;
+	}
+	
+	static void addOffsetName(Main* main,
+		data::Type* dataType, unsigned char[] base,
+		unsigned int offset, std::String* name){
+		bool memoryEnd =
+			addMemoryStart(main, dataType);
+		addCString(main, base);
+		addUint(main, offset);
+		if (memoryEnd){
+			addMemoryEnd(main, dataType);
+		}
+		addCString(main, "/*");
+		addString(main, name);
+		addCString(main, "*/");
+	}
+	
+	static void addUintName(Main* main,
+		unsigned int uint, std::String* name){
+		addUint(main, uint);
+		addCString(main, "/*");
+		addString(main, name);
+		addCString(main, "*/");
+	}
+	
+	static void addUnary(Main* main,
+		unsigned char[] string, lexical::Type* expression){
+		addChar(main, '(');
+		addCString(main, string);
+		compileExpression(main, ((lexical::UnaryOperator*)
+			expression)->operand);
+		addChar(main, ')');
+	}
+	
+	static void addBinary(Main* main,
+		unsigned char[] string, lexical::Type* expression){
+		lexical::BinaryOperator* operator =
+			(lexical::BinaryOperator*)expression;
+		addChar(main, '(');
+		compileExpression(main, operator->operand1);
+		addCString(main, string);
+		compileExpression(main, operator->operand2);
+		addChar(main, ')');
+	}
+	
+	static void addBinaryStack(Main* main,
+		unsigned char[] string, lexical::Type* expression){
+		lexical::BinaryOperator* operator =
+			(lexical::BinaryOperator*)expression;
+		addCString(main, string);
+		compileExpression(main, operator->operand1);
+		addChar(main, ')');
+		main->expressionStack->pushBack(expression);
+		compileExpression(main, operator->operand2);
+		main->expressionStack->popBack();
+	}
+
+	static void compileExpression(Main* main,
+		lexical::Type* expression){
+		switch (expression->type){
+			case lexical::Types::nullptrLiteral:
+				addChar(main, '0');
+				break;
+			case lexical::Types::thisLiteral:
+				addCString(main, "_this");
+				break;
+			case lexical::Types::trueLiteral:
+				addCString(main, "true");
+				break;
+			case lexical::Types::falseLiteral:
+				addCString(main, "false");
+				break;
+			case lexical::Types::characterLiteral:
+				{
+					unsigned char c = ((lexical::CharacterLiteral*)
+						expression)->character;
+					addUint(main, c);
+					addCString(main, "/*");
+					switch (c){
+						case '\t':
+							addCString(main, "\\t");
+							break;
+						case '\n':
+							addCString(main, "\\n");
+							break;
+						case '\r':
+							addCString(main, "\\r");
+							break;
+						case '\\':
+							addCString(main, "\\\\");
+							break;
+						default:
+							addChar(main, c);
+							break;
+					}
+					addCString(main, "*/");
+					break;
+				}
+			case lexical::Types::stringLiteral:
+				{
+					lexical::StringLiteral* literal =
+						(lexical::StringLiteral*)expression;
+					addUint(main, literal->address);
+					addCString(main, "/*");
+					std::String* string = &literal->string;
+					unsigned int strLen = std::Memory::replacedLength(
+						string->data, 0, string->length,
+						"/", 0, 1, 2);
+					splitIfLongLine(main, strLen);
+					std::DString* code = &main->compiledCode;
+					unsigned int len = code->length;
+					code->addLength(strLen, true, true);
+					std::Memory::setReplace(code->data, len,
+						string->data, 0, string->length,
+						"/", 0, 1, "\\/", 0, 2);
+					addCString(main, "*/");
+					break;
+				}
+			case lexical::Types::integerLiteral:
+				{
+					lexical::IntegerLiteral* literal =
+						(lexical::IntegerLiteral*)expression;
+					addUint(main, literal->number);
+					break;
+				}
+			case lexical::Types::floatingLiteral:
+				{
+					lexical::FloatingLiteral* literal =
+						(lexical::FloatingLiteral*)expression;
+					addFloat(main, literal->number);
+					break;
+				}
+			case lexical::Types::parenthesized:
+				{
+					addChar(main, '(');
+					lexical::Type* operand =
+						((lexical::UnaryOperator*)expression)->operand;
+					if (operand != nullptr){
+						compileExpression(main, operand);
+					}
+					addChar(main, ')');
+					break;
+				}
+			case lexical::Types::localVariable:
+				{
+					lexical::LocalVariable* variable =
+						(lexical::LocalVariable*)expression;
+					if (variable->offset == -1){
+						addString(main, &variable->name);
+					} else {
+						addOffsetName(main, variable->dataType,
+			 				"_sp + ", variable->offset, &variable->name);
+					}
+					break;
+				}
+			case lexical::Types::functionParameter:
+				{
+					lexical::FunctionParameter* parameter =
+						(lexical::FunctionParameter*)expression;
+					if (parameter->offset == -1){
+						addString(main, &parameter->name);
+					} else {
+						addOffsetName(main, parameter->dataType,
+			 				"_sp + ", parameter->offset, &parameter->name);
+					}
+					break;
+				}
+			case lexical::Types::dataMember:
+				{
+					lexical::DataMember* dataMember =
+						(lexical::DataMember*)expression;
+					if (dataMember->isConstexpr()){
+						compileExpression(main, dataMember->value);
+						addCString(main, "/*");
+						addString(main, &dataMember->name);
+						addCString(main, "*/");
+					} else if (dataMember->isStatic()){
+						compileStaticMember(main, dataMember);
+						addCString(main, "/*");
+						addString(main, &dataMember->name);
+						addCString(main, "*/");
+					} else {
+						addOffsetName(main, dataMember->dataType,
+			 				"_this + ", dataMember->offset, &dataMember->name);
+					}
+					break;
+				}
+			case lexical::Types::memberFunction:
+				{
+					lexical::MemberFunction* compileFunction =
+						(lexical::MemberFunction*)expression;
+					addUintName(main, compileFunction->functionId,
+		 				&compileFunction->name);
+					break;
+				}
+			case lexical::Types::subscript:
+				{
+					lexical::BinaryOperator* operator =
+						(lexical::BinaryOperator*)expression;
+					data::Type* dataType =
+						Lexical::dataTypeFromExpression(main, expression,
+							main->currentParseFunction->parentClass);
+					bool memoryEnd = addMemoryStart(main, dataType);
+					compileExpression(main, operator->operand1);
+					addCString(main, " + ");
+					int size = getAlignedSize(dataType);
+					if (size > 1){
+						addChar(main, '(');
+					}
+					compileExpression(main, operator->operand2);
+					if (size > 1){
+						addChar(main, '*');
+						addUint(main, size);
+						addChar(main, ')');
+					}
+					if (memoryEnd){
+						addMemoryEnd(main, dataType);
+					}
+				}
+				break;
+			case lexical::Types::functionCall:
+				functionCallToJs(main,
+					(lexical::FunctionCall*)expression);
+				break;
+			case lexical::Types::indirection:
+				{
+					data::Type* dataType =
+						Lexical::dataTypeFromExpression(main, expression,
+							main->currentParseFunction->parentClass);
+					bool memoryEnd = addMemoryStart(main, dataType);
+					compileExpression(main, ((lexical::UnaryOperator*)
+						expression)->operand);
+					if (memoryEnd){
+						addMemoryEnd(main, dataType);
+					}
+					break;
+				}
+			case lexical::Types::addressOf:
+				main->compileMemory = false;
+				addUnary(main, "", expression);
+				break;
+			case lexical::Types::plus:
+				addUnary(main, "+", expression);
+				break;
+			case lexical::Types::minus:
+				addUnary(main, "-", expression);
+				break;
+			case lexical::Types::logicalNegation:
+				addUnary(main, "!", expression);
+				break;
+			case lexical::Types::bitwiseComplement:
+				addUnary(main, "~", expression);
+				break;
+			case lexical::Types::newExpression:
+				newExpressionToJs(main, ((lexical::NewExpression*)
+					expression)->dataType);
+				break;
+			case lexical::Types::newAsync:
+				{
+					lexical::NewAsyncExpression* operator =
+						(lexical::NewAsyncExpression*)expression;
+					addCString(main, "_newAsyncObject(");
+					if (operator->instance != nullptr){
+						compileExpression(main, operator->instance);
+						addCString(main, ", ");
+						if (operator->thread != nullptr){
+							compileExpression(main, operator->thread);
+						} else {addChar(main, '0');}
+					} else {addCString(main, "0, -1");}
+					addCString(main, ", ");
+					addUint(main, ((data::ClassType*)
+						(operator->dataType))->asyncId);
+					addChar(main, ')');
+					break;
+				}
+			case lexical::Types::newArray:
+				newArrayToJs(main,
+					(lexical::NewArrayExpression*)expression);
+				break;
+			case lexical::Types::deleteStatement:
+			case lexical::Types::deleteArray:
+				{
+					lexical::Type* operand =
+						((lexical::UnaryOperator*)expression)->operand;
+					if (operand == nullptr){
+						addCall(main, main->currentParseFunction->
+							parentClass, "__delete(_this)");
+					} else {
+						data::Type* dataType = (data::PointerType*)
+							(Lexical::dataTypeFromExpression(main, operand,
+								main->currentParseFunction->parentClass))->
+							dataType->withoutSpecifiers();
+						if (dataType->type == data::Types::classT){
+							unsigned char[] string;
+							if (expression->type ==
+								lexical::Types::deleteStatement){
+								string = "__delete(";
+							} else {
+								string = "__deleteArray(";
+							}
+							addCall(main,
+								(data::ClassType*)dataType, string);
+						} else {
+							addCString(main, "_dlfree(");
+						}
+						compileExpression(main, operand);
+						addChar(main, ')');
+					}
+				}
+				break;
+			case lexical::Types::multiplication:
+				addBinary(main, " * ", expression);
+				break;
+			case lexical::Types::division:
+				addBinary(main, " / ", expression);
+				break;
+			case lexical::Types::modulus:
+				addBinary(main, " % ", expression);
+				break;
+			case lexical::Types::addition:
+				addBinary(main, " + ", expression);
+				break;
+			case lexical::Types::substraction:
+				addBinary(main, " - ", expression);
+				break;
+			case lexical::Types::leftShift:
+				addBinary(main, " << ", expression);
+				break;
+			case lexical::Types::rightShift:
+				addBinary(main, " >> ", expression);
+				break;
+			case lexical::Types::lessThan:
+				addBinary(main, " < ", expression);
+				break;
+			case lexical::Types::greaterThan:
+				addBinary(main, " > ", expression);
+				break;
+			case lexical::Types::lessThanOrEqual:
+				addBinary(main, " <= ", expression);
+				break;
+			case lexical::Types::greaterThanOrEqual:
+				addBinary(main, " >= ", expression);
+				break;
+			case lexical::Types::equalTo:
+				addBinary(main, " === ", expression);
+				break;
+			case lexical::Types::notEqualTo:
+				addBinary(main, " !== ", expression);
+				break;
+			case lexical::Types::bitwiseAnd:
+				addBinary(main, " & ", expression);
+				break;
+			case lexical::Types::bitwiseExclusiveOr:
+				addBinary(main, " ^ ", expression);
+				break;
+			case lexical::Types::bitwiseInclusiveOr:
+				addBinary(main, " | ", expression);
+				break;
+			case lexical::Types::logicalAnd:
+				addBinary(main, " && ", expression);
+				break;
+			case lexical::Types::logicalOr:
+				addBinary(main, " || ", expression);
+				break;
+			case lexical::Types::assignment:
+				{
+					lexical::BinaryOperator* operator =
+						(lexical::BinaryOperator*)expression;
+					bool defer = true;
+					bool checkBool = true;
+					lexical::Type* operand1 = operator->operand1;
+					lexical::Type* operand2 = operator->operand2;
+					data::ClassType* classType =
+						main->currentParseFunction->parentClass;
+					data::Type* dataType =
+						Lexical::getWithoutSpecifiers(
+							main, operand1, classType);
+					lexical::Type* lexicalExpression =
+						main->lexicalExpression;
+					if (lexicalExpression != nullptr){
+						switch (lexicalExpression->type){
+							case lexical::Types::localVariable:
+							case lexical::Types::functionParameter:
+								{
+									lexical::Variable* variable =
+										(lexical::Variable*)lexicalExpression;
+									if (variable->offset == -1){
+										defer = false;
+										/* If not indirection. */
+										if (variable->dataType->
+											withoutSpecifiers() == dataType){
+											checkBool = false;
+										}
+									}
+									break;
+								}
+						}
+					}
+					if (defer &&
+						dataType->type != data::Types::classT){
+						defer = checkDefer(operand2);
+					}
+					if (defer){
+						main->compileMemory = false;
+						unsigned char[] string;
+						switch (dataType->type){
+							case data::Types::boolT:
+							case data::Types::ucharT:
+								string = "_setU8(";
+								break;
+							case data::Types::charT:
+								string = "_setI8(";
+								break;
+							case data::Types::ushortT:
+								string = "_setU16(";
+								break;
+							case data::Types::shortT:
+								string = "_setI16(";
+								break;
+							case data::Types::uintT:
+							case data::Types::pointerT:
+							case data::Types::arrayPointerT:
+							case data::Types::functionPointerT:
+								string = "_setU32(";
+								break;
+							case data::Types::classT:
+								string = "_setAsyncRef(";
+								break;
+							case data::Types::intT:
+								string = "_setI32(";
+								break;
+							case data::Types::floatT:
+								string = "_setF32(";
+								break;
+							case data::Types::doubleT:
+								string = "_setF64(";
+								break;
+						}
+						addCString(main, string);
+					} else if (checkBool){
+						if (dataType->type == data::Types::boolT){
+							addCString(main, "_memoryU8[");
+							main->compileMemory = false;
+						} else {checkBool = false;}
+					}
+					if (operand1->type !=
+						lexical::Types::variableDeclaration){
+						compileExpression(main, operand1);
+					} else {
+						variableDeclarationToJs(main,
+							(lexical::VariableDeclaration*)operand1, true);
+					}
+					if (defer){
+						addCString(main, ", ");
+					} else {
+						if (checkBool) {addChar(main, ']');}
+						addCString(main, " = ");
+					}
+					compileExpression(main, operand2);
+					if (defer) {addChar(main, ')');}
+				}
+				break;
+			case lexical::Types::block:
+				blockToJs(main, (lexical::BlockStatement*)expression);
+				main->compiledCode.addChar('\n');
+				break;
+			case lexical::Types::variableDeclaration:
+				variableDeclarationToJs(main,
+					(lexical::VariableDeclaration*)expression, false);
+				break;
+			case lexical::Types::constwriteStatement:
+				{
+					lexical::Type* operand =
+						((lexical::UnaryOperator*)expression)->operand;
+					switch (operand->type){
+						case lexical::Types::stringLiteral:
+							main->compiledCode.addString(
+								&((lexical::StringLiteral*)operand)->string);
+							break;
+						case lexical::Types::memberFunction:
+							addFunctionName(main,
+								(lexical::MemberFunction*)operand);
+							break;
+						default:
+							compileExpression(main, operand);
+							break;
+					}
+					break;
+				}
+			case lexical::Types::classMember:
+			case lexical::Types::memberPointer:
+				{
+					lexical::BinaryOperator* operator =
+						(lexical::BinaryOperator*)expression;
+					lexical::Type* operand2 = operator->operand2;
+					if (operand2->type ==
+						lexical::Types::dataMember){
+						lexical::DataMember* dataMember =
+							(lexical::DataMember*)operand2;
+						bool memoryEnd =
+							addMemoryStart(main, dataMember->dataType);
+						if (expression->type == lexical::Types::classMember){
+							main->compileMemory = false;
+						}
+						compileExpression(main, operator->operand1);
+						addCString(main, " + ");
+						addUintName(main,
+							dataMember->offset, &dataMember->name);
+						if (memoryEnd){
+							addMemoryEnd(main, dataMember->dataType);
+						}
+						main->compileMemory = true;
+					} else {
+						compileExpression(main, operand2);
+					}
+					break;
+				}
+			case lexical::Types::cast:
+				compileExpression(main, ((lexical::CastExpression*)
+					expression)->operand);
+				break;
+			case lexical::Types::returnStatement:
+				returnStatementToJs(main,
+					(lexical::UnaryOperator*)expression);
+				break;
+			case lexical::Types::ifStatement:
+				{
+					lexical::IfStatement* statement =
+						(lexical::IfStatement*)expression;
+					addCString(main, "if (");
+					compileExpression(main, statement->operand1);
+					addChar(main, ')');
+					blockToJs(main, (lexical::BlockStatement*)
+						(statement->operand2));
+					if (statement->operand3 != nullptr){
+						addCString(main, " else ");
+						compileExpression(main, statement->operand3);
+					} else {
+						main->compiledCode.addChar('\n');
+					}
+					break;
+				}
+			case lexical::Types::whileStatement:
+				addBinaryStack(main, "while (", expression);
+				break;
+			case lexical::Types::breakStatement:
+			case lexical::Types::continueStatement:
+				if (main->currentParseFunction->needStack()){
+					lexical::Type* savedExpression = expression;
+					bool needSetStackEnd = false;
+					unsigned int i = main->expressionStack->size;
+					lexical::Type*[] expressions =
+						(lexical::Type*[])(main->expressionStack->data);
+					while (i > 0){
+						expression = expressions[i-1];
+						switch (expression->type){
+							case lexical::Types::whileStatement:
+								break;
+							case lexical::Types::switchStatement:
+								if (savedExpression->type ==
+									lexical::Types::breakStatement) {break;}
+								i = i - 1;
+								continue;
+							case lexical::Types::block:
+								{
+									lexical::BlockStatement* block =
+										(lexical::BlockStatement*)expression;
+									blockEndCallDestructors(main, block);
+									if (!needSetStackEnd){
+										lexical::LocalVariable*[] variables =
+											(lexical::LocalVariable*[])
+												(block->variables.data);
+										unsigned int len =
+											block->variables.size;
+										unsigned int j = 0;
+										while (j < len){
+											if (variables[j]->offset != -1){
+												needSetStackEnd = true;
+												break;
+											}
+											j = j + 1;
+										}
+									}
+								}
+								/* No break. */
+							default:
+								i = i - 1;
+								continue;
+						}
+						break;
+					}
+					if (needSetStackEnd){
+						lexical::LocalVariable* lastStackVariable = nullptr;
+						i = i - 1;
+						while (i > 0){
+							expression = expressions[i-1];
+							if (expression->type == lexical::Types::block){
+								lexical::BlockStatement* block =
+									(lexical::BlockStatement*)expression;
+								lexical::LocalVariable*[] variables =
+									(lexical::LocalVariable*[])
+										(block->variables.data);
+								unsigned int len =
+									block->variables.size;
+								unsigned int j = 0;
+								while (j < len){
+									if (variables[j]->offset != -1){
+										lastStackVariable = variables[j];
+									}
+									j = j + 1;
+								}
+								if (lastStackVariable != nullptr) {break;}
+							}
+							i = i - 1;
+						}
+						unsigned int size;
+						if (lastStackVariable == nullptr){
+							size = 0;
+						} else {
+							size = lastStackVariable->offset +
+								getSizeOfDataType(
+									lastStackVariable->dataType);
+						}
+						addTabs(main);
+						main->compiledCode.addCString("_stackEnd = _sp + ");
+						main->compiledCode.addUint(size,
+							std::NumberBases::decimal);
+						main->compiledCode.addCString(";\n");
+						main->charsInLine = 0;
+					}
+					expression = savedExpression;
+				}
+				addTabs(main);
+				if (expression->type == lexical::Types::breakStatement){
+					addCString(main, "break");
+				} else {
+					addCString(main, "continue");
+				}
+				break;
+			case lexical::Types::switchStatement:
+				addBinaryStack(main, "switch (", expression);
+				break;
+			case lexical::Types::caseLabel:
+				addCString(main, "case ");
+				compileExpression(main, ((lexical::UnaryOperator*)
+					expression)->operand);
+				addChar(main, ':');
+				break;
+			case lexical::Types::defaultLabel:
+				addCString(main, "default:");
+				break;
+		}
+	}
+
+	static bool checkDefer(lexical::Type* expression){
+		switch (expression->type){
+			case lexical::Types::parenthesized:
+			case lexical::Types::indirection:
+			case lexical::Types::addressOf:
+			case lexical::Types::plus:
+			case lexical::Types::minus:
+			case lexical::Types::logicalNegation:
+			case lexical::Types::bitwiseComplement:
+				return checkDefer(((lexical::UnaryOperator*)
+					expression)->operand);
+			case lexical::Types::cast:
+				return checkDefer(((lexical::CastExpression*)
+					expression)->operand);
+			case lexical::Types::subscript:
+			case lexical::Types::multiplication:
+			case lexical::Types::division:
+			case lexical::Types::modulus:
+			case lexical::Types::addition:
+			case lexical::Types::substraction:
+			case lexical::Types::leftShift:
+			case lexical::Types::rightShift:
+			case lexical::Types::lessThan:
+			case lexical::Types::greaterThan:
+			case lexical::Types::lessThanOrEqual:
+			case lexical::Types::greaterThanOrEqual:
+			case lexical::Types::equalTo:
+			case lexical::Types::notEqualTo:
+			case lexical::Types::bitwiseAnd:
+			case lexical::Types::bitwiseExclusiveOr:
+			case lexical::Types::bitwiseInclusiveOr:
+			case lexical::Types::logicalAnd:
+			case lexical::Types::logicalOr:
+			case lexical::Types::classMember:
+			case lexical::Types::memberPointer:
+				{
+					lexical::BinaryOperator* operator =
+						(lexical::BinaryOperator*)expression;
+					return checkDefer(operator->operand1) ||
+						checkDefer(operator->operand2);
+				}
+			case lexical::Types::functionCall:
+			case lexical::Types::newExpression:
+			case lexical::Types::newAsync:
+			case lexical::Types::newArray:
+				return true;
+		}
+		return false;
+	}
+
+	static void getCall(std::DString* code,
+		data::ClassType* classType,
+		unsigned char[] string){
+		getClassPrefix(code, classType);
+		code->addCString(string);
+	}
+
+	static void addCall(Main* main,
+		data::ClassType* classType,
+		unsigned char[] string){
+		unsigned int len = getNsPrefixLength(
+				classType->parentNamespace) +
+			classType->name.length + std::CString::length(string, 0);
+		splitIfLongLine(main, len);
+		getCall(&main->compiledCode, classType, string);
+	}
+
+	static void functionEndCallDestructors(Main* main){
+		lexical::MemberFunction* compileFunction =
+			main->currentParseFunction;
+		lexical::FunctionParameter*[] parameters =
+			(lexical::FunctionParameter*[])
+				(compileFunction->parameters.data);
+		unsigned int len =
+			compileFunction->parameters.size;
+		unsigned int i = 0;
+		while (i < len){
+			lexical::FunctionParameter* parameter =
+				parameters[i];
+			if (parameter->offset != -1){
+				data::Type* dataType = parameter->dataType->
+					withoutSpecifiers();
+				if (dataType->type == data::Types::classT){
+					data::ClassType* classType =
+						(data::ClassType*)dataType;
+					if (classType->needCallDestructors()){
+						main->charsInLine = 1;
+						addCall(main, classType, "__callDestructors(");
+						addCString(main, "_sp + ");
+						addUintName(main,
+							parameter->offset, &parameter->name);
+						addCString(main, ");\n\t");
+					}
+				}
+			}
+			i = i + 1;
+		}
+	}
+
+	static void blockEndCallDestructors(Main* main,
+		lexical::BlockStatement* block){
+		lexical::LocalVariable*[] variables =
+			(lexical::LocalVariable*[])
+				(block->variables.data);
+		unsigned int len = block->variables.size;
+		unsigned int i = 0;
+		while (i < len){
+			lexical::LocalVariable* variable =
+				variables[i];
+			if (variable->callDestructors){
+				data::Type* dataType = variable->dataType->
+					withoutSpecifiers();
+				main->charsInLine = 0;
+				addTabs(main);
+				addCall(main, (data::ClassType*)dataType,
+					"__callDestructors(");
+				addCString(main, "_sp + ");
+				addUintName(main,
+					variable->offset, &variable->name);
+				addCString(main, ");\n");
+			}
+			i = i + 1;
+		}
+	}
+
+	static void returnStatementToJs(Main* main,
+		lexical::UnaryOperator* expression){
+		lexical::Type* operand = expression->operand;
+		if (main->currentParseFunction->needStack()){
+			if (operand != nullptr){
+				addTabs(main);
+				addCString(main, "var _returnValue = (");
+				compileExpression(main, operand);
+				addCString(main, ");\n");
+			}
+			unsigned int i = main->expressionStack->size;
+			lexical::Type*[] expressions =
+				(lexical::Type*[])(main->expressionStack->data);
+			while (i > 0){
+				lexical::Type* stackExpression = expressions[i-1];
+				if (stackExpression->type == lexical::Types::block){
+					blockEndCallDestructors(main,
+						(lexical::BlockStatement*)stackExpression);
+				}
+				i = i - 1;
+			}
+			functionEndCallDestructors(main);
+			main->charsInLine = 0;
+			addTabs(main);
+			std::DString* code = &main->compiledCode;
+			code->addCString("_stackEnd = _savedStackEnd;\n");
+			main->charsInLine = 0;
+			addTabs(main);
+			if (operand != nullptr){
+				code->addCString("return _returnValue");
+			} else {
+				code->addCString("return");
+			}
+		} else {
+			addTabs(main);
+			if (operand != nullptr){
+				addCString(main, "return ");
+				compileExpression(main, operand);
+			} else {
+				main->compiledCode.addCString("return");
+			}
+		}
+	}
+
+	static void variableDeclarationToJs(Main* main,
+		lexical::VariableDeclaration* expression, bool assignment){
+		lexical::LocalVariable* variable = expression->variable;
+		std::DString* code = &main->compiledCode;
+		data::Type* dataType = variable->dataType->
+			withoutSpecifiers();
+		int offset = variable->offset;
+		if (offset == -1){
+			addCString(main, "var /*");
+			Lexical::dataTypeToString(dataType, code);
+			addCString(main, "*/ ");
+			addString(main, &variable->name);
+		} else {
+			addCString(main, "/*var ");
+			Lexical::dataTypeToString(dataType, code);
+			addCString(main, " ");
+			addString(main, &variable->name);
+			addCString(main, "; //@_sp+");
+			addUint(main, offset);
+			addCString(main, "*/");
+			if (dataType->type != data::Types::classT){
+				if (assignment){
+					code->addChar('\n');
+					main->charsInLine = 0;
+					addTabs(main);
+					bool memoryEnd =
+						addMemoryStart(main, dataType);
+					addCString(main, "_sp + ");
+					addUint(main, offset);
+					if (memoryEnd){
+						addMemoryEnd(main, dataType);
+					}
+				}
+			} else {
+				data::ClassType* classType =
+					(data::ClassType*)dataType;
+				if (classType->needCallConstructors()){
+					code->addChar('\n');
+					main->charsInLine = 0;
+					addTabs(main);
+					addCall(main, classType,
+						"__callConstructors(");
+					addCString(main, "_sp + ");
+					addUintName(main,
+						variable->offset, &variable->name);
+					addChar(main, ')');
+					addCString(main, "");
+				}
+				if (classType->needCallDestructors()){
+					variable->callDestructors = true; 
+				}
+			}
+		}
+	}
+
+	static void blockToJs(Main* main,
+		lexical::BlockStatement* block){
+		std::PtrDArray* expressionStack =
+			main->expressionStack;
+		expressionStack->pushBack(block);
+		std::DString* code = &main->compiledCode;
+		code->addCString("{\n");
+		unsigned int* nestedBlocks = &main->nestedBlocks;
+		*nestedBlocks = *nestedBlocks + 1;
+		unsigned int savedStackEnd = main->stackEnd;
+		if (main->currentParseFunction->needStack()){
+			main->sortedVariables.clear();
+			lexical::LocalVariable*[] variables =
+				(lexical::LocalVariable*[])
+					(block->variables.data);
+			unsigned int len = block->variables.size;
+			unsigned int i = 0;
+			while (i < len){
+				lexical::LocalVariable* variable =
+					variables[i];
+				int offset = variable->offset;
+				/* Use the stack. */
+				if (offset != -1){
+					main->sortedVariables.pushBack(
+						variable);
+				}
+				i = i + 1;
+			}
+			unsigned int size = sortVariables(
+				savedStackEnd, &main->sortedVariables);
+			if (savedStackEnd != size){
+				addTabs(main);
+				code->addCString("_setStackEnd(_sp + ");
+				code->addUint(size, std::NumberBases::decimal);
+				code->addCString(");\n");
+				main->stackEnd = size;
+			}
+		}
+		main->charsInLine = 0;
+		lexical::Type*[] statements =
+			(lexical::Type*[])(block->statements.data);
+		unsigned int len = block->statements.size;
+		unsigned int i = 0;
+		while (i < len){
+			lexical::Type* statement = statements[i];
+			switch (statement->type){
+				case lexical::Types::block:
+					addTabs(main);
+					blockToJs(main, (lexical::BlockStatement*)statement);
+					code->addChar('\n');
+					break;
+				case lexical::Types::constwriteStatement:
+					compileExpression(main, statement);
+					break;
+				case lexical::Types::deleteStatement:
+					addTabs(main);
+					compileExpression(main, statement);
+					code->addCString(";\n");
+					if ((lexical::UnaryOperator*)
+						statement->operand != nullptr){
+						break;
+					} else {
+						statement = main->returnStatement;
+						/* No break. */
+					}
+				case lexical::Types::returnStatement:
+				case lexical::Types::breakStatement:
+				case lexical::Types::continueStatement:
+					compileExpression(main, statement);
+					code->addCString(";\n");
+					if (expressionStack->size > 1 &&
+						((lexical::Type*)(expressionStack->data[
+							expressionStack->size - 2]))->type ==
+							lexical::Types::switchStatement){
+						/* Skip until case or default. */
+						i = i + 1;
+						while (i < len){
+							statement = statements[i];
+							switch (statement->type){
+								case lexical::Types::caseLabel:
+								case lexical::Types::defaultLabel:
+									break;
+								default:
+									i = i + 1;
+									continue;
+							}
+							break;
+						}
+						if (i < len){
+							main->charsInLine = 0;
+							continue;
+						}
+					}
+					/* No need to compile the rest of the block, so just return. */
+					*nestedBlocks = *nestedBlocks - 1;
+					addTabs(main);
+					code->addChar('}');
+					expressionStack->popBack();
+					return;
+				case lexical::Types::ifStatement:
+				case lexical::Types::whileStatement:
+				case lexical::Types::switchStatement:
+					addTabs(main);
+					compileExpression(main, statement);
+					break;
+				case lexical::Types::caseLabel:
+				case lexical::Types::defaultLabel:
+					*nestedBlocks = *nestedBlocks - 1;
+					addTabs(main);
+					*nestedBlocks = *nestedBlocks + 1;
+					compileExpression(main, statement);
+					code->addChar('\n');
+					break;
+				default:
+					addTabs(main);
+					compileExpression(main, statement);
+					code->addCString(";\n");
+					break;
+			}
+			main->charsInLine = 0;
+			i = i + 1;
+		}
+		/* savedStackEnd !== stackEnd is not enough as a class can 
+				have zero size but still have a constructor. */
+		blockEndCallDestructors(main, block);
+		if (savedStackEnd != main->stackEnd){
+			addTabs(main);
+			code->addCString("_stackEnd = _sp + ");
+			code->addUint(savedStackEnd, std::NumberBases::decimal);
+			code->addCString(";\n");
+			main->stackEnd = savedStackEnd;
+		}
+		*nestedBlocks = *nestedBlocks - 1;
+		addTabs(main);
+		code->addChar('}');
+		expressionStack->popBack();
+	}
+
+	static void functionCallToJs(Main* main,
+		lexical::FunctionCall* callExpression){
+		bool first = true;
+		lexical::Type* expression =
+			callExpression->operand;
+		lexical::MemberFunction* compileFunction;
+		while (true){
+			switch (expression->type){
+				case lexical::Types::parenthesized:
+					expression = ((lexical::UnaryOperator*)
+						expression)->operand;
+					continue;
+				case lexical::Types::memberFunction:
+					compileFunction =
+						(lexical::MemberFunction*)expression;
+					addFunctionName(main, compileFunction);
+					if (compileFunction->isAsync()){
+						addCString(main, "__async");
+					}
+					addChar(main, '(');
+					if (!compileFunction->isStatic()){
+						addCString(main, "_this");
+						first = false;
+					}
+					break;
+				case lexical::Types::classMember:
+				case lexical::Types::memberPointer:
+					{
+						lexical::BinaryOperator* operator =
+							(lexical::BinaryOperator*)expression;
+						if (operator->operand2->type ==
+							lexical::Types::memberFunction){
+							compileFunction = (lexical::MemberFunction*)
+								(operator->operand2);
+							addFunctionName(main, compileFunction);
+							bool isAsync = compileFunction->isAsync();
+							if (isAsync){
+								addCString(main, "__async");
+							}
+							addChar(main, '(');
+							if (!compileFunction->isStatic()){
+								if (expression->type ==
+									lexical::Types::classMember && !isAsync){
+									main->compileMemory = false;
+								}
+								compileExpression(main, operator->operand1);
+								first = false;
+							}
+						} else {
+							addCString(main, "_getFunctionById(");
+							compileExpression(main, expression);
+							addCString(main, ")(");
+						}
+						break;
+					}
+				case lexical::Types::localVariable:
+				case lexical::Types::functionParameter:
+				case lexical::Types::dataMember:
+				case lexical::Types::cast:
+					addCString(main, "_getFunctionById(");
+					compileExpression(main, expression);
+					addCString(main, ")(");
+					break;
+			}
+			break;
+		}
+		lexical::Type*[] arguments =
+			(lexical::Type*[])(callExpression->arguments.data);
+		unsigned int len = callExpression->arguments.size;
+		unsigned int i = 0;
+		while (i < len){
+			lexical::Type* argument = arguments[i];
+			if (first){
+				first = false;
+			} else {
+				addCString(main, ", ");
+			}
+			compileExpression(main, argument);
+			i = i + 1;
+		}
+		addChar(main, ')');
+	}
+
+	static void newExpressionToJs(Main* main,
+		data::Type* dataType){
+		switch (dataType->type){
+			case data::Types::boolT:
+			case data::Types::ucharT:
+			case data::Types::charT:
+				addCString(main, "_dlmalloc(1)");
+				break;
+			case data::Types::ushortT:
+			case data::Types::shortT:
+				addCString(main, "_dlmalloc(2)");
+				break;
+			case data::Types::uintT:
+			case data::Types::intT:
+			case data::Types::floatT:
+			case data::Types::pointerT:
+			case data::Types::arrayPointerT:
+			case data::Types::functionPointerT:
+				addCString(main, "_dlmalloc(4)");
+				break;
+			case data::Types::doubleT:
+				addCString(main, "_dlmalloc(8)");
+				break;
+			case data::Types::classT:
+				{
+					data::ClassType* classType =
+						(data::ClassType*)dataType;
+					if (classType->isAsync()){
+						addCString(main, "_newAsyncObject(0, -1, ");
+						addUint(main, classType->asyncId);
+						addChar(main, ')');
+					} else {
+						addCall(main, classType, "__new()");
+					}
+				}
+				break;
+			case data::Types::specifiersT:
+				newExpressionToJs(main,
+					(data::Specifiers*)dataType->dataType);
+				break;
+		}
+	}
+
+	static void newArrayToJs(Main* main,
+		lexical::NewArrayExpression* expression){
+		data::Type* dataType = expression->dataType;
+		while (true){
+			switch (dataType->type){
+				case data::Types::boolT:
+				case data::Types::ucharT:
+				case data::Types::charT:
+					addCString(main, "_dlmalloc(");
+					compileExpression(main, expression->operand);
+					break;
+				case data::Types::ushortT:
+				case data::Types::shortT:
+					addCString(main, "_dlmalloc(2 * (");
+					compileExpression(main, expression->operand);
+					addChar(main, ')');
+					break;
+				case data::Types::uintT:
+				case data::Types::intT:
+				case data::Types::floatT:
+				case data::Types::pointerT:
+				case data::Types::arrayPointerT:
+				case data::Types::functionPointerT:
+					addCString(main, "_dlmalloc(4 * (");
+					compileExpression(main, expression->operand);
+					addChar(main, ')');
+					break;
+				case data::Types::doubleT:
+					addCString(main, "_dlmalloc(8 * (");
+					compileExpression(main, expression->operand);
+					addChar(main, ')');
+					break;
+				case data::Types::classT:
+					addCall(main,
+						(data::ClassType*)dataType, "__newArray(");
+					compileExpression(main, expression->operand);
+					break;
+				case data::Types::specifiersT:
+					dataType = (data::Specifiers*)
+						dataType->dataType;
+					continue;
+			}
+			break;
+		}
+		addChar(main, ')');
+	}
+
+}

@@ -1,0 +1,1584 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Malloc {
+
+	/* Adopted from Doug Lea's public domain dlmalloc 2.8.6 */
+
+	unsigned char constexpr sizeTSize = 4;
+	unsigned char constexpr sizeTBitsize =
+		sizeTSize << 3; /* 32 */
+	unsigned int constexpr maxSizeT =
+		/* In dlmalloc it would be (~0)>>>0, but to
+			optimize for browsers it is 1 bit less. */
+		0x7FFFFFFF;
+	unsigned char constexpr sizeTZero = 0;
+	unsigned char constexpr sizeTOne = 1;
+	unsigned char constexpr sizeTTwo = 2;
+	unsigned char constexpr sizeTFour = 4;
+	unsigned char constexpr twoSizeTSizes =
+		sizeTSize << 1; /* 8 */
+	unsigned char constexpr fourSizeTSizes =
+		sizeTSize << 2; /* 16 */
+	unsigned char constexpr sixSizeTSizes =
+		fourSizeTSizes + twoSizeTSizes; /* 24 */
+	unsigned int constexpr halfMaxSizeT =
+		maxSizeT >> 1;
+
+	unsigned char constexpr mallocAlignment =
+		2 * sizeTSize; /* 8 */
+	unsigned char constexpr chunkAlignMask =
+		mallocAlignment - sizeTOne; /* 7 */
+	unsigned char constexpr chunkOverhead =
+		sizeTSize; /* 4 */
+
+	unsigned char constexpr treebinShift = 8;
+	unsigned int constexpr minLargeSize =
+		sizeTOne << treebinShift; /* 256 */
+	unsigned int constexpr maxSmallSize =
+		minLargeSize - sizeTOne; /* 255 */
+	unsigned int constexpr maxSmallRequest = 
+		maxSmallSize - chunkAlignMask -
+			chunkOverhead; /* 244 */
+
+	unsigned char constexpr mchunkSize =
+		sizeTSize * 4; /* 16 */
+	unsigned char constexpr minChunkSize =
+		/*todo
+		(*/mchunkSize /*+ chunkAlignMask) &
+			~chunkAlignMask*/; /* 16 */
+	unsigned char constexpr minRequest =
+		minChunkSize - chunkOverhead - sizeTOne; /* 11 */
+	unsigned int constexpr maxRequest =
+		maxSizeT - minChunkSize * 4 - 1;
+
+	unsigned char constexpr nsmallbins = 32;
+	unsigned char constexpr ntreebins = 32;
+
+	unsigned char constexpr smallbinShift = 3;
+	unsigned char constexpr smallbinWidth =
+		sizeTOne << smallbinShift; /* 8 */
+
+	unsigned char constexpr pinuseBit =
+		sizeTOne;
+	unsigned char constexpr cinuseBit =
+		sizeTTwo;
+	unsigned char constexpr flag4Bit =
+		sizeTFour;
+	unsigned char constexpr inuseBits =
+		pinuseBit | cinuseBit;
+	unsigned char constexpr flagBits =
+		pinuseBit | cinuseBit | flag4Bit;
+	unsigned int constexpr defaultGranuality =
+		/*64 * */1024;
+
+	unsigned char constexpr mallocChunkPrevFoot = 0;
+	unsigned char constexpr mallocChunkHead = 4;
+	unsigned char constexpr mallocChunkFd = 8;
+	unsigned char constexpr mallocChunkBk = 12;
+
+	unsigned char constexpr mallocTreeChunkPrevFoot = 0;
+	unsigned char constexpr mallocTreeChunkHead = 4;
+	unsigned char constexpr mallocTreeChunkFd = 8;
+	unsigned char constexpr mallocTreeChunkBk = 12;
+	unsigned char constexpr mallocTreeChunkChild0 = 16;
+	unsigned char constexpr mallocTreeChunkChild1 = 20;
+	unsigned char constexpr mallocTreeChunkParent = 24;
+	unsigned char constexpr mallocTreeChunkIndex = 28;
+
+	static unsigned int dlToCode(std::DString* code,
+		unsigned int dlGlobalsStart){
+		unsigned char topFootSize; /* 16 */
+		if ((twoSizeTSizes & chunkAlignMask) == 0){
+			topFootSize = minChunkSize;
+		} else {
+			topFootSize =
+				((mallocAlignment - (twoSizeTSizes &
+					chunkAlignMask)) & chunkAlignMask) +
+						minChunkSize;
+		}
+
+		unsigned char sysAllocPadding =
+			topFootSize + mallocAlignment; /* 24 */
+
+		unsigned int dlGlobalsSmallbins =
+			((dlGlobalsStart + 3/*(4-1)*/) & ~3/*(4-1)*/);
+		/* smallbins are handled as if they were chunks,
+			but only the fd and bk pointers allocated */
+		unsigned int dlGlobalsTreebins =
+			dlGlobalsSmallbins + (nsmallbins + 1) * 8/*2*4*/;
+		unsigned int dlGlobalsEnd =
+			dlGlobalsTreebins + ntreebins * 4;
+		code->addCString(
+			"\n/* Start of dynamic memory alloc and free implementation */\n"
+			"/* Adopted from Doug Lea's public domain dlmalloc 2.8.6 */\n"
+			"var _gm = {\n"
+				/* bit map for small bins */
+				/* unsigned int */ "	smallmap: 0, \n"
+				/* bit map for treebins */
+				/* unsigned int */ "	treemap: 0, \n"
+				/* size of the designated victim chunk */
+				/* size_t */ "	dvsize: 0, \n"
+				/* size of the top chunk */
+				/* size_t */ "	topsize: 0, \n"
+				/* start of malloc memory region */
+				/* char* */ "	least_addr: 0, \n"
+				/* designated victim chunk */
+				/* malloc_chunk* */ "	dv: 0, \n"
+				/* top chunk */
+				/* malloc_chunk* */ "	top: 0, \n"
+			"};\n"
+	
+			"function _pad_request(req){\n"
+			"	return ((req + ");
+					code->addUint(chunkOverhead + chunkAlignMask,
+						std::NumberBases::decimal);
+					code->addCString(") & ~");
+					code->addUint(chunkAlignMask,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"}\n"
+	
+			"function _small_index(s){\n"
+			"	return (s >> ");
+					code->addUint(smallbinShift,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"}\n"
+	
+			"function _idx2bit(i){\n"
+			"	return (1 << i);\n"
+			"}\n"
+	
+			"function _clear_smallmap(M, i){\n"
+			"	M.smallmap &= ~_idx2bit(i);\n"
+			"}\n"
+	
+			"function _ok_address(M, a){\n"
+			"	return (a >= M.least_addr);\n"
+			"}\n"
+	
+			"function _unlink_first_small_chunk("
+				/* gm */ "M, "
+				/* malloc_chunk* */ "B, "
+				/* malloc_chunk* */ "P, "
+				/* unsigned int */ "I){\n"
+			"	var " /* malloc_chunk* */ "F = _memoryU32[(P+");
+					code->addUint(mallocChunkFd,
+						std::NumberBases::decimal);
+					code->addCString(")/4];\n"
+			"	if (B === F){\n"
+			"		_clear_smallmap(M, I);\n"
+			"	} else if (_ok_address(M, F) &&\n"
+			"		_memoryU32[(F+");
+						code->addUint(mallocChunkBk,
+							std::NumberBases::decimal);
+						code->addCString(")/4] === P){\n"
+			"		_memoryU32[(F+");
+						code->addUint(mallocChunkBk,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = B;\n"
+			"		_memoryU32[(B+");
+						code->addUint(mallocChunkFd,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = F;\n"
+			"	} else {\n"
+			"		_CORRUPTION_ERROR_ACTION(M);\n"
+			"	}\n"
+			"}\n"
+	
+			"function _small_index2size(i){\n"
+			"	return ((i) << ");
+					code->addUint(smallbinShift,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"}\n"
+	
+			"function _set_inuse_and_pinuse(M,p,s){\n"
+			"	_memoryU32[(p+");
+					code->addUint(mallocChunkHead,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = (s|");
+					code->addUint(pinuseBit | cinuseBit,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"	_memoryU32[(p+s+");
+					code->addUint(mallocChunkHead,
+						std::NumberBases::decimal);
+					code->addCString(")/4] |= ");
+					code->addUint(pinuseBit,
+						std::NumberBases::decimal);
+					code->addCString(";\n"
+			"}\n"
+	
+			"function _smallbin_at(i){\n"
+			"	return ");
+					code->addUint(dlGlobalsSmallbins,
+						std::NumberBases::decimal);
+					code->addCString(" + ((i << 1) * 4);\n"
+			"}\n"
+	
+			"function _least_bit(x){\n"
+			"	return ((x) & -(x));\n"
+			"}\n"
+	
+			"function _left_bits(x){\n"
+			"	return ((x<<1) | -(x<<1))>>>0;\n"
+			"}\n"
+	
+			"function _compute_bit2idx(X){\n"
+				/* todo: __builtin_ctz in js? */
+			"	var " /* unsigned int */ "Y = X - 1;\n"
+			"	var " /* unsigned int */ "K = Y >> 12"/*(16-4)*/" & 16;\n"
+			"	var " /* unsigned int */ "N = K; Y >>= K;\n"
+			"	N += K = Y >> 5"/*(8-3)*/" & 8; Y >>= K;\n"
+			"	N += K = Y >> 2"/*(4-2)*/" & 4; Y >>= K;\n"
+			"	N += K = Y >> 1"/*(2-1)*/" & 2; Y >>= K;\n"
+			"	N += K = Y >> 1"/*(1-0)*/" & 1; Y >>= K;\n"
+			"	return (N + Y);\n"
+			"}\n"
+	
+			"function _set_size_and_pinuse_of_inuse_chunk(M, p, s){\n"
+			"	_memoryU32[(p+");
+					code->addUint(mallocChunkHead,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = (s|");
+					code->addUint(pinuseBit | cinuseBit,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"}\n"
+	
+			"function _set_size_and_pinuse_of_free_chunk(p, s){\n"
+			"	_memoryU32[(p+");
+					code->addUint(mallocChunkHead,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = (s|");
+					code->addUint(pinuseBit,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"	_set_foot(p, s);\n"
+			"}\n"
+	
+			"function _set_foot(p, s){\n"
+			"	_memoryU32[(p+s+");
+					code->addUint(mallocChunkPrevFoot,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = s;\n"
+			"}\n"
+	
+			"function _replace_dv(M, P, S){\n"
+			"	var " /* size_t */ "DVS = M.dvsize;\n"
+			"	if (DVS !== 0){\n"
+			"		var " /* malloc_chunk* */ "DV = M.dv;\n"
+			"		_insert_small_chunk(M, DV, DVS);\n"
+			"	}\n"
+			"	M.dvsize = S;\n"
+			"	M.dv = P;\n"
+			"}\n"
+	
+			"function _insert_small_chunk(M, P, S){\n"
+			"	var " /* unsigned int */ "I = _small_index(S);\n"
+			"	var " /* malloc_chunk* */ "B = _smallbin_at(I);\n"
+			"	var " /* malloc_chunk* */ "F = B;\n"
+			"	if (!_smallmap_is_marked(M, I)){\n"
+			"		_mark_smallmap(M, I);\n"
+			"	} else if (_ok_address(M, _memoryU32[(B+");
+					code->addUint(mallocChunkFd,
+						std::NumberBases::decimal);
+					code->addCString(")/4])){\n"
+			"		F = _memoryU32[(B+");
+						code->addUint(mallocChunkFd,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"	} else {\n"
+			"		_CORRUPTION_ERROR_ACTION(M);\n"
+			"	}\n"
+			"	_memoryU32[(B+");
+					code->addUint(mallocChunkFd,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = P;\n"
+			"	_memoryU32[(F+");
+					code->addUint(mallocChunkBk,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = P;\n"
+			"	_memoryU32[(P+");
+					code->addUint(mallocChunkFd,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = F;\n"
+			"	_memoryU32[(P+");
+					code->addUint(mallocChunkBk,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = B;\n"
+			"}\n"
+	
+			"function _smallmap_is_marked(M, i){\n"
+			"	return (M.smallmap & _idx2bit(i));\n"
+			"}\n"
+	
+			"function _mark_smallmap(M, i){\n"
+			"	M.smallmap |= _idx2bit(i);\n"
+			"}\n"
+	
+			"function _treebin_at(i){\n"
+			"	return ");
+					code->addUint(dlGlobalsTreebins,
+						std::NumberBases::decimal);
+					code->addCString(" + (i * 4);\n"
+			"}\n"
+	
+			"function _chunksize(p){\n"
+			"	return (_memoryU32[(p+");
+					code->addUint(mallocChunkHead,
+						std::NumberBases::decimal);
+					code->addCString(")/4]) & ~(");
+					code->addUint(flagBits,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"}\n"
+	
+			"function _leftmost_child(t){\n"
+			"	if (_memoryU32[(t+");
+					code->addUint(mallocTreeChunkChild0,
+						std::NumberBases::decimal);
+					code->addCString(")/4] !== 0){\n"
+			"		return _memoryU32[(t+");
+						code->addUint(mallocTreeChunkChild0,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"	} else {\n"
+			"		return _memoryU32[(t+");
+						code->addUint(mallocTreeChunkChild1,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"	}\n"
+			"}\n"
+	
+			"function _clear_treemap(M, i){\n"
+			"	M.treemap &= ~_idx2bit(i);\n"
+			"}\n"
+	
+			"function _unlink_large_chunk(M, X){\n"
+			"	var " /* malloc_tree_chunk* */ "XP = _memoryU32[(X+");
+					code->addUint(mallocTreeChunkParent,
+						std::NumberBases::decimal);
+					code->addCString(")/4];\n"
+			"	var " /* malloc_tree_chunk* */ "R;\n"
+			"	if (_memoryU32[(X+");
+					code->addUint(mallocTreeChunkBk,
+						std::NumberBases::decimal);
+					code->addCString(")/4] !== X){\n"
+			"		var " /* malloc_tree_chunk* */ "F = _memoryU32[(X+");
+						code->addUint(mallocTreeChunkFd,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"		R = _memoryU32[(X+");
+						code->addUint(mallocTreeChunkBk,
+							std::NumberBases::decimal);
+						code->addCString(")/4];\n"
+			"		if (_ok_address(M, F) &&\n"
+			"			_memoryU32[(F+");
+							code->addUint(mallocTreeChunkBk,
+								std::NumberBases::decimal);
+							code->addCString(")/4] === X &&\n"
+			"			_memoryU32[(R+");
+							code->addUint(mallocTreeChunkFd,
+								std::NumberBases::decimal);
+							code->addCString(")/4] === X){\n"
+			"			_memoryU32[(F+");
+							code->addUint(mallocTreeChunkBk,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = R;\n"
+			"			_memoryU32[(R+");
+							code->addUint(mallocTreeChunkFd,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = F;\n"
+			"		} else {\n"
+			"			_CORRUPTION_ERROR_ACTION(M);\n"
+			"		}\n"
+			"	} else {\n"
+			"		var " /* malloc_tree_chunk** */ "RP;\n"
+			"		if (((R = _memoryU32[(RP = (X+");
+						code->addUint(mallocTreeChunkChild1,
+							std::NumberBases::decimal);
+						code->addCString("))/4]) !== 0) ||\n"
+			"			((R = _memoryU32[(RP = (X+");
+							code->addUint(mallocTreeChunkChild0,
+								std::NumberBases::decimal);
+							code->addCString("))/4]) !== 0)){\n"
+			"			var " /* malloc_tree_chunk** */ "CP;\n"
+			"			while ((_memoryU32[(CP = (R+");
+								code->addUint(mallocTreeChunkChild1,
+									std::NumberBases::decimal);
+								code->addCString("))/4] !== 0) ||\n"
+			"				(_memoryU32[(CP = (R+");
+								code->addUint(mallocTreeChunkChild0,
+									std::NumberBases::decimal);
+								code->addCString("))/4] !== 0)){\n"
+			"				R = _memoryU32[(RP = CP)/4];\n"
+			"			}\n"
+			"			if (_ok_address(M, RP)){\n"
+			"				_memoryU32[RP/4] = 0;\n"
+			"			} else {\n"
+			"				_CORRUPTION_ERROR_ACTION(M);\n"
+			"			}\n"
+			"		}\n"
+			"	}\n"
+			"	if (XP !== 0){\n"
+			"		var " /* malloc_tree_chunk** */ "H = _treebin_at(_memoryU32[(X+");
+						code->addUint(mallocTreeChunkIndex,
+							std::NumberBases::decimal);
+						code->addCString(")/4]);\n"
+			"		if (X === _memoryU32[H/4]){\n"
+			"			if ((_memoryU32[H/4] = R) === 0)\n"
+			"				_clear_treemap(M, _memoryU32[(X+");
+								code->addUint(mallocTreeChunkIndex,
+									std::NumberBases::decimal);
+								code->addCString(")/4]);\n"
+			"		} else if (_ok_address(M, XP)){\n"
+			"			if (_memoryU32[(XP+");
+							code->addUint(mallocTreeChunkChild0,
+								std::NumberBases::decimal);
+							code->addCString(")/4] === X){\n"
+			"				_memoryU32[(XP+");
+								code->addUint(mallocTreeChunkChild0,
+									std::NumberBases::decimal);
+								code->addCString(")/4] = R;\n"
+			"			} else {\n"
+			"				_memoryU32[(XP+");
+								code->addUint(mallocTreeChunkChild1,
+									std::NumberBases::decimal);
+								code->addCString(")/4] = R;\n"
+			"			}\n"
+			"		} else _CORRUPTION_ERROR_ACTION(M);\n"
+			"		if (R !== 0){\n"
+			"			if (_ok_address(M, R)){\n"
+			"				var " /* malloc_tree_chunk* */ "C0, C1;\n"
+			"				_memoryU32[(R+");
+								code->addUint(mallocTreeChunkParent,
+									std::NumberBases::decimal);
+								code->addCString(")/4] = XP;\n"
+			"				if ((C0 = _memoryU32[(X+");
+								code->addUint(mallocTreeChunkChild0,
+									std::NumberBases::decimal);
+								code->addCString(")/4]) !== 0){\n"
+			"					if (_ok_address(M, C0)){\n"
+			"						_memoryU32[(R+");
+										code->addUint(mallocTreeChunkChild0,
+											std::NumberBases::decimal);
+										code->addCString(")/4] = C0;\n"
+			"						_memoryU32[(C0+");
+										code->addUint(mallocTreeChunkParent,
+											std::NumberBases::decimal);
+										code->addCString(")/4] = R;\n"
+			"					} else _CORRUPTION_ERROR_ACTION(M);\n"
+			"				}\n"
+			"				if ((C1 = _memoryU32[(X+");
+								code->addUint(mallocTreeChunkChild1,
+									std::NumberBases::decimal);
+								code->addCString(")/4]) !== 0){\n"
+			"					if (_ok_address(M, C1)){\n"
+			"						_memoryU32[(R+");
+										code->addUint(mallocTreeChunkChild1,
+											std::NumberBases::decimal);
+										code->addCString(")/4] = C1;\n"
+			"						_memoryU32[(C1+");
+										code->addUint(mallocTreeChunkParent,
+											std::NumberBases::decimal);
+										code->addCString(")/4] = R;\n"
+			"					} else _CORRUPTION_ERROR_ACTION(M);\n"
+			"				}\n"
+			"			} else _CORRUPTION_ERROR_ACTION(M);\n"
+			"		}\n"
+			"	}\n"
+			"}\n"
+	
+			"function _tmalloc_small(m, nb){\n"
+			"	var " /* malloc_tree_chunk* */ "t, v;\n"
+			"	var " /* size_t */ "rsize;\n"
+			"	var " /* unsigned int */ "i;\n"
+			"	var " /* unsigned int */ "leastbit = _least_bit(m.treemap);\n"
+			"	i = _compute_bit2idx(leastbit);\n"
+			"	v = t = _memoryU32[(_treebin_at(i))/4];\n"
+			"	rsize = _chunksize(t) - nb;\n"
+			"	while ((t = _leftmost_child(t)) !== 0){\n"
+			"		var " /* size_t */ "trem = _chunksize(t) - nb;\n"
+			"		if (trem < rsize){\n"
+			"			rsize = trem;\n"
+			"			v = t;\n"
+			"		}\n"
+			"	}\n"
+			"	if (_ok_address(m, v)){\n"
+			"		var " /* malloc_chunk* */ "r = v + nb;\n"
+			"		if (v < r){\n"
+			"			_unlink_large_chunk(m, v);\n"
+			"			if (rsize < ");
+							code->addUint(minChunkSize,
+								std::NumberBases::decimal);
+							code->addCString("){\n"
+			"				_set_inuse_and_pinuse(m, v, (rsize + nb));\n"
+			"			} else {\n"
+			"				_set_size_and_pinuse_of_inuse_chunk(m, v, nb);\n"
+			"				_set_size_and_pinuse_of_free_chunk(r, rsize);\n"
+			"				_replace_dv(m, r, rsize);\n"
+			"			}\n"
+			"			return v + ");
+							code->addUint(twoSizeTSizes,
+								std::NumberBases::decimal);
+							code->addCString(";\n"
+			"		}\n"
+			"	}\n"
+			"	_CORRUPTION_ERROR_ACTION(m);\n"
+			"	return 0;\n"
+			"}\n"
+	
+			"function _compute_tree_index(S){\n"
+			/* todo: __builtin_ctz in js? */
+			"	var I;\n"
+			"	var " /* size_t */ "X = S >> ");
+					code->addUint(treebinShift,
+						std::NumberBases::decimal);
+					code->addCString(";\n"
+			"	if (X === 0) I = 0;\n"
+			"	else if (X > 0xFFFF) I = ");
+					code->addUint(ntreebins - 1,
+						std::NumberBases::decimal);
+					code->addCString(";\n"
+			"	else {\n"
+			"		var " /* unsigned int */ "Y = X>>>0;\n"
+			"		var " /* unsigned int */ "N = ((Y - 0x100) >> 16) & 8;\n"
+			"		var " /* unsigned int */ "K = (((Y <<= N) - 0x1000) >> 16) & 4;\n"
+			"		N += K;\n"
+			"		N += K = (((Y <<= K) - 0x4000) >> 16) & 2;\n"
+			"		K = 14 - N + ((Y <<= K) >> 15);\n"
+			"		I = (K << 1) + ((S >> (K + ");
+						code->addUint(treebinShift - 1,
+							std::NumberBases::decimal);
+						code->addCString(") & 1));\n"
+			"	}\n"
+			"	return I;\n"
+			"}\n"
+	
+			"function _leftshift_for_tree_index(i){\n"
+			"	return ((i === ");
+					code->addUint(ntreebins - 1,
+						std::NumberBases::decimal);
+					code->addCString(") ? 0 : (");
+					code->addUint(sizeTBitsize - sizeTOne,
+						std::NumberBases::decimal);
+					code->addCString(" - (((i) >> 1) + ");
+					code->addUint(treebinShift - 2,
+						std::NumberBases::decimal);
+					code->addCString(")));\n"
+			"}\n"
+	
+			"function _is_small(s){\n"
+			"	return (((s) >> ");
+					code->addUint(smallbinShift,
+						std::NumberBases::decimal);
+					code->addCString(") < ");
+					code->addUint(nsmallbins,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"}\n"
+	
+			"function _treemap_is_marked(M,i){\n" 
+			"	return (M.treemap & _idx2bit(i));\n"
+			"}\n"
+	
+			"function _mark_treemap(M,i){\n"
+			"	(M.treemap |= _idx2bit(i));\n"
+			"}\n"
+	
+			"function _insert_large_chunk(M, X, S){\n"
+			"	var " /* malloc_tree_chunk** */ "H;\n"
+			"	var " /* unsigned int */ "I;\n"
+			"	I = _compute_tree_index(S);\n"
+			"	H = _treebin_at(I);\n"
+			"	_memoryU32[(X+");
+					code->addUint(mallocTreeChunkIndex,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = I;\n"
+			"	_memoryU32[(X+");
+					code->addUint(mallocTreeChunkChild0,
+						std::NumberBases::decimal);
+					code->addCString(")/4] =\n"
+			"		_memoryU32[(X+");
+						code->addUint(mallocTreeChunkChild1,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = 0;\n"
+			"	if (!_treemap_is_marked(M, I)){\n"
+			"		_mark_treemap(M, I);\n"
+			"		_memoryU32[H/4] = X;\n"
+			"		_memoryU32[(X+");
+						code->addUint(mallocTreeChunkParent,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = H;\n"
+			"		_memoryU32[(X+");
+						code->addUint(mallocTreeChunkFd,
+							std::NumberBases::decimal);
+						code->addCString(")/4] =\n"
+			"			_memoryU32[(X+");
+							code->addUint(mallocTreeChunkBk,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = X;\n"
+			"	} else {\n"
+			"		var " /* malloc_tree_chunk* */ "T = _memoryU32[H/4];\n"
+			"		var " /* size_t */ "K = S << _leftshift_for_tree_index(I);\n"
+			"		for (;;){\n"
+			"			if (_chunksize(T) !== S){\n"
+			"				var " /* malloc_tree_chunk** */ "C = (T + ");
+					code->addUint(mallocTreeChunkChild0,
+						std::NumberBases::decimal);
+					code->addCString(" +\n"
+			"						(((K >> ");
+											code->addUint(sizeTBitsize - sizeTOne,
+												std::NumberBases::decimal);
+											code->addCString(") & 1) * 4));\n"
+			"				K <<= 1;\n"
+			"				if (_memoryU32[C/4] !== 0){\n"
+			"					T = _memoryU32[C/4];\n"
+			"				} else if (_ok_address(M, C)){\n"
+			"					_memoryU32[C/4] = X;\n"
+			"					_memoryU32[(X+");
+									code->addUint(mallocTreeChunkParent,
+										std::NumberBases::decimal);
+									code->addCString(")/4] = T;\n"
+			"					_memoryU32[(X+");
+									code->addUint(mallocTreeChunkFd,
+										std::NumberBases::decimal);
+									code->addCString(")/4] =\n"
+			"						_memoryU32[(X+");
+										code->addUint(mallocTreeChunkBk,
+											std::NumberBases::decimal);
+										code->addCString(")/4] = X;\n"
+			"					break;\n"
+			"				} else {\n"
+			"					_CORRUPTION_ERROR_ACTION(M);\n"
+			"					break;\n"
+			"				}\n"
+			"			} else {\n"
+			"				var " /* malloc_tree_chunk* */ "F = _memoryU32[(T+");
+					code->addUint(mallocTreeChunkFd,
+						std::NumberBases::decimal);
+					code->addCString(")/4];\n"
+			"				if (_ok_address(M, T) && _ok_address(M, F)){\n"
+			"					_memoryU32[(T+");
+									code->addUint(mallocTreeChunkFd,
+										std::NumberBases::decimal);
+									code->addCString(")/4] =\n"
+			"						_memoryU32[(F+");
+										code->addUint(mallocTreeChunkBk,
+											std::NumberBases::decimal);
+										code->addCString(")/4] = X;\n"
+			"					_memoryU32[(X+");
+									code->addUint(mallocTreeChunkFd,
+										std::NumberBases::decimal);
+									code->addCString(")/4] = F;\n"
+			"					_memoryU32[(X+");
+									code->addUint(mallocTreeChunkBk,
+										std::NumberBases::decimal);
+									code->addCString(")/4] = T;\n"
+			"					_memoryU32[(X+");
+									code->addUint(mallocTreeChunkParent,
+										std::NumberBases::decimal);
+									code->addCString(")/4] = 0;\n"
+			"					break;\n"
+			"				} else {\n"
+			"					_CORRUPTION_ERROR_ACTION(M);\n"
+			"					break;\n"
+			"				}\n"
+			"			}\n"
+			"		}\n"
+			"	}\n"
+			"}\n"
+	
+			"function _insert_chunk(M, P, S){\n"
+			"	if (_is_small(S)){\n"
+			"		_insert_small_chunk(M, P, S);\n"
+			"	} else {\n"
+			"		var " /* malloc_tree_chunk* */ "TP = P;\n"
+			"		_insert_large_chunk(M, TP, S);\n"
+			"	}\n"
+			"}\n"
+	
+			"function _tmalloc_large(m, nb){\n"
+			"	var " /* malloc_tree_chunk* */ "v = 0;\n"
+			"	var " /* size_t */ "rsize = -nb;\n"
+			"	var " /* malloc_tree_chunk* */ "t;\n"
+			"	var " /* unsigned int */ "idx;\n"
+			"	idx = _compute_tree_index(nb);\n"
+			"	if ((t = _memoryU32[(_treebin_at(idx))/4]) !== 0){\n"
+			"		var " /* size_t */ "sizebits = "
+						"nb << _leftshift_for_tree_index(idx);\n"
+			"		var " /* malloc_tree_chunk* */ "rst = 0;\n"
+			"		for (;;){\n"
+			"			var " /* malloc_tree_chunk* */ "rt;\n"
+			"			var " /* size_t */ "trem = _chunksize(t) - nb;\n"
+			"			if (trem < rsize){\n"
+			"				v = t;\n"
+			"				if ((rsize = trem) === 0) break;\n"
+			"			}\n"
+			"			rt = _memoryU32[(t+");
+							code->addUint(mallocTreeChunkChild1,
+								std::NumberBases::decimal);
+							code->addCString(")/4];\n"
+			"			t = _memoryU32[((t+");
+							code->addUint(mallocTreeChunkChild0,
+								std::NumberBases::decimal);
+							code->addCString(")/4) + ((sizebits >> ");
+							code->addUint(sizeTBitsize - sizeTOne,
+								std::NumberBases::decimal);
+							code->addCString(") & 1)];\n"
+			"			if (rt !== 0 && rt !== t) rst = rt;\n"
+			"			if (t === 0){\n"
+			"				t = rst;\n"
+			"				break;\n"
+			"			}\n"
+			"			sizebits <<= 1;\n"
+			"		}\n"
+			"	}\n"
+			"	if (t === 0 && v === 0){\n"
+			"		var " /* unsigned int */ "leftbits = "
+						"_left_bits(_idx2bit(idx)) & m.treemap;\n"
+			"		if (leftbits !== 0){\n"
+			"			var " /* unsigned int */ "i;\n"
+			"			var " /* unsigned int */ "leastbit = _least_bit(leftbits);\n"
+			"			i = _compute_bit2idx(leastbit);\n"
+			"			t = _memoryU32[(_treebin_at(i))/4];\n"
+			"		}\n"
+			"	}\n"
+			"	while (t !== 0){\n"
+			"		var " /* size_t */ "trem = _chunksize(t) - nb;\n"
+			"		if (trem < rsize){\n"
+			"			rsize = trem;\n"
+			"			v = t;\n"
+			"		}\n"
+			"		t = _leftmost_child(t);\n"
+			"	}\n"
+			"	if (v !== 0 && rsize < (m.dvsize - nb)){\n"
+			"		if (_ok_address(m, v)){\n"
+			"			var " /* malloc_chunk* */ "r = v + nb;\n"
+			"			if (v < r){\n"
+			"				_unlink_large_chunk(m, v);\n"
+			"				if (rsize < ");
+								code->addUint(minChunkSize,
+									std::NumberBases::decimal);
+								code->addCString("){\n"
+			"					_set_inuse_and_pinuse(m, v, (rsize + nb));\n"
+			"				} else {\n"
+			"					_set_size_and_pinuse_of_inuse_chunk(m, v, nb);\n"
+			"					_set_size_and_pinuse_of_free_chunk(r, rsize);\n"
+			"					_insert_chunk(m, r, rsize);\n"
+			"				}\n"
+			"				return v + ");
+								code->addUint(twoSizeTSizes,
+									std::NumberBases::decimal);
+								code->addCString(";\n"
+			"			}\n"
+			"		}\n"
+			"		_CORRUPTION_ERROR_ACTION(m);\n"
+			"	}\n"
+			"	return 0;\n"
+			"}\n"
+	
+			"function _align_offset(A){\n"
+			"	return (((A & ");
+					code->addUint(chunkAlignMask,
+						std::NumberBases::decimal);
+					code->addCString(") === 0) ? 0 : ((");
+					code->addUint(mallocAlignment,
+						std::NumberBases::decimal);
+					code->addCString(" - (A & ");
+					code->addUint(chunkAlignMask,
+						std::NumberBases::decimal);
+					code->addCString(")) & ");
+					code->addUint(chunkAlignMask,
+						std::NumberBases::decimal);
+					code->addCString("));\n"
+			"}\n"
+	
+			"function _is_granularity_aligned(S){\n"
+			"	return (((S) & ");
+					code->addUint(defaultGranuality - sizeTOne,
+						std::NumberBases::decimal);
+					code->addCString(") === 0);\n"
+			"}\n"
+	
+			"function _granularity_align(S){\n"
+			"	return (((S) + ");
+					code->addUint(defaultGranuality - sizeTOne,
+						std::NumberBases::decimal);
+					code->addCString(") & ~");
+					code->addUint(defaultGranuality - sizeTOne,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"}\n"
+	
+			"function _CALL_MORECORE(nb){\n"
+			"	var previous = _memory;\n"
+			"	var uint8 = _memoryU8;\n"
+			"	_memory = new ArrayBuffer(previous.byteLength + nb);\n"
+			"	_setMemoryArrays();\n"
+			"	_memoryU8.set(uint8);\n"
+			"	_heapEnd += nb;\n"
+			"	return (_heapEnd - nb);\n"
+			"}\n"
+	
+			"function _init_bins(" /* malloc_state* */ "m){\n"
+			"	var " /* unsigned int */ "i;\n"
+			"	for (i = 0; i < ");
+					code->addUint(nsmallbins,
+						std::NumberBases::decimal);
+					code->addCString("; ++i){\n"
+			"		var " /* malloc_chunk* */ "bin = _smallbin_at(i);\n"
+			"		_memoryU32[(bin + ");
+						code->addUint(mallocChunkFd,
+							std::NumberBases::decimal);
+						code->addCString(")/4] =\n"
+			"			_memoryU32[(bin + ");
+							code->addUint(mallocChunkBk,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = bin;\n"
+			"	}\n"
+			"}\n"
+	
+			"function _init_top("
+				/* malloc_state* */ "m, "
+				/* malloc_chunk* */ "p, "
+				/* size_t */ "psize){\n"
+			"	var " /* size_t */ "offset = _align_offset(p + ");
+					code->addUint(twoSizeTSizes,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"	p = (p + offset);\n"
+			"	psize -= offset;\n"
+			"	m.top = p;\n"
+			"	m.topsize = psize;\n"
+			"	_memoryU32[(p + ");
+					code->addUint(mallocChunkHead,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = psize | ");
+					code->addUint(pinuseBit,
+						std::NumberBases::decimal);
+					code->addCString(";\n"
+			"	_memoryU32[(p + psize + ");
+					code->addUint(mallocChunkHead,
+						std::NumberBases::decimal);
+					code->addCString(")/4] = ");
+					code->addUint(topFootSize,
+						std::NumberBases::decimal);
+					code->addCString(";\n"
+			"}\n"
+	
+			"function _sys_alloc(m, nb){\n"
+			"	var " /* char* */ "tbase;\n"
+			"	var " /* size_t */ "tsize = 0;\n"
+			"	var " /* size_t */ "asize = _granularity_align(nb + ");
+					code->addUint(sysAllocPadding,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"	var " /* char* */ "br;\n"
+			"	var " /* size_t */ "ssize = asize;\n"
+			"	if (m.top === 0){\n" /* first time */
+			"		var " /* char* */ "base = _heapEnd;\n"
+			"		if (!_is_granularity_aligned(base))\n"
+			"			ssize += (_granularity_align(base) - base);\n"
+			"		br = _CALL_MORECORE(ssize);\n"
+			"		tbase = base;\n"
+			"		tsize = ssize;\n"
+			"	} else {\n"
+			"		ssize = _granularity_align(nb - m.topsize + ");
+						code->addUint(sysAllocPadding,
+							std::NumberBases::decimal);
+						code->addCString(");\n"
+			"		br = _CALL_MORECORE(ssize);\n"
+			"		tbase = br;\n"
+			"		tsize = ssize;\n"
+			"	}\n"
+			"	if (m.top === 0){\n" /* first time */
+			"		m.least_addr = tbase;\n"
+			"		_init_bins(m);\n"
+			"		_init_top(m, tbase, tsize - ");
+						code->addUint(topFootSize,
+							std::NumberBases::decimal);
+						code->addCString(");\n"
+			"	} else {\n"
+			"		_init_top(m, m.top, m.topsize + tsize);\n"
+			"	}\n" 
+			"}\n" 
+	
+		/* dlmalloc can have different configurations. 
+		In the current case the default configuration in 
+		a system that represents a pointer with 4 bytes 
+		is assumed, like most commonly found in 32 bit systems. 
+		Memory is viewed as chunks that are either in 
+		use or free. There can be adjancent in use chunks 
+		but not adjancent free chunks as they are merged. 
+		A chunk starts with the size of the previous chunk if 
+		that is free, otherwise it contains the last 4 bytes 
+		of the previous chunk's payload. The second 4 bytes 
+		contain the size of the current chunk, except that 
+		its lowest second bit is set if the current chunk is 
+		in use, and has the lowest bit set if the previous chunk 
+		is in use. The rest of the chunk if it is in use 
+		contain the payload, or if it is free, then there 
+		is a pointer to the next and previous free chunk 
+		and the rest is not used. The chunk at the end of 
+		the memory is called the top chunk. The overhead is 
+		only 4 bytes, that is the bytes containing the 
+		size of the current chunk. Chunks are aligned as 
+		being a multitude of 8 bytes. The minimum chunk 
+		size is 16 bytes, since it can not be less due to 
+		containing the previous and current chunk size, and 
+		if free then the previous and next pointer (4*4=16 bytes). 
+		The chunk size for a request <= 12 bytes is 16 bytes, 
+		for <= 20 is 24 bytes, for <= 28 is 32 bytes, ..., 
+		for <= 244 is 248 bytes. These requests are called small, 
+		as they can be served with a chunk size <= 255, as 
+		for a request of 245 bytes, a chunk size of 256 bytes 
+		is needed, called as a large large request. Including 
+		the non-allocatable 0 and 8 byte sized chunks 
+		(due to more efficient calculations), there are 32 small 
+		chunk sizes, and for each is a small bin containing 
+		the free chunks in that bin as a circural list. There 
+		is also a bitmap of 32 bits, a bit for each bin, where a 
+		bit is set if there is a free chunk in that bin. Free large 
+		chunks instead are in bins of a tree data structure for 
+		faster lookup. These chunks also contain a pointer to the 
+		left and the right child, to its parent and its index. 
+		For a malloc, first it is checked if the request can be 
+		served with a chunk of <= 255 bytes length called as a 
+		small request that is <= 244 bytes, instead of 255 due 
+		to the overhead and alignment. The chunk size is 
+		calculated, and the smallmap is checked if there is a 
+		free chunk of that size or one size bigger. If there 
+		is then the smaller is removed from the bin, the 
+		bin bits are set and the chunk is returned. Otherwise 
+		if the so called designated victim chunk has a size 
+		less than needed, then it is checked if there is a 
+		small chunk that is empty, and if there is then the 
+		smallest is removed from its bin, the bin bits are set, 
+		and the chunk is split if its size is great enough 
+		to represent another free chunk, and this free chunk 
+		becomes the designated victim, while if there was 
+		already a designated victim, then that is inserted to 
+		the corresponding smallbin, and the now in use chunk 
+		is returned. Otherwise if there was no free 
+		small chunk of enough size, then allocation from the 
+		treebins is tried, and if there is then the smallest 
+		is removed from its bin, the bin bits are set, and the 
+		chunk is split if its size is great enough to represent 
+		another free chunk, and this free chunk becomes the 
+		designated victim, while if there was already a 
+		designated victim, then that is inserted to the 
+		corresponding smallbin, and the now in use chunk is 
+		returned. Otherwise if the request was not small, 
+		but it was greater or equal to the maximum request size, 
+		then the needed bytes are set to the maximum to 
+		indicate faliture, otherwise allocation from the 
+		treebins is tried, and if the smallest is smaller then 
+		the designated victim, then is removed from its bin, 
+		the bin bits are set, and the chunk is split if its size 
+		is great enough to represent another free chunk, that 
+		is inserted to a small or tree bin. If no chunk was 
+		returned so far, then if the designated victim chunk's 
+		size is enough, it is removed and is split if has 
+		enough bytes to become the designated victim chunk, 
+		and the now in use chunk is returned. If the designated 
+		victim chunk size is not enough, but the top chunk's 
+		size is enough, then it is split and the now in use 
+		chunk is returned. Otherwise memory is allocated from 
+		the system, and if continuous space was allocated, 
+		then it is appended to the top chunk, that is split 
+		and the now in use chunk is returned.*/
+		
+			"function _dlmalloc(bytes){\n"
+			"	var " /* void* */ "mem;\n" /* chunk to return in memory */
+			"	var " /* size_t */ "nb;\n" /* needed bytes */
+			"	if (bytes <= ");
+					code->addUint(maxSmallRequest,
+						std::NumberBases::decimal);
+					code->addCString("){\n" /* small request */
+			"		var " /* unsigned int */ "idx;\n"
+			"		var " /* unsigned int */ "smallbits;\n"
+			"		nb = (bytes < ");
+						code->addUint(minRequest,
+							std::NumberBases::decimal);
+						code->addCString(") ? ");
+						code->addUint(minChunkSize,
+							std::NumberBases::decimal);
+						code->addCString(" : _pad_request(bytes);\n"
+			"		idx = nb >> ");
+						code->addUint(smallbinShift,
+							std::NumberBases::decimal);
+						code->addCString(";\n"
+			"		smallbits = _gm.smallmap >> idx;\n"
+			"		if ((smallbits & 0x3) !== 0){ /* free chunk */\n"
+			"			var " /* malloc_chunk* */ "b, p;\n"
+			"			idx += ~smallbits & 1;\n"
+			"			b = _smallbin_at(idx); /* smallbin */\n"
+			"			p = _memoryU32[(b + ");
+							code->addUint(mallocChunkFd,
+								std::NumberBases::decimal);
+							code->addCString(")/4];\n"
+			"			_unlink_first_small_chunk(_gm, b, p, idx);\n"
+			"			_set_inuse_and_pinuse(_gm, p, idx << ");
+							code->addUint(smallbinShift,
+								std::NumberBases::decimal);
+							code->addCString(");\n"
+			"			mem = p + ");
+							code->addUint(twoSizeTSizes,
+								std::NumberBases::decimal);
+							code->addCString(";\n"
+			"			return mem;\n"
+			"		} else if (nb > _gm.dvsize){\n"
+			"			if (smallbits !== 0){\n"
+			"				var " /* malloc_chunk* */ "b, p, r;\n"
+			"				var " /* size_t */ "rsize; /* remaining size */\n"
+			"				var " /* unsigned int */ "i;\n"
+			"				var " /* unsigned int */ "leftbits =\n"
+			"					(smallbits << idx) & _left_bits(_idx2bit(idx));\n"
+			"				var " /* unsigned int */ "leastbit = _least_bit(leftbits);\n"
+			"				i = _compute_bit2idx(leastbit);\n"
+			"				b = _smallbin_at(i); /* smallbin */\n"
+			"				p = _memoryU32[(b + ");
+								code->addUint(mallocChunkFd,
+									std::NumberBases::decimal);
+								code->addCString(")/4];\n"
+			"				_unlink_first_small_chunk(_gm, b, p, i);\n"
+			"				rsize = _small_index2size(i) - nb;\n");
+		if (sizeTSize != 4){
+			code->addCString(
+				"				if (rsize < ");
+									code->addUint(minChunkSize,
+										std::NumberBases::decimal);
+									code->addCString("){\n"
+				"					_set_inuse_and_pinuse(_gm, p, _small_index2size(i));\n"
+				"				} else");
+		}
+		code->addCString(
+			"				{\n"
+			"					_set_size_and_pinuse_of_inuse_chunk(_gm, p, nb);\n"
+			"					r = p + nb;\n"
+			"					_set_size_and_pinuse_of_free_chunk(r, rsize);\n"
+			"					_replace_dv(_gm, r, rsize);\n"
+			"				}\n"
+			"				mem = p + ");
+								code->addUint(twoSizeTSizes,
+									std::NumberBases::decimal);
+								code->addCString(";\n"
+			"				return mem;\n"
+			"			} else if (_gm.treemap !== 0 &&\n"
+			"				(mem = _tmalloc_small(_gm, nb)) !== 0){\n"
+			"				return mem;\n"
+			"			}\n"
+			"		}\n"
+			"	} else if (bytes >= ");
+					code->addUint(maxRequest,
+						std::NumberBases::decimal);
+					code->addCString("){\n"
+			"		nb = ");
+						code->addUint(maxSizeT,
+							std::NumberBases::decimal);
+						code->addCString(";\n"
+			"	} else {\n"
+			"		nb = _pad_request(bytes);\n"
+			"		if (_gm.treemap !== 0 &&\n"
+			"			(mem = _tmalloc_large(_gm, nb)) !== 0){\n"
+			"			return mem;\n"
+			"		}\n"
+			"	}\n"
+			"	if (nb <= _gm.dvsize){\n"
+			"		var " /* size_t */ "rsize = _gm.dvsize - nb;\n"
+			"		var " /* malloc_chunk* */ "p = _gm.dv;\n"
+			"		if (rsize >= ");
+						code->addUint(minChunkSize,
+							std::NumberBases::decimal);
+						code->addCString("){\n"
+			"			var " /* malloc_chunk* */ "r = _gm.dv = (p + nb);\n"
+			"			_gm.dvsize = rsize;\n"
+			"			_set_size_and_pinuse_of_free_chunk(r, rsize);\n"
+			"			_set_size_and_pinuse_of_inuse_chunk(_gm, p, nb);\n"
+			"		} else {\n"
+			"			var " /* size_t */ "dvs = _gm.dvsize;\n"
+			"			_gm.dvsize = 0;\n"
+			"			_gm.dv = 0;\n"
+			"			_set_inuse_and_pinuse(_gm, p, dvs);\n"
+			"		}\n"
+			"		mem = p + ");
+						code->addUint(twoSizeTSizes,
+							std::NumberBases::decimal);
+						code->addCString(";\n"
+			"		return mem;\n"
+			"	} else {\n"
+			"		if (nb >= _gm.topsize) _sys_alloc(_gm, nb);\n"
+			"		var " /* size_t */ "rsize = _gm.topsize -= nb;\n"
+			"		var " /* malloc_chunk* */ "p = _gm.top;\n"
+			"		var " /* malloc_chunk* */ "r = _gm.top = (p + nb);\n"
+			"		_memoryU32[(r + ");
+						code->addUint(mallocChunkHead,
+							std::NumberBases::decimal);
+						code->addCString(")/4] = rsize | ");
+						code->addUint(pinuseBit,
+							std::NumberBases::decimal);
+						code->addCString(";\n"
+			"		_set_size_and_pinuse_of_inuse_chunk(_gm, p, nb);\n"
+			"		mem = p + ");
+						code->addUint(twoSizeTSizes,
+							std::NumberBases::decimal);
+						code->addCString(";\n"
+			"		return mem;\n"
+			"	}\n"
+			"}\n"
+	
+			"function _is_inuse(p){\n"
+			"	return ((_memoryU32[(p + ");
+					code->addUint(mallocChunkHead,
+						std::NumberBases::decimal);
+					code->addCString(")/4] & ");
+					code->addUint(inuseBits,
+						std::NumberBases::decimal);
+					code->addCString(") !== ");
+					code->addUint(pinuseBit,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"}\n"
+	
+			"function _unlink_small_chunk(M, P, S){\n"
+			"	var " /* malloc_chunk* */ "F = _memoryU32[(P + ");
+					code->addUint(mallocChunkFd,
+						std::NumberBases::decimal);
+					code->addCString(")/4];\n"
+			"	var " /* malloc_chunk* */ "B = _memoryU32[(P + ");
+					code->addUint(mallocChunkBk,
+						std::NumberBases::decimal);
+					code->addCString(")/4];\n"
+			"	var " /* unsigned int */ "I = _small_index(S);\n"
+			"	if (F === _smallbin_at(I) || (_ok_address(M, F) &&\n"
+			"		_memoryU32[(F + ");
+						code->addUint(mallocChunkBk,
+							std::NumberBases::decimal);
+						code->addCString(")/4] === P)) {\n"
+			"		if (B === F){\n"
+			"			_clear_smallmap(M, I);\n"
+			"		} else if (B === _smallbin_at(I) || (_ok_address(M, B) &&\n"
+			"			_memoryU32[(B + ");
+							code->addUint(mallocChunkFd,
+								std::NumberBases::decimal);
+							code->addCString(")/4] === P)){\n"
+			"			_memoryU32[(F + ");
+							code->addUint(mallocChunkBk,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = B;\n"
+			"			_memoryU32[(B + ");
+							code->addUint(mallocChunkFd,
+								std::NumberBases::decimal);
+							code->addCString(")/4] = F;\n"
+			"		} else {\n"
+			"			_CORRUPTION_ERROR_ACTION(M);\n"
+			"		}\n"
+			"	} else {\n"
+			"		_CORRUPTION_ERROR_ACTION(M);\n"
+			"	}\n"
+			"}\n"
+	
+			"function _unlink_chunk(M, P, S){\n"
+			"	if (_is_small(S)){\n"
+			"		_unlink_small_chunk(M, P, S);\n"
+			"	} else {\n"
+			"		var " /* malloc_tree_chunk* */ "TP = P;\n"
+			"		_unlink_large_chunk(M, TP);\n"
+			"	}\n"
+			"}\n"
+	
+			"function _clear_pinuse(p){\n"
+			"	_memoryU32[(p + ");
+					code->addUint(mallocChunkHead,
+						std::NumberBases::decimal);
+					code->addCString(")/4] &= ~");
+					code->addUint(pinuseBit,
+						std::NumberBases::decimal);
+					code->addCString(";\n"
+			"}\n"
+	
+			"function _set_free_with_pinuse(p, s, n){\n"
+			"	_clear_pinuse(n);\n"
+			"	_set_size_and_pinuse_of_free_chunk(p, s);\n"
+			"}\n"
+	
+		/* Freeing nullptr is ignored.
+			If the previous chunk is free then it will
+			be handled with the current chunk and if that
+			previous chunk is not the desinated victim,
+			then it is unlinked from its bin,
+			otherwise if the next chunk is in use,
+			the current chunk is appended to the desinated victim chunk
+			and the function ends. If the next chunk is the top chunk
+			or the designated victim, then it is prepended with the
+			free chunk and the function ends. Otherwise if the next chunk
+			is not in use then it is unlinked and will also be
+			handled with the current chunk. Then the free chunk
+			is inserted to the small or treebins. */
+			
+			"function _dlfree(" /* void* */ "mem){\n"
+			"	if (mem !== 0){\n"
+			"		var " /* malloc_chunk* */ "p = mem - ");
+						code->addUint(twoSizeTSizes,
+							std::NumberBases::decimal);
+						code->addCString(";\n"
+			"		if (_ok_address(_gm, p) && _is_inuse(p)){\n"
+			"			var " /* size_t */ "psize = _chunksize(p);\n"
+			"			var " /* malloc_chunk* */ "next = p + psize;\n"
+			"			if (!_pinuse(p)){\n"
+			"				var " /* size_t */ "prevsize = _memoryU32[(p + ");
+								code->addUint(mallocChunkPrevFoot,
+									std::NumberBases::decimal);
+								code->addCString(")/4];\n"
+			"				var " /* malloc_chunk* */ "prev = p - prevsize;\n"
+			"				psize += prevsize;\n"
+			"				p = prev;\n"
+			"				if (_ok_address(_gm, prev)){\n"
+			"					if (p !== _gm.dv){\n"
+			"						_unlink_chunk(_gm, p, prevsize);\n"
+			"					} else if ((_memoryU32[(next + ");
+										code->addUint(mallocChunkHead,
+											std::NumberBases::decimal);
+										code->addCString(")/4] &\n"
+			"						");
+										code->addUint(inuseBits,
+											std::NumberBases::decimal);
+										code->addCString(") === ");
+										code->addUint(inuseBits,
+											std::NumberBases::decimal);
+										code->addCString("){\n"
+			"						_gm.dvsize = psize;\n"
+			"						_set_free_with_pinuse(p, psize, next);\n"
+			"						return;\n"
+			"					}\n"
+			"				} else {\n"
+			"					_USAGE_ERROR_ACTION(_gm, p);\n"
+			"				}\n"
+			"			}\n"
+			"			if (p < next && _pinuse(next)){\n"
+			"				if (!_cinuse(next)){\n"
+			"					if (next === _gm.top){\n"
+			"						var " /* size_t */ "tsize = _gm.topsize += psize;\n"
+			"						_gm.top = p;\n"
+			"						_memoryU32[(p + ");
+										code->addUint(mallocChunkHead,
+											std::NumberBases::decimal);
+										code->addCString(")/4] = tsize | ");
+										code->addUint(pinuseBit,
+											std::NumberBases::decimal);
+										code->addCString(";\n"
+			"						if (p === _gm.dv){\n"
+			"							_gm.dv = 0;\n"
+			"							_gm.dvsize = 0;\n"
+			"						}\n"
+									/*todo
+										if (should_trim(_gm, tsize)) sys_trim(_gm, 0);*/
+			"						return;\n"
+			"					} else if (next === _gm.dv){\n"
+			"						var " /* size_t */ "dsize = _gm.dvsize += psize;\n"
+			"						_gm.dv = p;\n"
+			"						_set_size_and_pinuse_of_free_chunk(p, dsize);\n"
+			"						return;\n"
+			"					} else {\n"
+			"						var " /* size_t */ "nsize = _chunksize(next);\n"
+			"						psize += nsize;\n"
+			"						_unlink_chunk(_gm, next, nsize);\n"
+			"						_set_size_and_pinuse_of_free_chunk(p, psize);\n"
+			"						if (p === _gm.dv){\n"
+			"							_gm.dvsize = psize;\n"
+			"							return;\n"
+			"						}\n"
+			"					}\n"
+			"				} else _set_free_with_pinuse(p, psize, next);\n"
+			"				if (_is_small(psize)){\n"
+			"					_insert_small_chunk(_gm, p, psize);\n"
+			"				} else {\n"
+			"					var " /* malloc_tree_chunk* */ "tp = p;\n"
+			"					_insert_large_chunk(_gm, tp, psize);\n"
+			"				}\n"
+			"				return;\n"
+			"			}\n"
+			"		}\n"
+			"		_USAGE_ERROR_ACTION(fm, p);\n"
+			"	}\n"
+			"}\n"
+	
+			"function _pinuse(p){\n"
+			"	return (_memoryU32[(p + ");
+					code->addUint(mallocChunkHead,
+						std::NumberBases::decimal);
+					code->addCString(")/4] & ");
+					code->addUint(pinuseBit,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"}\n"
+	
+			"function _cinuse(p){\n"
+			"	return (_memoryU32[(p + ");
+					code->addUint(mallocChunkHead,
+						std::NumberBases::decimal);
+					code->addCString(")/4] & ");
+					code->addUint(cinuseBit,
+						std::NumberBases::decimal);
+					code->addCString(");\n"
+			"}\n"
+			
+			"function _CORRUPTION_ERROR_ACTION(M){\n"
+			"	var error = 'CORRUPTION_ERROR_ACTION';\n"
+			"	alert(error);\n"
+			"	throw error;\n"
+			"}\n"
+			
+			"function _USAGE_ERROR_ACTION(m, p){\n"
+			"	var error = 'USAGE_ERROR_ACTION';\n"
+			"	alert(error);\n"
+			"	throw error;\n"
+			"}\n"
+	
+			/* Start of debugging functions:
+	
+			"function _dlMallocDebug(){\n"
+			"	var debug = 'memory.byteLength: ' + _memory.byteLength + '<br><br>' +\n"
+			"		'gm.smallmap: ' + (_gm.smallmap >>> 0).toString(2) + '<br>' +\n"
+			"		'gm.treemap: ' + (_gm.treemap >>> 0).toString(2) + '<br>' +\n"
+			"		'gm.dvsize: ' + _gm.dvsize + '<br>' +\n"
+			"		'gm.topsize: ' + _gm.topsize + '<br>' +\n"
+			"		'gm.dv: ' + _gm.dv + '<br>' +\n"
+			"		'gm.top: ' + _gm.top + '<br><br>';\n"
+			"	for (var i = 0; i < ");
+					code->addUint(nsmallbins,
+						std::NumberBases::decimal);
+					code->addCString("; ++i){\n"
+			"		var bin = _smallbin_at(i);\n"
+			"		debug += 'smallbins[' + i + '] (&' + bin + ')<br>' +\n"
+			"			'.fd = ' + _memoryU32[(bin + ");
+							code->addUint(mallocChunkFd,
+								std::NumberBases::decimal);
+							code->addCString(")/4] +\n"
+			"			' (&' + (bin + ");
+					code->addUint(mallocChunkFd,
+						std::NumberBases::decimal);
+					code->addCString(") + ')<br>' +	\n"
+			"			'.bk = ' + _memoryU32[(bin + ");
+					code->addUint(mallocChunkBk,
+						std::NumberBases::decimal);
+					code->addCString(")/4] +\n"
+			"			' (&' + (bin + ");
+					code->addUint(mallocChunkBk,
+						std::NumberBases::decimal);
+					code->addCString(") + ')<br>';\n"
+			"	}\n"
+			"	debug += '<br>';\n"
+			"	for (var i = 0; i < ");
+					code->addUint(ntreebins,
+						std::NumberBases::decimal);
+					code->addCString("; ++i){\n"
+			"		var bin = _treebin_at(i);\n"
+			"		debug += 'treebins[' + i + ']: ' +\n"
+			"			_memoryU32[bin/4] + ' (&' + (bin) + ')<br>';\n"
+			"	}\n"
+			"	for (var i = ");
+					code->addUint((dlGlobalsEnd + (8-1)) & ~(8-1),
+						std::NumberBases::decimal);
+					code->addCString(";\n"
+			"		i < _memory.byteLength;){\n"
+			"		var size = _chunksize(i);\n"
+			"		debug += '<br>chunk (&' + i + ')<br>' +\n"
+			"			'chunksize: ' + size + '<br>';\n"
+			"		if (_pinuse(i)){\n"
+			"			debug += 'pinuse: 1<br>';\n"
+			"		} else {\n"
+			"			debug += 'pinuse: 0<br>prevsize: ' +\n"
+			"				_memoryU32[(i + ");
+								code->addUint(mallocChunkPrevFoot,
+									std::NumberBases::decimal);
+								code->addCString(")/4] + '<br>';\n"
+			"		}\n"
+			"		if (_cinuse(i)){\n"
+			"			debug += 'cinuse: 1<br>';\n"
+			"		} else {\n"
+			"			debug += 'cinuse: 0<br>';\n"
+			"			if (i === _gm.dv){\n"
+			"				debug += 'dv<br>';\n"
+			"			} else if (i === _gm.top){\n"
+			"				debug += 'top<br>';\n"
+			"			} else {\n"
+			"				debug += 'cinuse: 0<br>fd: ' +\n"
+			"					_memoryU32[(i + ");
+									code->addUint(mallocChunkFd,
+										std::NumberBases::decimal);
+									code->addCString(")/4] + '<br>bk: ' +\n"
+			"					_memoryU32[(i + ");
+									code->addUint(mallocChunkBk,
+										std::NumberBases::decimal);
+									code->addCString(")/4] + '<br>';\n"
+			"				if (!_is_small(size)){\n"
+			"					debug += 'child0: ' +\n"
+			"						_memoryU32[(i + ");
+										code->addUint(mallocTreeChunkChild0,
+											std::NumberBases::decimal);
+										code->addCString(")/4] + '<br>child1: ' +\n"
+			"						_memoryU32[(i + ");
+										code->addUint(mallocTreeChunkChild1,
+											std::NumberBases::decimal);
+										code->addCString(")/4] + '<br>parent: ' +\n"
+			"						_memoryU32[(i + ");
+										code->addUint(mallocTreeChunkParent,
+											std::NumberBases::decimal);
+										code->addCString(")/4] + '<br>index: ' +\n"
+			"						_memoryU32[(i + ");
+										code->addUint(mallocTreeChunkIndex,
+											std::NumberBases::decimal);
+										code->addCString(")/4] + '<br>';\n"
+			"				}\n"
+			"			}\n"
+			"		}\n"
+			"		i += size;\n"
+			"	}\n"
+			"	document.body.innerHTML += debug;\n"
+			"}\n"
+	
+			"function _AllocInfo(base, payload){\n"
+			"	this.base = base;\n"
+			"	this.payload = payload;\n"
+			"}\n"
+	
+			Randomly allocates and frees space and checks if the
+			allocated data is not changed.
+	
+			"function _autoErrorCheckMallocFree(iterations){\n"
+			"	var allocations = new Set();\n"
+			"	for (var i = 0; i < iterations; ++i){\n"
+			"		if (allocations.size === 0 || Math.random() < 0.5){\n"
+			"			var size;\n"
+			"			if (Math.random() < 0.5){\n"
+			"				size = Math.floor(Math.random()*");
+								code->addUint(maxSmallRequest,
+									std::NumberBases::decimal);
+								code->addCString(");\n"
+			"			} else {\n"
+			"				size = ");
+								code->addUint(maxSmallRequest,
+									std::NumberBases::decimal);
+								code->addCString(" +\n"
+			"					Math.floor(Math.random()*");
+									code->addUint(maxSmallRequest,
+										std::NumberBases::decimal);
+									code->addCString(");\n"
+			"			}\n"
+			"			var base = _dlmalloc(size);\n"
+			"			var payload = new ArrayBuffer(size);\n"
+			"			var uint8 = new Uint8Array(payload, 0, size);\n"
+			"			for (var j = 0; j < size; ++j){\n"
+			"				var byte = Math.floor(Math.random()*256);\n"
+			"				uint8[j] = byte;\n"
+			"				_memoryU8[base + j] = byte;\n"
+			"			}\n"
+			"			allocations.add(new _AllocInfo(base, payload));\n"
+			"			document.body.innerHTML += 'Allocated ' + size +\n"
+			"				' bytes at ' + base + '.<br>';\n"
+			"		} else {\n"
+			"			var freeIndex = Math.floor(Math.random()*allocations.size);\n"
+			"			var iterator = allocations.values();\n"
+			"			for (var j = 0; j < freeIndex; ++j){\n"
+			"				iterator.next();\n"
+			"			}\n"
+			"			var allocation = iterator.next().value;\n"
+			"			_dlfree(allocation.base);\n"
+			"			allocations.delete(allocation);\n"
+			"			document.body.innerHTML += 'Deleted allocation at ' +\n"
+			"				allocation.base + '.<br>';\n"
+			"		}\n"
+			"		for (var allocation of allocations.values()){\n"
+			"			var base = allocation.base;\n"
+			"			var payload = allocation.payload;\n"
+			"			var size = payload.byteLength;\n"
+			"			var uint8 = new Uint8Array(payload, 0, size);\n"
+			"			for (var j = 0; j < size; ++j){\n"
+			"				if (uint8[j] !== _memoryU8[base + j]){\n"
+			"					document.body.innerHTML +=\n"
+			"						'Error: payload changed at ' + (base + j) + '<br>';\n"
+			"					return;\n"
+			"				}\n"
+			"			}\n"
+			"		}\n"
+			"	}\n"
+			"}\n"
+	
+			End of debugging functions. */
+	
+			"/* End of dynamic memory alloc and free implementation */\n\n");
+	
+		return dlGlobalsEnd;
+	}
+}
