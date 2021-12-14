@@ -1,18 +1,32 @@
-# "std::css::Value" class:
+# "std::css::Keyword" class:
 
-Used as a base class for CSS values.
+Contains a CSS keyword value. As it is a CSS 
+value, it has the std::css::Value base class.
 
-## "type" data member:
+## "keyword" data member:
 
-The type of the CSS value, as an 
-std::css::Units value.
+The contained CSS keyword value.
 
 ```
 std::css::Keyword value;
-/*std::css::Keyword has an 
-	std::css::Value base class.*/
-unsigned char type = value.type;
-/*std::css::ValueTypes::keyword*/
+value.keyword =
+	std::css::AlignTypes::middle;
+```
+
+## "set" member function:
+
+Sets the contained CSS keyword value.
+
+Parameters:
+* The CSS keyword value to set.
+
+Returns: a pointer to the keyword object as an 
+std::css::Value, to make it more convinient 
+to use in the std::css::Declaration functions.
+
+```
+std::css::Keyword value;
+value.set(std::css::AlignTypes::middle);
 ```
 
 # Software license

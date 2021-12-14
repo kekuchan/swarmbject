@@ -1,19 +1,8 @@
-# "std::css::Value" class:
+# "std::css::MarginTypes" enum:
 
-Used as a base class for CSS values.
+## "auto" constexpr data member:
 
-## "type" data member:
-
-The type of the CSS value, as an 
-std::css::Units value.
-
-```
-std::css::Keyword value;
-/*std::css::Keyword has an 
-	std::css::Value base class.*/
-unsigned char type = value.type;
-/*std::css::ValueTypes::keyword*/
-```
+Indicates an automatically calculated style.
 
 # Software license
 

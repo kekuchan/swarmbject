@@ -1,19 +1,38 @@
-# "std::css::Value" class:
+# "std::css::Units" enum:
 
-Used as a base class for CSS values.
+## "ch" constexpr data member:
 
-## "type" data member:
+## "cm" constexpr data member:
 
-The type of the CSS value, as an 
-std::css::Units value.
+## "em" constexpr data member:
 
-```
-std::css::Keyword value;
-/*std::css::Keyword has an 
-	std::css::Value base class.*/
-unsigned char type = value.type;
-/*std::css::ValueTypes::keyword*/
-```
+## "ex" constexpr data member:
+
+## "in" constexpr data member:
+
+## "integer" constexpr data member:
+
+## "mm" constexpr data member:
+
+## "pc" constexpr data member:
+
+## "percentage" constexpr data member:
+
+## "pt" constexpr data member:
+
+## "px" constexpr data member:
+
+## "Q" constexpr data member:
+
+## "rem" constexpr data member:
+
+## "vh" constexpr data member:
+
+## "vw" constexpr data member:
+
+## "vmax" constexpr data member:
+
+## "vmin" constexpr data member:
 
 # Software license
 

@@ -1,19 +1,8 @@
-# "std::css::Value" class:
+# "std::css::BorderStyles" enum:
 
-Used as a base class for CSS values.
-
-## "type" data member:
-
-The type of the CSS value, as an 
-std::css::Units value.
-
-```
-std::css::Keyword value;
-/*std::css::Keyword has an 
-	std::css::Value base class.*/
-unsigned char type = value.type;
-/*std::css::ValueTypes::keyword*/
-```
+## "solid" constexpr data member:
+	
+Indicates a solid border style.
 
 # Software license
 

@@ -1,18 +1,16 @@
-# "std::css::Value" class:
+# "std::css::RGB" class:
 
-Used as a base class for CSS values.
+Contains a CSS RGB color value. As it is a CSS 
+value, it has the std::css::Value base class.
 
-## "type" data member:
+## "color" data member:
 
-The type of the CSS value, as an 
-std::css::Units value.
+The contained RGB color, as an 
+std::color::RGB value.
 
 ```
-std::css::Keyword value;
-/*std::css::Keyword has an 
-	std::css::Value base class.*/
-unsigned char type = value.type;
-/*std::css::ValueTypes::keyword*/
+std::css::RGB rgb;
+rgb.color.set(255, 255, 255);
 ```
 
 # Software license

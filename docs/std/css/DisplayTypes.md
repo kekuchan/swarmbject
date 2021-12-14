@@ -1,19 +1,12 @@
-# "std::css::Value" class:
+# "std::css::DisplayTypes" enum:
 
-Used as a base class for CSS values.
+## "none" constexpr data member:
+	
+Indicates a non-displayed style.
 
-## "type" data member:
+## "block" constexpr data member:
 
-The type of the CSS value, as an 
-std::css::Units value.
-
-```
-std::css::Keyword value;
-/*std::css::Keyword has an 
-	std::css::Value base class.*/
-unsigned char type = value.type;
-/*std::css::ValueTypes::keyword*/
-```
+Indicates a block displayed style.
 
 # Software license
 

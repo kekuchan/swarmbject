@@ -1,18 +1,44 @@
-# "std::css::Value" class:
+# "std::css::Short" class:
 
-Used as a base class for CSS values.
+Contains a CSS numeric unit value in a 
+short data type. As it is a CSS value, 
+it has the std::css::Value base class.
 
-## "type" data member:
+## "number" data member:
 
-The type of the CSS value, as an 
+The contained short numeric value.
+
+```
+std::css::Short value;
+value.number = 21;
+```
+
+## "unit" data member:
+
+The unit type of the value, as an 
 std::css::Units value.
 
 ```
-std::css::Keyword value;
-/*std::css::Keyword has an 
-	std::css::Value base class.*/
-unsigned char type = value.type;
-/*std::css::ValueTypes::keyword*/
+std::css::Short value;
+value.unit = std::css::Units::px;
+```
+
+## "set" member function:
+
+Sets the contained CSS numeric unit value.
+
+Parameters:
+* The short numeric value to set.
+* The unit type of the value to set, as an 
+std::css::Units value.
+
+Returns: a pointer to the Short object as an 
+std::css::Value, to make it more convinient 
+to use in the std::css::Declaration functions.
+
+```
+std::css::Short value;
+value.set(21, std::css::Units::px);
 ```
 
 # Software license

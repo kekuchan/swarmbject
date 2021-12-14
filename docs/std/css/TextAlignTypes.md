@@ -1,19 +1,20 @@
-# "std::css::Value" class:
+# "std::css::TextAlignTypes" enum:
 
-Used as a base class for CSS values.
+## "left" constexpr data member:
 
-## "type" data member:
+Indicates a left alignment.
 
-The type of the CSS value, as an 
-std::css::Units value.
+## "right" constexpr data member:
 
-```
-std::css::Keyword value;
-/*std::css::Keyword has an 
-	std::css::Value base class.*/
-unsigned char type = value.type;
-/*std::css::ValueTypes::keyword*/
-```
+Indicates a right alignment.
+
+## "center" constexpr data member:
+
+Indicates a centered alignment.
+
+## "justify" constexpr data member:
+
+Indicates a justified alignment.
 
 # Software license
 

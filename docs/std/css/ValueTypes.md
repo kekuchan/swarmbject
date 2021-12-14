@@ -1,19 +1,17 @@
-# "std::css::Value" class:
+# "std::css::ValueTypes" enum:
 
-Used as a base class for CSS values.
+## "keyword" constexpr data member:
 
-## "type" data member:
+Indicates a CSS keyword value type.
 
-The type of the CSS value, as an 
-std::css::Units value.
+## "shortValue" constexpr data member:
 
-```
-std::css::Keyword value;
-/*std::css::Keyword has an 
-	std::css::Value base class.*/
-unsigned char type = value.type;
-/*std::css::ValueTypes::keyword*/
-```
+Indicates a CSS numeric unit value type 
+in a short data type.
+
+## "color" constexpr data member:
+
+Indicates a CSS RGB color value type.
 
 # Software license
 
