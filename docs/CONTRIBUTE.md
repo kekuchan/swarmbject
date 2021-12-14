@@ -1,87 +1,59 @@
-# Overview
-
-*In layman's terms:* SWARMBJECT is a tool to create 
-applications, with the goal, that this tool and 
-the applications created with it shall be evenly
-usable on smartphones, tablets, notebooks and PCs.
-
-*With more specific terms:* SWARMBJECT is a
-high level programming language and a graphical
-development environment for it, including a compiler.
-It is written in itself, and can compile itself.
-
-The name SWARMBJECT indicates a swarm of objects.
-
-*For newcommers into programming:* computer devices have a
-main component, designed to execute instructions called a CPU.
-A sequence of instructions is called a code, creating a program.
-Such a code can be written in a language that closely resembles
-the native instructions of the CPU, called low level programming,
-or in a language that can be very different from it, called
-high level programming, however this requires translating from
-this language to either the native instructions, or to a
-different language, to be processed by other programs.
-Such a translating program is called a compiler.
-
-# Design goals
-
-*Portability:*
-Instead of directly generating executable code for different
-CPU architectures, code shall be generated for different platforms, 
-that can be used by specific development tools of that platform.
-Note: This is a future goal, as currently only the web platform
-is supported, though that still means support for any
-device with a web browser available.
-
-*Simplicity:*
-Making the base language simple makes learning and porting
-it easier.
-
-*Extensive API:*
-While the base language is made to be simple, there should be
-an extensive set of pre-programmed functionalities (API).
-Note: This is a future goal, as currently only what was
-needed for the compiler is programmed.
-
-*C/C++ like syntax:*
-C and C++ are old but still very popular languages,
-with many others based on their syntax. A similar syntax
-makes learning the language easier for programmers
-already familiar with such languages.
-
-*Asynchronity:*
-Modern computers having multiple CPU cores makes it
-important to have a programming model that helps
-creating applications that can make use of them.
-
-*Distributed:*
-Distributed computing means that the application can
-not only scale through multiple cores, but even through
-multiple computers.
-Note: This is a future goal, though this concept is
-already in the fundations of the language.
-
-*Web standards:*
-The web has many well standardized and known technologies,
-designed to work through a wide variety of devices.
-
-*Documentation:*
-Documentation shall be provided for every user facing 
-feature of the language and its API in a simple and
-understandable way, and also with such an example.
-Note: This is a future goal, as currently only a
-tutorial is presented.
-
-# Learning
-
-Read the SWARMBJECT manual at /docs/manual.md, to learn
-about creating SWARMBJECT applications. It includes an 
-architectural overview, a tutorial, the language and
-the API reference.
-
 # Contribute
 
-Read docs/CONTRIBUTE.md.
+In order to contribute, you have to certify that:
+
+```
+Developer Certificate of Origin
+Version 1.1
+
+Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
+
+Everyone is permitted to copy and distribute verbatim copies of this
+license document, but changing it is not allowed.
+
+
+Developer's Certificate of Origin 1.1
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license (unless I am
+    permitted to submit under a different license), as indicated
+    in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including all
+    personal information I submit with it, including my sign-off) is
+    maintained indefinitely and may be redistributed consistent with
+    this project or the open source license(s) involved.
+```
+
+by including a 
+```
+Signed-off-by: your name <your e-mail>
+```
+line in the commit message.
+
+It is highly recommended that you describe a plan
+of your contribution, by creating an issue,
+before coding it, to save you the time in case it
+does not align well with the current SWARMBJECT goals,
+or if modifications are needed.
+
+By creating an issue, you agree, that the ideas described
+in the issue may be implemented under the license
+of the SWARMBJECT project.
 
 # Software license
 
