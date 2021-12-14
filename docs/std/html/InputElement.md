@@ -1,6 +1,6 @@
-# "std::html::Element" class:
+# "std::html::InputElement" class:
 
-Static functions to work with HTML elements.
+Static functions to work with INPUT elements.
 
 ```
 class Main {
@@ -9,111 +9,123 @@ class Main {
 		app.getWindow(&window);
 		std::dom::Node document;
 		window.getDocumentNode(&document);
-		std::dom::Node div;
-		std::html::DivElement::create(
-			&document, &div);
+		std::dom::Node input;
+		std::html::InputElement::create(
+			&document, &input);
 		std::dom::Node node;
 		std::html::Document::getBody(&document, &node);
-		node.appendChild(&div);
+		node.appendChild(&input);
 	}
 }
 ```
 
-## "getOffsetHeight" static function:
+## "create" static function:
 
-Gets the element's height with the 
-padding and border, but without the 
-margin and the overflowed content.
+Creates an INPUT element.
 
 Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: unsigned int.
-
-```
-/*In Main::main.*/
-unsigned int height = 
-	std::dom::Element::getOffsetHeight(&div);
-```
-
-## "getOffsetLeft" static function:
-
-Gets the element's left border's 
-vertical position.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: unsigned int.
-
-```
-/*In Main::main.*/
-unsigned int left = 
-	std::dom::Element::getOffsetLeft(&div);
-```
-
-## "getOffsetTop" static function:
-
-Gets the element's top border's 
-horizontal position.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: unsigned int.
-
-```
-/*In Main::main.*/
-unsigned int top = 
-	std::dom::Element::getOffsetTop(&div);
-```
-
-## "getOffsetWidth" static function:
-		
-Gets the element's width with the 
-padding and border, but without the 
-margin and the overflowed content.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: unsigned int.
-
-```
-/*In Main::main.*/
-unsigned int width = 
-	std::dom::Element::getOffsetWidth(&div);
-```
-
-## "getStyle" static function:
-
-Gets the element's CSS style declaration block.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-* A pointer to an std::css::Declaration to set.
+* A pointer to an std::dom::Node document node.
+* A pointer to an std::dom::Node to set.
 
 Returns: void.
 
 ```
 /*In Main::main.*/
-std::css::Declaration style;
-std::html::Element::getStyle(&div, &style);
+std::html::InputElement::create(
+	&document, &input);
 ```
 
-## "removeChildren" static function:
+## "getChecked" static function:
 
-Removes the contained nodes from the element.
+Checks if a checkbox element is checked.
 
 Parameters:
 * A pointer to the element, as an std::dom::Node.
+
+Returns: true, if checked, false otherwise.
+
+```
+/*In Main::main.*/
+std::html::InputElement::setType(
+	&input, std::html::InputTypes::checkbox);
+bool checked = std::html::InputElement::
+	getChecked(&input);
+```
+
+## "getValue" static function:
+
+Inserts the value of a text input 
+to an std::DString's end.
+
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* A pointer an std::DString.
 
 Returns: void.
 
 ```
 /*In Main::main.*/
-std::html::Element::removeChildren(&node);
-/*The node is now empty.*/
+std::html::InputElement::setType(
+	&input, std::html::InputTypes::text);
+std::DString string;
+std::html::InputElement::getValue(
+	&input, &string);
+```
+
+## "setChecked" static function:
+
+Sets if a checkbox element is checked.
+
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* A boolean value whether to check the checkbox.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::html::InputElement::setType(
+	&input, std::html::InputTypes::checkbox);
+std::html::InputElement::setChecked(
+	&input, true);
+```
+
+## "setType" static function:
+
+Sets the input element's type.
+
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* The type as an std::html::InputTypes value.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::html::InputElement::setType(
+	&input, std::html::InputTypes::checkbox);
+```
+
+## "setValue" static function:
+
+Sets the text input element's value 
+to be a copy of a substring.
+
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* The unsigned char array of the substring to copy.
+* The starting index of the substring to copy 
+in its array.
+* The length of the substring to copy.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::html::InputElement::setType(
+	&input, std::html::InputTypes::text);
+std::html::InputElement::setValue(
+	&input, "2021", 0, 4);
 ```
 
 # Software license

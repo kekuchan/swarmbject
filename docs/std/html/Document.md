@@ -1,6 +1,6 @@
-# "std::html::Element" class:
+# "std::html::Document" class:
 
-Static functions to work with HTML elements.
+Static functions to work with a HTML document.
 
 ```
 class Main {
@@ -9,111 +9,24 @@ class Main {
 		app.getWindow(&window);
 		std::dom::Node document;
 		window.getDocumentNode(&document);
-		std::dom::Node div;
-		std::html::DivElement::create(
-			&document, &div);
-		std::dom::Node node;
-		std::html::Document::getBody(&document, &node);
-		node.appendChild(&div);
 	}
 }
 ```
 
-## "getOffsetHeight" static function:
+## "getBody" static function:
 
-Gets the element's height with the 
-padding and border, but without the 
-margin and the overflowed content.
+Gets the document body.
 
 Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: unsigned int.
-
-```
-/*In Main::main.*/
-unsigned int height = 
-	std::dom::Element::getOffsetHeight(&div);
-```
-
-## "getOffsetLeft" static function:
-
-Gets the element's left border's 
-vertical position.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: unsigned int.
-
-```
-/*In Main::main.*/
-unsigned int left = 
-	std::dom::Element::getOffsetLeft(&div);
-```
-
-## "getOffsetTop" static function:
-
-Gets the element's top border's 
-horizontal position.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: unsigned int.
-
-```
-/*In Main::main.*/
-unsigned int top = 
-	std::dom::Element::getOffsetTop(&div);
-```
-
-## "getOffsetWidth" static function:
-		
-Gets the element's width with the 
-padding and border, but without the 
-margin and the overflowed content.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: unsigned int.
-
-```
-/*In Main::main.*/
-unsigned int width = 
-	std::dom::Element::getOffsetWidth(&div);
-```
-
-## "getStyle" static function:
-
-Gets the element's CSS style declaration block.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-* A pointer to an std::css::Declaration to set.
+* A pointer to an std::dom::Node document node.
+* A pointer to an std::dom::Node to set.
 
 Returns: void.
 
 ```
 /*In Main::main.*/
-std::css::Declaration style;
-std::html::Element::getStyle(&div, &style);
-```
-
-## "removeChildren" static function:
-
-Removes the contained nodes from the element.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::html::Element::removeChildren(&node);
-/*The node is now empty.*/
+std::dom::Node node;
+std::html::Document::getBody(&document, &node);
 ```
 
 # Software license

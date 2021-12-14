@@ -1,120 +1,20 @@
-# "std::html::Element" class:
+# "std::html::InputTypes" enum:
 
-Static functions to work with HTML elements.
+## "button" constexpr data member:
 
-```
-class Main {
-	void main(std::ApplicationInstance aexcl app){
-		std::bom::Window window;
-		app.getWindow(&window);
-		std::dom::Node document;
-		window.getDocumentNode(&document);
-		std::dom::Node div;
-		std::html::DivElement::create(
-			&document, &div);
-		std::dom::Node node;
-		std::html::Document::getBody(&document, &node);
-		node.appendChild(&div);
-	}
-}
-```
+Indicates a button input.
 
-## "getOffsetHeight" static function:
+## "checkbox" constexpr data member:
 
-Gets the element's height with the 
-padding and border, but without the 
-margin and the overflowed content.
+Indicates a checkbox input.
 
-Parameters:
-* A pointer to the element, as an std::dom::Node.
+## "file" constexpr data member:
 
-Returns: unsigned int.
+Indicates a file input.
 
-```
-/*In Main::main.*/
-unsigned int height = 
-	std::dom::Element::getOffsetHeight(&div);
-```
+## "text" constexpr data member:
 
-## "getOffsetLeft" static function:
-
-Gets the element's left border's 
-vertical position.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: unsigned int.
-
-```
-/*In Main::main.*/
-unsigned int left = 
-	std::dom::Element::getOffsetLeft(&div);
-```
-
-## "getOffsetTop" static function:
-
-Gets the element's top border's 
-horizontal position.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: unsigned int.
-
-```
-/*In Main::main.*/
-unsigned int top = 
-	std::dom::Element::getOffsetTop(&div);
-```
-
-## "getOffsetWidth" static function:
-		
-Gets the element's width with the 
-padding and border, but without the 
-margin and the overflowed content.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: unsigned int.
-
-```
-/*In Main::main.*/
-unsigned int width = 
-	std::dom::Element::getOffsetWidth(&div);
-```
-
-## "getStyle" static function:
-
-Gets the element's CSS style declaration block.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-* A pointer to an std::css::Declaration to set.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::css::Declaration style;
-std::html::Element::getStyle(&div, &style);
-```
-
-## "removeChildren" static function:
-
-Removes the contained nodes from the element.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::html::Element::removeChildren(&node);
-/*The node is now empty.*/
-```
+Indicates a text input.
 
 # Software license
 
