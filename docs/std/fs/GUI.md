@@ -1,136 +1,39 @@
-# "std::fs::File" class:
+# "std::fs::GUI" class:
 
-Used to point to an opened file.
+Used to show a graphical user interface 
+for file system operations.
 
+## "select" member function:
+
+Shows the GUI, with allowing to select a file 
+or folder. The window should be emptied before 
+calling this function, and its content can be 
+restored after the select.
+
+Parameters:
+* A pointer to a "void(std::ApplicationInstance, 
+std::DString*)" function that will be called 
+after the select or cancel, with the instance 
+and a pointer to the selected entry as an 
+std::DString.
+* A boolean value whether to select a file, 
+or if false a folder.
+
+Returns: void.
+		
 ```
 class Main {
 	void main(std::ApplicationInstance aexcl app){
-		app.fileSystem.openFile(
-			"/tut/Year.md", onOpened,
-			std::fs::OpenFileModes::readBinary);
+		app.fileSystem.gui.select(onSelect, true);
 	}
 	
-	static void onOpened(
+	static void onSelect(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* file){
+		std::DString* path){
+		/*The path is "/tut/Year.md" 
+			if that was selected.*/
 	}
 }
-```
-
-## "mode" data member:
-
-The file's mode as an std::fs::OpenFileModes 
-value. It should not be modified.
-
-```
-/*In Main::onOpened.*/
-unsigned char mode = file->mode;
-/*std::fs::OpenFileModes::readBinary*/
-```
-	
-## "path" data member:
-
-The file's path as std::String.
-It should not be modified.
-
-```
-/*In Main::onOpened.*/
-std::String* path = &file->path;
-/*"/tut/Year.md"*/
-```
-
-## "flush" member function:
-
-During writes the file's content might only 
-be buffered. The flush function writes out 
-the buffered content. This function 
-automatically called when the file is closed.
-
-Returns: void.
-
-```
-/*Change "readBinary" to "writeBinary" 
-	in Main::main.*/
-
-/*In Main::onOpened.*/
-file->write("2021", 0, 4);
-file->flush();
-```
-	
-## "getSize" member function:
-
-Gets the file's size.
-
-Returns: unsigned int.
-
-```
-/*In Main::onOpened.*/
-unsigned int size = file->getSize();
-/*4, if it contains '2','0','2','1'.*/
-```
-
-## "read" member function:
-
-Reads a sequence of unsigned char values
-from the file starting at the cursor's 
-position, and increases the cursor with
-the number of values read.
-
-Parameters:
-* An array to copy the values to.
-* The starting index in the array 
-to copy the values to.
-* The number of values to read.
-
-Returns: void.
-
-```
-/*In Main::onOpened.*/
-std::String string;
-string.setLength(4);
-file->read(string.data, 0, 4);
-/*"2021"*/
-```
-
-## "setCursor" member function:
-
-Sets the cursor's position.
-
-Parameters:
-* The position to set.
-
-Returns: void.
-
-```
-/*In Main::onOpened.*/
-file->setCursor(2);
-std::String string;
-string.setLength(2);
-file->read(string.data, 0, 2);
-/*"21"*/
-```
-
-## "write" member function:
-
-Writes a sequence of unsigned char values
-to the file starting at the cursor's 
-position, and increases the cursor with
-the number of values written.
-
-Parameters:
-* An array to copy the values from.
-* The starting index in the array 
-to copy the values from.
-* The number of values to write.
-
-Returns: void.
-
-```
-/*Change "readBinary" to "writeBinary" 
-	in Main::main.*/
-	
-/*In Main::onOpened.*/
-file->write("2021", 0, 4);
 ```
 
 # Software license

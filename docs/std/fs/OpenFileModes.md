@@ -1,137 +1,36 @@
-# "std::fs::File" class:
+# "std::fs::OpenFileModes" enum:
 
-Used to point to an opened file.
+## "readBinary" constexpr data member:
 
-```
-class Main {
-	void main(std::ApplicationInstance aexcl app){
-		app.fileSystem.openFile(
-			"/tut/Year.md", onOpened,
-			std::fs::OpenFileModes::readBinary);
-	}
-	
-	static void onOpened(
-		std::ApplicationInstance aexcl app,
-		std::fs::File* file){
-	}
-}
-```
+Indicates a read-only mode. The file is not 
+not created if it does not exists.
 
-## "mode" data member:
+## "writeBinary" constexpr data member:
 
-The file's mode as an std::fs::OpenFileModes 
-value. It should not be modified.
+Indicates a write-only mode. The file is 
+created if it does not exists. If the file 
+exists, an empty file is used instead.
 
-```
-/*In Main::onOpened.*/
-unsigned char mode = file->mode;
-/*std::fs::OpenFileModes::readBinary*/
-```
-	
-## "path" data member:
+## "appendBinary" constexpr data member:
 
-The file's path as std::String.
-It should not be modified.
+Indicates a write-only and append-only mode. 
+The file is created if it does not exists.
 
-```
-/*In Main::onOpened.*/
-std::String* path = &file->path;
-/*"/tut/Year.md"*/
-```
+## "readUpdateBinary" constexpr data member:
 
-## "flush" member function:
+Indicates a read-write mode. The file is not 
+not created if it does not exists.
 
-During writes the file's content might only 
-be buffered. The flush function writes out 
-the buffered content. This function 
-automatically called when the file is closed.
+## "writeUpdateBinary" constexpr data member:
 
-Returns: void.
+Indicates a read-write mode. The file is 
+created if it does not exists. If the file 
+exists, an empty file is used instead.
 
-```
-/*Change "readBinary" to "writeBinary" 
-	in Main::main.*/
+## "appendUpdateBinary" constexpr data member:
 
-/*In Main::onOpened.*/
-file->write("2021", 0, 4);
-file->flush();
-```
-	
-## "getSize" member function:
-
-Gets the file's size.
-
-Returns: unsigned int.
-
-```
-/*In Main::onOpened.*/
-unsigned int size = file->getSize();
-/*4, if it contains '2','0','2','1'.*/
-```
-
-## "read" member function:
-
-Reads a sequence of unsigned char values
-from the file starting at the cursor's 
-position, and increases the cursor with
-the number of values read.
-
-Parameters:
-* An array to copy the values to.
-* The starting index in the array 
-to copy the values to.
-* The number of values to read.
-
-Returns: void.
-
-```
-/*In Main::onOpened.*/
-std::String string;
-string.setLength(4);
-file->read(string.data, 0, 4);
-/*"2021"*/
-```
-
-## "setCursor" member function:
-
-Sets the cursor's position.
-
-Parameters:
-* The position to set.
-
-Returns: void.
-
-```
-/*In Main::onOpened.*/
-file->setCursor(2);
-std::String string;
-string.setLength(2);
-file->read(string.data, 0, 2);
-/*"21"*/
-```
-
-## "write" member function:
-
-Writes a sequence of unsigned char values
-to the file starting at the cursor's 
-position, and increases the cursor with
-the number of values written.
-
-Parameters:
-* An array to copy the values from.
-* The starting index in the array 
-to copy the values from.
-* The number of values to write.
-
-Returns: void.
-
-```
-/*Change "readBinary" to "writeBinary" 
-	in Main::main.*/
-	
-/*In Main::onOpened.*/
-file->write("2021", 0, 4);
-```
+Indicates a read and append-only write mode. 
+The file is created if it does not exists.
 
 # Software license
 

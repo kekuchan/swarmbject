@@ -1,136 +1,106 @@
-# "std::fs::File" class:
+# "std::fs::Folder" class:
 
-Used to point to an opened file.
+Used to point to an opened folder, and 
+iterate over its contained entries. When 
+opened it points to the first entry.
 
 ```
 class Main {
 	void main(std::ApplicationInstance aexcl app){
-		app.fileSystem.openFile(
-			"/tut/Year.md", onOpened,
-			std::fs::OpenFileModes::readBinary);
+		app.fileSystem.openFolder(
+			"/tut/", onOpened, true);
 	}
 	
 	static void onOpened(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* file){
+		std::fs::Folder* folder){
 	}
 }
 ```
 
-## "mode" data member:
-
-The file's mode as an std::fs::OpenFileModes 
-value. It should not be modified.
-
-```
-/*In Main::onOpened.*/
-unsigned char mode = file->mode;
-/*std::fs::OpenFileModes::readBinary*/
-```
-	
 ## "path" data member:
 
-The file's path as std::String.
+The folder's path as std::String.
 It should not be modified.
 
 ```
 /*In Main::onOpened.*/
-std::String* path = &file->path;
-/*"/tut/Year.md"*/
+std::String* path = &folder->path;
+/*"/tut/"*/
 ```
 
-## "flush" member function:
+## "entries" member function:
 
-During writes the file's content might only 
-be buffered. The flush function writes out 
-the buffered content. This function 
-automatically called when the file is closed.
-
-Returns: void.
-
-```
-/*Change "readBinary" to "writeBinary" 
-	in Main::main.*/
-
-/*In Main::onOpened.*/
-file->write("2021", 0, 4);
-file->flush();
-```
-	
-## "getSize" member function:
-
-Gets the file's size.
+Gets the number of entries in the folder.
 
 Returns: unsigned int.
 
 ```
 /*In Main::onOpened.*/
-unsigned int size = file->getSize();
-/*4, if it contains '2','0','2','1'.*/
+unsigned int entries = folder->entries();
+/*1, if it contains only "Year.md".*/
 ```
 
-## "read" member function:
+## "getName" member function:
 
-Reads a sequence of unsigned char values
-from the file starting at the cursor's 
-position, and increases the cursor with
-the number of values read.
+Inserts the currently pointed entry's 
+name to an std::DString's end.
 
 Parameters:
-* An array to copy the values to.
-* The starting index in the array 
-to copy the values to.
-* The number of values to read.
+* A pointer an std::DString.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::DString string;
+folder->getName(&string);
+/*"Year.md".*/
+```
+
+## "getType" member function:
+
+Gets the currently pointed entry's type, 
+as an std::fs::EntryTypes value.
+
+Returns: unsigned char.
+
+```
+/*In Main::onOpened.*/
+unsigned char type = folder->getType();
+/*std::fs::EntryTypes::file.*/
+```
+
+## "next" member function:
+
+Changes the currently pointed 
+entry to the next entry.
 
 Returns: void.
 
 ```
 /*In Main::onOpened.*/
-std::String string;
-string.setLength(4);
-file->read(string.data, 0, 4);
-/*"2021"*/
+folder->next();
+/*The currently pointed entry is 
+	now the entry after "Year.md".*/
+unsigned char type = folder->getType();
+/*std::fs::EntryTypes::none, 
+	as the are no more entries.*/
 ```
 
-## "setCursor" member function:
+## "start" member function:
 
-Sets the cursor's position.
-
-Parameters:
-* The position to set.
+Changes the currently pointed 
+entry back to the first entry.
 
 Returns: void.
 
 ```
 /*In Main::onOpened.*/
-file->setCursor(2);
-std::String string;
-string.setLength(2);
-file->read(string.data, 0, 2);
-/*"21"*/
-```
-
-## "write" member function:
-
-Writes a sequence of unsigned char values
-to the file starting at the cursor's 
-position, and increases the cursor with
-the number of values written.
-
-Parameters:
-* An array to copy the values from.
-* The starting index in the array 
-to copy the values from.
-* The number of values to write.
-
-Returns: void.
-
-```
-/*Change "readBinary" to "writeBinary" 
-	in Main::main.*/
-	
-/*In Main::onOpened.*/
-file->write("2021", 0, 4);
+folder->next();
+folder->start();
+/*The currently pointed entry 
+	is again "Year.md".*/
 ```
 
 # Software license

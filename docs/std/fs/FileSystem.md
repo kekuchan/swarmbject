@@ -1,6 +1,84 @@
-# "std::fs::File" class:
+# "std::fs::FileSystem" class:
 
-Used to point to an opened file.
+Used for file system operations.
+	
+## "gui" data member:
+
+Used to show a graphical user interface. Its 
+members will be detailed at "std::fs::GUI".
+
+## "deleteFile" member function:
+
+Requests to delete a file.
+
+Parameters:
+* The file's path as a 0 ended 
+unsigned char array string.
+* Either nullptr, or a pointer to a "void(
+std::ApplicationInstance, std::String*)" function 
+that will be called later asynchronously after the 
+deletion, with the instance and the file's path.
+
+Returns: 0, if no immediate error, >0 otherwise.
+
+```
+class Main {
+	void main(std::ApplicationInstance aexcl app){
+		app.fileSystem.deleteFile(
+			"/tut/Year.md", onDeleted);
+	}
+	
+	static void onDeleted(
+		std::ApplicationInstance aexcl app,
+		std::String* path){
+	}
+}
+```
+
+## "deleteFolder" member function:
+
+Requests to delete a folder.
+
+Parameters:
+* The folder's path as a 0 ended 
+unsigned char array string.
+* Either nullptr, or a pointer to a "void(
+std::ApplicationInstance, std::String*)" function 
+that will be called later asynchronously after the 
+deletion, with the instance and the folder's path.
+
+Returns: 0, if no immediate error, >0 otherwise.
+
+```
+class Main {
+	void main(std::ApplicationInstance aexcl app){
+		app.fileSystem.deleteFolder(
+			"/tut/", onDeleted);
+	}
+	
+	static void onDeleted(
+		std::ApplicationInstance aexcl app,
+		std::String* path){
+	}
+}
+```
+
+## "openFile" member function:
+
+Requests to open a file.
+
+Parameters:
+* The file's path as a 0 ended 
+unsigned char array string.
+* Either nullptr, or a pointer to a "void(
+std::ApplicationInstance, std::fs::File*)"
+function that will be called later 
+asynchronously after the open, with the 
+instance and a pointer to the file.
+* The file's open mode as an 
+std::fs::OpenFileModes value.
+
+Returns: 0, if no immediate error, >0 otherwise.
 
 ```
 class Main {
@@ -16,121 +94,100 @@ class Main {
 	}
 }
 ```
+		
+## "openFolder" member function:
 
-## "mode" data member:
-
-The file's mode as an std::fs::OpenFileModes 
-value. It should not be modified.
-
-```
-/*In Main::onOpened.*/
-unsigned char mode = file->mode;
-/*std::fs::OpenFileModes::readBinary*/
-```
-	
-## "path" data member:
-
-The file's path as std::String.
-It should not be modified.
-
-```
-/*In Main::onOpened.*/
-std::String* path = &file->path;
-/*"/tut/Year.md"*/
-```
-
-## "flush" member function:
-
-During writes the file's content might only 
-be buffered. The flush function writes out 
-the buffered content. This function 
-automatically called when the file is closed.
-
-Returns: void.
-
-```
-/*Change "readBinary" to "writeBinary" 
-	in Main::main.*/
-
-/*In Main::onOpened.*/
-file->write("2021", 0, 4);
-file->flush();
-```
-	
-## "getSize" member function:
-
-Gets the file's size.
-
-Returns: unsigned int.
-
-```
-/*In Main::onOpened.*/
-unsigned int size = file->getSize();
-/*4, if it contains '2','0','2','1'.*/
-```
-
-## "read" member function:
-
-Reads a sequence of unsigned char values
-from the file starting at the cursor's 
-position, and increases the cursor with
-the number of values read.
+Requests to open a folder.
 
 Parameters:
-* An array to copy the values to.
-* The starting index in the array 
-to copy the values to.
-* The number of values to read.
+* The folder's path as a 0 ended 
+unsigned char array string.
+* Either nullptr, or a pointer to a "void(
+std::ApplicationInstance, std::fs::Folder*)"
+function that will be called later asynchronously 
+after the open, with the instance and a pointer 
+to the folder.
+* A boolean value whether to create 
+the folder if it does not exists.
 
-Returns: void.
-
-```
-/*In Main::onOpened.*/
-std::String string;
-string.setLength(4);
-file->read(string.data, 0, 4);
-/*"2021"*/
-```
-
-## "setCursor" member function:
-
-Sets the cursor's position.
-
-Parameters:
-* The position to set.
-
-Returns: void.
+Returns: 0, if no immediate error, >0 otherwise.
 
 ```
-/*In Main::onOpened.*/
-file->setCursor(2);
-std::String string;
-string.setLength(2);
-file->read(string.data, 0, 2);
-/*"21"*/
-```
-
-## "write" member function:
-
-Writes a sequence of unsigned char values
-to the file starting at the cursor's 
-position, and increases the cursor with
-the number of values written.
-
-Parameters:
-* An array to copy the values from.
-* The starting index in the array 
-to copy the values from.
-* The number of values to write.
-
-Returns: void.
-
-```
-/*Change "readBinary" to "writeBinary" 
-	in Main::main.*/
+class Main {
+	void main(std::ApplicationInstance aexcl app){
+		app.fileSystem.openFolder(
+			"/tut/", onOpened, true);
+	}
 	
-/*In Main::onOpened.*/
-file->write("2021", 0, 4);
+	static void onOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::Folder* folder){
+	}
+}
+```
+
+## "moveFile" member function:
+
+Requests to move with possibly renaming a file.
+
+Parameters:
+* The file's path to move from as a 
+0 ended unsigned char array string.
+* The file's path to move to as a 
+0 ended unsigned char array string.
+* Either nullptr, or a pointer to a "void(
+std::ApplicationInstance, unsigned char[],
+unsigned int)" function	that will be called later 
+asynchronously after the move, with the instance, 
+the file's path as a 0 ended unsigned char array 
+string, and the path's starting offset in the array.
+
+Returns: 0, if no immediate error, >0 otherwise.
+
+```
+class Main {
+	void main(std::ApplicationInstance aexcl app){
+		app.fileSystem.moveFile("/tut/Year.md",
+			"/tutorial/Year.md", onMove);
+	}
+	
+	static void onMove(
+		std::ApplicationInstance aexcl app,
+		unsigned char[] path, unsigned int offset){
+	}
+}
+```
+
+## "moveFolder" member function:
+
+Requests to move with possibly renaming a folder.
+
+Parameters:
+* The folder's path to move from as a 
+0 ended unsigned char array string.
+* The folder's path to move to as a 
+0 ended unsigned char array string.
+* Either nullptr, or a pointer to a "void(
+std::ApplicationInstance, unsigned char[],
+unsigned int)" function	that will be called later 
+asynchronously after the move, with the instance, 
+the folder's path as a 0 ended unsigned char array 
+string, and the path's starting offset in the array.
+
+Returns: 0, if no immediate error, >0 otherwise.
+
+```
+class Main {
+	void main(std::ApplicationInstance aexcl app){
+		app.fileSystem.moveFolder("/tut/",
+			"/tutorial/", onMove);
+	}
+	
+	static void onMove(
+		std::ApplicationInstance aexcl app,
+		unsigned char[] path, unsigned int offset){
+	}
+}
 ```
 
 # Software license
