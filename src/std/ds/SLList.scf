@@ -67,129 +67,82 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Buffer {
+/* Singly linked list */
+class SLList {
+	void* next;
 
-	unsigned char[] data;
-	unsigned int size;
-
-	Buffer(){
-		size = 0;
-		data = nullptr;
-	}
-
-	~Buffer(){
-		delete[] data;
-	}
-	
-	void debug(){
-		unsigned char[] chars = data;
-		unsigned int len = size;
-		unsigned int i = 0;
-		void* str;
-		constwrite "	str = '';\n";
-		while (i < len){
-			unsigned char bufferChar = chars[i];
-			constwrite "		str += ', ' + bufferChar;\n";
-			if (bufferChar > 32 && bufferChar < 127){
-				constwrite "			str += ' (' +\n"
-					"				String.fromCharCode(bufferChar) + ')';\n";
-			}
-			i = i + 1;
-		}
-		constwrite "	alert(str);\n";
+	SLList(){
+		next = nullptr;
 	}
 
 	/* Public member functions. */
-	
-	void clear(){
-		size = 0;
-		delete[] data;
-		data = nullptr;
-	}
 
-	unsigned char getU8(unsigned int start){
-		return data[start];
-	}
-
-	void getU8s(unsigned int start,
-		unsigned char[] chars, unsigned int i,
-		unsigned int len){
-		std::arr::Uchar::copy(data, start, chars, i, len);
-	}
-
-	unsigned short getU16BE(unsigned int start){
-		return std::arr::Uchar::getU16BE(data, start);
-	}
-
-	unsigned short getU16LE(unsigned int start){
-		return std::arr::Uchar::getU16LE(data, start);
-	}
-
-	unsigned int getU32BE(unsigned int start){
-		return std::arr::Uchar::getU32BE(data, start);
-	}
-
-	unsigned int getU32LE(unsigned int start){
-		return std::arr::Uchar::getU32LE(data, start);
-	}
-
-	void move(std::ds::Buffer* src){
-		if (src == this) {return;}
-		size = src->size;
-		delete[] data;
-		data = src->data;
-		src->size = 0;
-		src->data = nullptr;
-	}
-
-	void setSize(unsigned int len){
-		unsigned int copySize = size;
-		if (copySize == len) {return;}
-		if (copySize == 0){
-			data = new unsigned char[len];
-		} else {
-			unsigned char[] previousData = data;
-			if (len > 0){
-				unsigned char[] newData = new unsigned char[len];
-				if (len < copySize) {copySize = len;}
-				std::arr::Uchar::copy(previousData, 0, newData, 0, copySize);
-				data = newData;
-			} else {
-				data = nullptr;
-			}
-			delete[] previousData;
+	static unsigned int getSize(void* frontElement,
+		std::ds::SLList*(void*) getList){
+		unsigned int size = 0;
+		while (frontElement != nullptr){
+			size = size + 1;
+			std::ds::SLList* list = getList(frontElement);
+			frontElement = list->next;
 		}
-		size = len;
+		return size;
 	}
 
-	void setU8(unsigned int start,
-		unsigned char setChar){
-		data[start] = setChar;
+	static void popFront(void** front,
+		void** back, std::ds::SLList*(void*) getList){
+		void* frontElement = *front;
+		if (frontElement != nullptr){
+			std::ds::SLList* list = getList(frontElement);
+			void* nextElement = list->next;
+			if (nextElement == nullptr && back != nullptr){
+				*back = nullptr;
+			}
+			*front = nextElement;
+			list->next = nullptr;
+		}
 	}
 
-	void setU8s(unsigned int start,
-		unsigned char[] chars, unsigned int i,
-		unsigned int len){
-		std::arr::Uchar::copy(chars, i, data, start, len);
+	/* If the element is already part of the list, then it must be
+		removed before calling this function.
+		The back ptr can be nullptr. */
+	static void pushBack(void* element, void** front,
+		void** back, std::ds::SLList*(void*) getList){
+		void* backElement;
+		if (back != nullptr){
+			backElement = *back;
+			*back = element;
+		} else {
+			backElement = *front;
+		}
+		if (backElement == nullptr){
+			*front = element;
+		} else {
+			std::ds::SLList* list = getList(backElement);
+			void* nextElement = list->next;
+			while (nextElement != nullptr){
+				backElement = nextElement;
+				list = getList(backElement);
+			}
+			list->next = element;
+		}
 	}
 
-	void setU16BE(unsigned int start,
-		unsigned short setShort){
-		std::arr::Uchar::setU16BE(data, start, setShort);
+	/* If the element is already part of the list, then it must be
+		removed before calling this function.
+		The back ptr can be nullptr. */
+	static void pushFront(void* element, void** front,
+		void** back, std::ds::SLList*(void*) getList){
+		void* frontElement = *front;
+		if (frontElement == nullptr){
+			*front = element;
+			if (back != nullptr){
+				*back = element;
+			}
+		} else {
+			std::ds::SLList* list = getList(element);
+			list->next = frontElement;
+			*front = element;
+		}
 	}
-
-	void setU16LE(unsigned int start,
-		unsigned short setShort){
-		std::arr::Uchar::setU16LE(data, start, setShort);
-	}
-
-	void setU32BE(unsigned int start,
-		unsigned int setInt){
-		std::arr::Uchar::setU32BE(data, start, setInt);
-	}
-
-	void setU32LE(unsigned int start,
-		unsigned int setInt){
-		std::arr::Uchar::setU32LE(data, start, setInt);
-	}
+	
 }

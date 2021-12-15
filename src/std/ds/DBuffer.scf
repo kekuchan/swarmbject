@@ -67,44 +67,106 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Buffer {
+class DBuffer {
 
+	unsigned int capacity;
 	unsigned char[] data;
 	unsigned int size;
 
-	Buffer(){
+	DBuffer(){
 		size = 0;
+		capacity = 0;
 		data = nullptr;
 	}
 
-	~Buffer(){
+	~DBuffer(){
 		delete[] data;
 	}
 	
-	void debug(){
-		unsigned char[] chars = data;
-		unsigned int len = size;
-		unsigned int i = 0;
-		void* str;
-		constwrite "	str = '';\n";
-		while (i < len){
-			unsigned char bufferChar = chars[i];
-			constwrite "		str += ', ' + bufferChar;\n";
-			if (bufferChar > 32 && bufferChar < 127){
-				constwrite "			str += ' (' +\n"
-					"				String.fromCharCode(bufferChar) + ')';\n";
+	unsigned char[] addSize(
+		unsigned int len, bool copy, bool del){
+		unsigned int previousSize = size;
+		unsigned int newSize = previousSize + len;
+		unsigned int newCapacity = capacity;
+		unsigned char[] newData;
+		if (newCapacity < newSize){
+			if (newCapacity == 0){
+				newCapacity = len;
+				newData = new unsigned char[len];
+			} else {
+				newCapacity = newCapacity * 2;
+				if (newCapacity < newSize) {newCapacity = newSize;}
+				unsigned char[] previousData = data;
+				newData = new unsigned char[newCapacity];
+				if (copy){
+					std::arr::Uchar::copy(previousData, 0,
+						newData, 0, previousSize);
+				}
+				if (del) {delete[] previousData;}
 			}
-			i = i + 1;
-		}
-		constwrite "	alert(str);\n";
+			data = newData;
+			capacity = newCapacity;
+		} else {newData = data;}
+		size = newSize;
+		return newData;
+	}
+
+	void* getJsBlob(){
+		return std::js::Blob::create(data, 0, size);
 	}
 
 	/* Public member functions. */
-	
+
+	void addU8(unsigned char setChar){
+		unsigned char[] newData = 
+			addSize(1, true, true);
+		newData[size - 1] = setChar;
+	}
+
+	void addU8s(unsigned char[] array,
+		unsigned int start, unsigned int len){
+		if (len == 0) {return;}
+		unsigned char[] previousData = data;
+		unsigned int previousSize = size;
+		unsigned char[] newData = 
+			addSize(len, true, false);
+		std::arr::Uchar::copy(
+			array, start, newData, previousSize, len);
+		if (newData != previousData){
+			delete[] previousData;
+		}
+	}
+
+	void addU16BE(unsigned short setShort){
+		unsigned char[] newData = 
+			addSize(2, true, true);
+		std::arr::Uchar::setU16BE(
+			newData, size - 2, setShort);
+	}
+
+	void addU16LE(unsigned short setShort){
+		unsigned char[] newData = 
+			addSize(2, true, true);
+		std::arr::Uchar::setU16LE(
+			newData, size - 2, setShort);
+	}
+
+	void addU32BE(unsigned int setInt){
+		unsigned char[] newData = 
+			addSize(4, true, true);
+		std::arr::Uchar::setU32BE(
+			newData, size - 4, setInt);
+	}
+
+	void addU32LE(unsigned int setInt){
+		unsigned char[] newData = 
+			addSize(4, true, true);
+		std::arr::Uchar::setU32LE(
+			newData, size - 4, setInt);
+	}
+
 	void clear(){
 		size = 0;
-		delete[] data;
-		data = nullptr;
 	}
 
 	unsigned char getU8(unsigned int start){
@@ -133,63 +195,29 @@ class Buffer {
 		return std::arr::Uchar::getU32LE(data, start);
 	}
 
-	void move(std::ds::Buffer* src){
+	void move(std::ds::DBuffer* src){
 		if (src == this) {return;}
 		size = src->size;
+		capacity = src->capacity;
 		delete[] data;
 		data = src->data;
 		src->size = 0;
+		src->capacity = 0;
 		src->data = nullptr;
 	}
 
-	void setSize(unsigned int len){
-		unsigned int copySize = size;
-		if (copySize == len) {return;}
-		if (copySize == 0){
-			data = new unsigned char[len];
-		} else {
+	void reserve(unsigned int newCapacity){
+		if (newCapacity > capacity){
 			unsigned char[] previousData = data;
-			if (len > 0){
-				unsigned char[] newData = new unsigned char[len];
-				if (len < copySize) {copySize = len;}
-				std::arr::Uchar::copy(previousData, 0, newData, 0, copySize);
-				data = newData;
-			} else {
-				data = nullptr;
+			unsigned char[] newData = new void*[newCapacity];
+			if (previousData != nullptr){
+				std::arr::Uchar::copy(previousData, 0,
+					newData, 0, size);
+				delete[] previousData;
 			}
-			delete[] previousData;
+			data = newData;
 		}
-		size = len;
+		capacity = newCapacity;
 	}
 
-	void setU8(unsigned int start,
-		unsigned char setChar){
-		data[start] = setChar;
-	}
-
-	void setU8s(unsigned int start,
-		unsigned char[] chars, unsigned int i,
-		unsigned int len){
-		std::arr::Uchar::copy(chars, i, data, start, len);
-	}
-
-	void setU16BE(unsigned int start,
-		unsigned short setShort){
-		std::arr::Uchar::setU16BE(data, start, setShort);
-	}
-
-	void setU16LE(unsigned int start,
-		unsigned short setShort){
-		std::arr::Uchar::setU16LE(data, start, setShort);
-	}
-
-	void setU32BE(unsigned int start,
-		unsigned int setInt){
-		std::arr::Uchar::setU32BE(data, start, setInt);
-	}
-
-	void setU32LE(unsigned int start,
-		unsigned int setInt){
-		std::arr::Uchar::setU32LE(data, start, setInt);
-	}
 }
