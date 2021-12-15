@@ -67,18 +67,19 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class DataView {
+class Array {
 
+	/* Compares array to submemory. */
 	static unsigned char compare(
-		void* view, unsigned char[] dst,
+		void* array, unsigned char[] dst,
 		unsigned int start, unsigned int len){
 		unsigned char cmp = compareRange(
-			view, 0, dst, start, len);
+			array, 0, dst, start, len);
 		if (cmp == std::Compare::equal){
-			unsigned int viewLength;
-			constwrite "	viewLength = view.byteLength;\n";
-			if (viewLength != len){
-				if (viewLength > len){
+			unsigned int arrayLength;
+			constwrite "	arrayLength = array.byteLength;\n";
+			if (arrayLength != len){
+				if (arrayLength > len){
 					return std::Compare::greater;
 				}
 				return std::Compare::less;
@@ -87,45 +88,45 @@ class DataView {
 		return cmp;
 	}
 
-	/* Compares view to submemory. */
-	static unsigned char compareRange(void* view,
-		unsigned int viewStart, unsigned char[] dst,
+	static unsigned char compareRange(void* array,
+		unsigned int arrayStart, unsigned char[] dst,
 		unsigned int dstStart, unsigned int len){
-		unsigned int viewLength;
-		constwrite "	viewLength = view.byteLength;\n";
-		if (viewStart > viewLength) 
+		unsigned int arrayLength;
+		constwrite "	arrayLength = array.byteLength;\n";
+		if (arrayStart > arrayLength) 
 			{return std::Compare::less;}
-		viewLength = viewLength - viewStart;
+		arrayLength = arrayLength - arrayStart;
 		unsigned int minLength;
-		if (len < viewLength){
+		if (len < arrayLength){
 			minLength = len;
-		} else {minLength = viewLength;}
+		} else {minLength = arrayLength;}
 		unsigned int i = 0;
 		while (i < minLength){
-			unsigned char viewChar;
-			constwrite "		viewChar = view.getUint8(viewStart + i);\n";
+			unsigned char arrayChar;
+			constwrite "		arrayChar = array[arrayStart + i];\n";
 			unsigned char memoryChar = dst[dstStart + i];
-			if (viewChar != memoryChar){
-				if (viewChar > memoryChar) 
+			if (arrayChar != memoryChar){
+				if (arrayChar > memoryChar) 
 					{return std::Compare::greater;}
 				return std::Compare::less;
 			}
 			i = i + 1;
 		}
-		if (len == minLength) {return std::Compare::equal;}
+		if (len == minLength) 
+			{return std::Compare::equal;}
 		return std::Compare::less;
 	}
-	
-	static void copyViews(void* src, void* dst,
-		unsigned int srcStart, unsigned int dstStart,
-		unsigned int len){
-		unsigned int i = 0;
-		while (i < len){
-			constwrite
-				"		dst.setUint8(dstStart + i, \n"
-				"			src.getUint8(srcStart + i));\n";
-			i = i + 1;
+
+	static void* create(unsigned char[] src,
+		unsigned int i, unsigned int len){
+		void* array;
+		constwrite "	array = new Uint8Array(new ArrayBuffer(len));\n";
+		while (len > 0){
+			len = len - 1;
+			unsigned char memoryChar = src[i + len];
+			constwrite "		array[len] = memoryChar;\n";
 		}
+		return array;
 	}
 
 	static void get(void* src,
@@ -134,22 +135,9 @@ class DataView {
 		while (len > 0){
 			len = len - 1;
 			unsigned char srcChar;
-			constwrite "		srcChar = src.getUint8(srcStart + len);\n";
+			constwrite "		srcChar = src[srcStart + len];\n";
 			dst[dstStart + len] = srcChar;
 		}
-	}
-	
-	static void* getUint8SubArray(void* src,
-		unsigned int start, unsigned int len){
-		void* array;
-		constwrite "	array = new Uint8Array(\n"
-			"		new ArrayBuffer(len));\n";
-		unsigned int i = 0;
-		while (i < len){
-			constwrite "		array[i] = src.getUint8(start + i);\n";
-			i = i + 1;
-		}
-		return array;
 	}
 
 	static void set(unsigned char[] src,
@@ -158,7 +146,7 @@ class DataView {
 		while (len > 0){
 			len = len - 1;
 			unsigned char memoryChar = src[srcStart + len];
-			constwrite "		dst.setUint8(dstStart + len, memoryChar);\n";
+			constwrite "		dst[dstStart + len] = memoryChar;\n";
 		}
 	}
 

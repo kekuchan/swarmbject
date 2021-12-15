@@ -71,22 +71,45 @@ class String {
 
 	/* Used only for JS, so no need to create
 		platform independent code. */
+	
+	static void* decode(unsigned char* string,
+		unsigned int len){
+		void* stringObject;
+		constwrite
+			"	stringObject = _textDecoder.decode(new Uint8Array(\n"
+			"		_memory, string, len));\n";
+		return stringObject;
+	}
+
+	static unsigned int encode(void* string,
+		unsigned char[] array, unsigned int i){
+		unsigned int len;
+		constwrite "	len = string.length;\n";
+		if (array != nullptr){
+			void* m;
+			constwrite "	m = _memoryU8;\n";
+			return 
+				subencode(string, 0, len, m, &array[i]);
+		} else {
+			return sublength(string, 0, len);
+		}
+	}
 
 	static unsigned int length(void* string){
 		unsigned int len;
 		constwrite "	len = string.length;\n";
 		return sublength(string, 0, len);
 	}
-
-	static unsigned int sublength(void* string,
-		unsigned int start, unsigned int len){
-		constwrite
+	
+	/* Decodes the encoded offset from the decoded string's
+			decoded start position. */
+	static unsigned int offset(void* string,
+		unsigned int i, unsigned int offset){
+		constwrite 
 			"	var length = string.length;\n"
-			"	if (start >= length) len = 0;\n"
-			"	else if (length - start < len)\n"
-			"		len = length - start;\n"
 			"	var bytes = 0;\n"
-			"	for (var i = start; i < len; ++i){\n"
+			"	var start = i;\n"
+			"	for (; i < length && bytes < offset; ++i){\n"
 			"		var charCode = string.charCodeAt(i);\n"
 			"		/* Based on The Unicode Standard, Version 3.0 from 1999 */\n"
 			"		if (charCode <= 0x007F){\n"
@@ -105,25 +128,19 @@ class String {
 			"		}\n"
 			"		/* Values not allowed by the standard are ignored. */\n"
 			"	}\n"
-			"	return bytes;\n";
+			"	return i - start;\n";
 	}
 
-	static void encode(void* string,
+	static unsigned int subencode(void* string,
+		unsigned int i, unsigned int len,
 		void* array, unsigned char* bytes){
-		unsigned int len;
-		constwrite "	len = string.length;\n";
-		subencode(string, 0, len, array, bytes);
-	}
-
-	static void subencode(void* string,
-		unsigned int start, unsigned int len,
-		void* array, unsigned char* bytes){
-		constwrite
+		constwrite 
 			"	var length = string.length;\n"
-			"	if (start >= length) len = 0;\n"
-			"	else if (length - start < len)\n"
-			"		len = length - start;"
-			"	for (var i = start; i < len; ++i){\n"
+			"	if (i >= length) len = 0;\n"
+			"	else if (length - i < len)\n"
+			"		len = length - i;\n"
+			"	var start = bytes;\n"
+			"	for (; i < len; ++i){\n"
 			"		var charCode = string.charCodeAt(i);\n"
 			"		/* Based on The Unicode Standard, Version 3.0 from 1999 */\n"
 			"		if (charCode <= 0x007F){\n"
@@ -150,25 +167,18 @@ class String {
 			"		}\n"
 			"		/* Values not allowed by the standard are ignored. */\n"
 			"	}\n";
+			"	return bytes - start;\n";
 	}
-	
-	static void* decode(unsigned char* string,
-		unsigned int len){
-		void* stringObject;
-		constwrite
-			"	stringObject = _textDecoder.decode(new Uint8Array(\n"
-			"		_memory, string, len));\n";
-		return stringObject;
-	}
-	
-	/* Decodes the encoded offset from the decoded string's
-			decoded start position. */
-	static unsigned int offset(void* string,
-		unsigned int start, unsigned int offset){
-		constwrite
+
+	static unsigned int sublength(void* string,
+		unsigned int i, unsigned int len){
+		constwrite 
 			"	var length = string.length;\n"
+			"	if (i >= length) len = 0;\n"
+			"	else if (length - i < len)\n"
+			"		len = length - i;\n"
 			"	var bytes = 0;\n"
-			"	for (var i = start; i < length && bytes < offset; ++i){\n"
+			"	for (; i < len; ++i){\n"
 			"		var charCode = string.charCodeAt(i);\n"
 			"		/* Based on The Unicode Standard, Version 3.0 from 1999 */\n"
 			"		if (charCode <= 0x007F){\n"
@@ -187,7 +197,7 @@ class String {
 			"		}\n"
 			"		/* Values not allowed by the standard are ignored. */\n"
 			"	}\n"
-			"	return i - start;\n";
+			"	return bytes;\n";
 	}
 
 }
