@@ -69,7 +69,7 @@ SUCH DAMAGE.
 */
 class FunctionPointerType : data::Type {
 	data::Type* dataType;
-	std::PtrDArray parameters;
+	std::ds::PtrDArray parameters;
 	
 	static data::FunctionPointerType* create(
 		data::Type* setType){

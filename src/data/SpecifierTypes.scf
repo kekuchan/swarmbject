@@ -82,25 +82,25 @@ class SpecifierTypes {
 		isConstexpr << 1;
 
 	static void toString(
-		unsigned char specifiers, std::DString* string){
+		unsigned char specifiers, std::str::DString* string){
 		if (specifiers != 0){
 			if ((specifiers & isAptr) != 0){
-				string->addSubstring(" aptr", 0, 5);
+				string->add(" aptr", 0, 5);
 			}
 			if ((specifiers & isAlock) != 0){
-				string->addSubstring(" alock", 0, 5);
+				string->add(" alock", 0, 5);
 			}
 			if ((specifiers & isAexcl) != 0){
-				string->addSubstring(" aexcl", 0, 6);
+				string->add(" aexcl", 0, 6);
 			}
 			if ((specifiers & isStatic) != 0){
-				string->addSubstring(" static", 0, 7);
+				string->add(" static", 0, 7);
 			}
 			if ((specifiers & isConstexpr) != 0){
-				string->addSubstring(" constexpr", 0, 10);
+				string->add(" constexpr", 0, 10);
 			}
 			if ((specifiers & isConst) != 0){
-				string->addSubstring(" const", 0, 6);
+				string->add(" const", 0, 6);
 			}
 		}
 	}

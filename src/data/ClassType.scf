@@ -69,23 +69,23 @@ SUCH DAMAGE.
 */
 class ClassType : data::Type {
 
-	std::String code;
+	std::str::String code;
 	unsigned char specifiers;
-	std::String name;
-	std::PtrDArray dataMembers;
-	std::PtrDArray functions;
+	std::str::String name;
+	std::ds::PtrDArray dataMembers;
+	std::ds::PtrDArray functions;
 	Namespace* parentNamespace;
 	char alignTo;
 	int size;
 	data::ClassType* base;
 	unsigned int asyncId;
 	
-	static data::ClassType* create(std::StringView* string,
+	static data::ClassType* create(std::str::View* string,
 		Namespace* parent){
 		data::ClassType* classType = new data::ClassType;
 		classType->type = data::Types::classT;
 		classType->specifiers = 0;
-		classType->name.setStringView(string);
+		classType->name.setView(string);
 		classType->parentNamespace = parent;
 		classType->alignTo = -1;
 		classType->size = -1;
@@ -154,13 +154,13 @@ class ClassType : data::Type {
 			data::ClassSpecifierTypes::needCallDestructors;
 	}
 
-	static char cmpName(void* i, void* j){
-		return ((data::ClassType*)i)->name.compare(
+	static unsigned char cmpName(void* i, void* j){
+		return ((data::ClassType*)i)->name.compareString(
 			&((data::ClassType*)j)->name);
 	}
 
-	static char cmpString(void* i, void* j){
-		return ((std::StringView*)i)->compareString(
+	static unsigned char cmpString(void* i, void* j){
+		return ((std::str::View*)i)->compareString(
 			&((data::ClassType*)j)->name);
 	}
 	
@@ -171,10 +171,12 @@ class ClassType : data::Type {
 	}
 	
 	lexical::DataMember* getDataMember(
-		std::StringView* name){
+		std::str::View* name){
+		unsigned int i = dataMembers.findSorted(
+			name, lexical::DataMember::cmpString);
+		if (i == 0) {return nullptr;}
 		return (lexical::DataMember*)
-			(dataMembers.findSorted(name,
-				lexical::DataMember::cmpString));
+			(dataMembers.data[i - 1]);
 	}
 	
 	void insertFunction(
@@ -184,17 +186,19 @@ class ClassType : data::Type {
 	}
 	
 	lexical::MemberFunction* getFunction(
-		std::StringView* name){
+		std::str::View* name){
+		unsigned int i = functions.findSorted(
+			name, lexical::MemberFunction::cmpString);
+		if (i == 0) {return nullptr;}
 		return (lexical::MemberFunction*)
-			(functions.findSorted(name,
-				lexical::MemberFunction::cmpString));
+			(functions.data[i - 1]);
 	}
 	
-	void getPath(std::DString* string){
-		string->addSubstring("src", 0, 3);
+	void getPath(std::str::DString* string){
+		string->add("src", 0, 3);
 		parentNamespace->getPath(string);
 		string->addString(&name);
-		string->addSubstring(".scf", 0, 4);
+		string->add(".scf", 0, 4);
 	}
 	
 }
