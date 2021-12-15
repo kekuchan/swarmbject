@@ -1,21 +1,22 @@
-# "std::arr::Char" class:
+# "std::arr::Uint" class:
 
-Static functions to work with char arrays.
+Static functions to work with unsigned int arrays.
 
 ## "compareValue" static function:
 
-Compares two char values.
+Compares two unsigned int values.
 
 Parameters:
-* The first char value.
-* The second char value.
+* The first unsigned int value.
+* The second unsigned int value.
 
 Returns: an std::Compare value.
 
 ```
 unsigned char compare = 
-	std::arr::Char::compareValue(-20, -21);
-/*std::Compare::greater, as -20 > -21.*/
+	std::arr::Uint::compareValue(
+		20202020, 20212021);
+/*std::Compare::less, as 20202020 < 20212021 */
 ```
 
 # Software license
