@@ -199,7 +199,7 @@ async class Marketeer {
 		window.getDocumentNode(&document);
 		std::dom::Node body;
 		std::html::Document::getBody(&document, &body);
-		std::DString string;
+		std::str::DString string;
 		string.addUint(result,
 			std::NumberBases::decimal);
 		std::dom::Node text;
@@ -1861,60 +1861,95 @@ of an operator, it can be parenthesized.
 /*Converts the "value", instead of the "year".*/
 ```
 
-# "std" reference:
+# Standard (std) reference:
 
-* /docs/std/ApplicationInstance.md 
-* /docs/std/Buffer.md 
-* /docs/std/CString.md 
-* /docs/std/DArray.md 
-* /docs/std/DBuffer.md 
-* /docs/std/DString.md 
-* /docs/std/Memory.md 
-* /docs/std/NumberBases.md 
-* /docs/std/PtrArray.md 
-* /docs/std/PtrCircuralArray.md 
-* /docs/std/PtrDArray.md 
-* /docs/std/SLList.md 
-* /docs/std/String.md 
-* /docs/std/StringView.md 
-* /docs/std/bom/Window.md 
-* /docs/std/color/RGB.md 
-* /docs/std/css/AlignTypes.md 
-* /docs/std/css/BorderStyles.md 
-* /docs/std/css/Declaration.md 
-* /docs/std/css/DisplayTypes.md 
-* /docs/std/css/Keyword.md 
-* /docs/std/css/MarginTypes.md 
-* /docs/std/css/OverflowTypes.md 
-* /docs/std/css/RGB.md 
-* /docs/std/css/Short.md 
-* /docs/std/css/TextAlignTypes.md 
-* /docs/std/css/Units.md 
-* /docs/std/css/Value.md 
-* /docs/std/css/ValueTypes.md 
-* /docs/std/css/WhiteSpaceTypes.md 
-* /docs/std/dom/CharacterData.md 
-* /docs/std/dom/Element.md 
-* /docs/std/dom/Event.md 
-* /docs/std/dom/Node.md 
-* /docs/std/dom/NodeTypes.md 
-* /docs/std/dom/Range.md 
-* /docs/std/dom/Selection.md 
-* /docs/std/dom/Text.md 
-* /docs/std/fs/EntryTypes.md 
-* /docs/std/fs/File.md 
-* /docs/std/fs/FileSystem.md 
-* /docs/std/fs/Folder.md 
-* /docs/std/fs/GUI.md 
-* /docs/std/fs/OpenFileModes.md 
-* /docs/std/html/AElement.md 
-* /docs/std/html/BrElement.md 
-* /docs/std/html/DivElement.md 
-* /docs/std/html/Document.md 
-* /docs/std/html/Element.md 
-* /docs/std/html/InputElement.md 
-* /docs/std/html/InputTypes.md 
-* /docs/std/html/PreElement.md 
+* [/docs/std/ApplicationInstance.md](std/ApplicationInstance.md)
+* [/docs/std/NumberBases.md](std/NumberBases.md)
+
+## Array (arr) reference:
+
+* [/docs/std/arr/Char.md](std/arr/Char.md)
+* [/docs/std/arr/Float.md](std/arr/Float.md)
+* [/docs/std/arr/Int.md](std/arr/Int.md)
+* [/docs/std/arr/Ptr.md](std/arr/Ptr.md)
+* [/docs/std/arr/Short.md](std/arr/Short.md)
+* [/docs/std/arr/Uchar.md](std/arr/Uchar.md)
+* [/docs/std/arr/Uint.md](std/arr/Uint.md)
+* [/docs/std/arr/Ushort.md](std/arr/Ushort.md)
+* [/docs/std/arr/Void.md](std/arr/Void.md)
+
+## Data structures (ds) reference:
+
+* [/docs/std/ds/Buffer.md](std/ds/Buffer.md)
+* [/docs/std/ds/DArray.md](std/ds/DArray.md)
+* [/docs/std/ds/DBuffer.md](std/ds/DBuffer.md)
+* [/docs/std/ds/PtrArray.md](std/ds/PtrArray.md)
+* [/docs/std/ds/PtrCircuralArray.md](std/ds/PtrCircuralArray.md)
+* [/docs/std/ds/PtrDArray.md](std/ds/PtrDArray.md)
+* [/docs/std/ds/SLList.md](std/ds/SLList.md)
+
+## BOM (bom) reference:
+
+* [/docs/std/bom/Window.md](std/bom/Window.md)
+
+## Color (color) reference:
+
+* [/docs/std/color/RGB.md](std/color/RGB.md)
+
+## CSS (css) reference:
+
+* [/docs/std/css/AlignTypes.md](std/css/AlignTypes.md)
+* [/docs/std/css/BorderStyles.md](std/css/BorderStyles.md)
+* [/docs/std/css/Declaration.md](std/css/Declaration.md)
+* [/docs/std/css/DisplayTypes.md](std/css/DisplayTypes.md)
+* [/docs/std/css/Keyword.md](std/css/Keyword.md)
+* [/docs/std/css/MarginTypes.md](std/css/MarginTypes.md)
+* [/docs/std/css/OverflowTypes.md](std/css/OverflowTypes.md)
+* [/docs/std/css/RGB.md](std/css/RGB.md)
+* [/docs/std/css/Short.md](std/css/Short.md)
+* [/docs/std/css/TextAlignTypes.md](std/css/TextAlignTypes.md)
+* [/docs/std/css/Units.md](std/css/Units.md)
+* [/docs/std/css/Value.md](std/css/Value.md)
+* [/docs/std/css/ValueTypes.md](std/css/ValueTypes.md)
+* [/docs/std/css/WhiteSpaceTypes.md](std/css/WhiteSpaceTypes.md)
+
+## DOM (dom) reference:
+
+* [/docs/std/dom/CharacterData.md](std/dom/CharacterData.md)
+* [/docs/std/dom/Element.md](std/dom/Element.md)
+* [/docs/std/dom/Event.md](std/dom/Event.md)
+* [/docs/std/dom/Node.md](std/dom/Node.md)
+* [/docs/std/dom/NodeTypes.md](std/dom/NodeTypes.md)
+* [/docs/std/dom/Range.md](std/dom/Range.md)
+* [/docs/std/dom/Selection.md](std/dom/Selection.md)
+* [/docs/std/dom/Text.md](std/dom/Text.md)
+
+## File system (fs) reference:
+
+* [/docs/std/fs/EntryTypes.md](std/fs/EntryTypes.md)
+* [/docs/std/fs/File.md](std/fs/File.md)
+* [/docs/std/fs/FileSystem.md](std/fs/FileSystem.md)
+* [/docs/std/fs/Folder.md](std/fs/Folder.md)
+* [/docs/std/fs/GUI.md](std/fs/GUI.md)
+* [/docs/std/fs/OpenFileModes.md](std/fs/OpenFileModes.md)
+
+## HTML (html) reference:
+
+* [/docs/std/html/AElement.md](std/html/AElement.md)
+* [/docs/std/html/BrElement.md](std/html/BrElement.md)
+* [/docs/std/html/DivElement.md](std/html/DivElement.md)
+* [/docs/std/html/Document.md](std/html/Document.md)
+* [/docs/std/html/Element.md](std/html/Element.md)
+* [/docs/std/html/InputElement.md](std/html/InputElement.md)
+* [/docs/std/html/InputTypes.md](std/html/InputElement.md)
+* [/docs/std/html/PreElement.md](std/html/PreElement.md)
+
+## String (str) reference:
+
+* [/docs/std/str/CString.md](std/str/CString.md)
+* [/docs/std/str/DString.md](std/str/DString.md)
+* [/docs/std/str/String.md](std/str/String.md)
+* [/docs/std/str/View.md](std/str/View.md)
 
 # Software license
 
