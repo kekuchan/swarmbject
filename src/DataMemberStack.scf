@@ -68,7 +68,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class DataMemberStack {
-	std::PtrDArray expressionStack;
+	std::ds::PtrDArray expressionStack;
 	bool statementEnd;
 	bool maybeCast;
 	

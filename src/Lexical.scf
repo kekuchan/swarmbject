@@ -194,17 +194,17 @@ class Lexical {
 	}
 	
 	static void namespacePathToString(
-		Namespace* compileNamespace, std::DString* string){
+		Namespace* compileNamespace, std::str::DString* string){
 		Namespace* ns = compileNamespace->parentNamespace;
 		if (ns != nullptr){
 			namespacePathToString(ns, string);
 			string->addString(&compileNamespace->name);
-			string->addSubstring("::", 0, 2);
+			string->add("::", 0, 2);
 		}
 	}
 
 	static void dataTypeToString(
-		data::Type* dataType, std::DString* string){
+		data::Type* dataType, std::str::DString* string){
 		switch (dataType->type){
 			case data::Types::voidT:
 				string->addCString("void");
@@ -726,7 +726,7 @@ class Lexical {
 		}
 		if (checkSame &&
 			isSameType(type1, type2)) {return true;}
-		std::DString error;
+		std::str::DString error;
 		error.addCString("Assignment type mismatch: ");
 		dataTypeToString(type1, &error);
 		error.addCString(", ");
@@ -794,7 +794,7 @@ class Lexical {
 	static bool popExpression(Main* main,
 		data::ClassType* classType){
 		lexical::Type* expression = (lexical::Type*)
-			(main->expressionStack->popBack());
+			(main->expressionStack->pop());
 		switch (expression->type){
 			case lexical::Types::cast:
 				{
@@ -976,7 +976,7 @@ class Lexical {
 							case lexical::Types::integerLiteral:
 							case lexical::Types::floatingLiteral:
 								{
-									std::DString error;
+									std::str::DString error;
 									error.addCString("Assignment to ");
 									dataTypeToString(dataType1, &error);
 									error.addCString(" that is not addressable.");
@@ -1003,7 +1003,7 @@ class Lexical {
 								return false;
 						}
 					} else {
-						std::DString error;
+						std::str::DString error;
 						error.addCString("Assignment to ");
 						dataTypeToString(dataType1, &error);
 						error.addCString(" that is not addressable.");
@@ -1133,7 +1133,7 @@ class Lexical {
 	}
 	
 	static lexical::Type* maybeDeleteExpressions(Main* main,
-		std::PtrDArray* expressions){
+		std::ds::PtrDArray* expressions){
 		lexical::Type*[] expression =
 			(lexical::Type*[])(expressions->data);
 		unsigned int i = expressions->size;
@@ -1531,7 +1531,7 @@ class Lexical {
 	}
 	
 	static void tokenTypeToString(
-		unsigned char type, std::DString* string){
+		unsigned char type, std::str::DString* string){
 		switch (type){
 			case TokenTypes::empty:
 				string->addCString("empty");
@@ -1777,12 +1777,14 @@ class Lexical {
 			case 'F': case 'G': case 'H': case 'I': case 'J':
 			case 'K': case 'L': case 'M': case 'N': case 'O':
 			case 'P': case 'Q': case 'R': case 'S': case 'T':
-			case 'U': case 'V': case 'W': case 'Z':
+			case 'U': case 'V': case 'W': case 'X': case 'Y': 
+			case 'Z':
 			case 'a': case 'b': case 'c': case 'd': case 'e':
 			case 'f': case 'g': case 'h': case 'i': case 'j':
 			case 'k': case 'l': case 'm': case 'n': case 'o':
 			case 'p': case 'q': case 'r': case 's': case 't':
-			case 'u': case 'v': case 'w': case 'z':
+			case 'u': case 'v': case 'w': case 'x': case 'y': 
+			case 'z':
 				compileCursor = getIdentifierToken(main,
 					classType, compileCursor);
 				break;
@@ -1957,9 +1959,9 @@ class Lexical {
 		return compileCursor;
 	}
 
-	static char cmpKeyword(void* i, void* j){
-		return (std::StringView*)i->compareCString(
-			(unsigned char[])j, 0);
+	static unsigned char cmpKeyword(void* i, void* j){
+		return (std::str::View*)i->compareCString(
+			(unsigned char[])j);
 	}
 
 	static unsigned int getIdentifierToken(Main* main,
@@ -1978,9 +1980,9 @@ class Lexical {
 				compileCursor = compileCursor + 1;
 			} else {break;}
 		}
-		std::StringView* token = &main->token;
-		token->setSubstring(data, start, compileCursor - start);
-		int i = main->keywords.indexOfSortedNew(
+		std::str::View* token = &main->token;
+		token->set(data, start, compileCursor - start);
+		int i = main->keywords.findSorted(
 			token, cmpKeyword);
 		unsigned int tokenType;
 		switch (i - 1){
@@ -2111,27 +2113,27 @@ class Lexical {
 				switch(data[compileCursor]){
 					case 'b':
 						compileCursor = compileCursor + 1;
-						integerValue = std::CString::getUint(
+						integerValue = std::str::CString::getUint(
 							data, compileCursor, len - compileCursor,
 							&bytes, std::NumberBases::binary);
 						tokenType = TokenTypes::integerLiteral;
 						break;
 					case 'x': case 'X':
 						compileCursor = compileCursor + 1;
-						integerValue = std::CString::getUint(
+						integerValue = std::str::CString::getUint(
 							data, compileCursor, len - compileCursor,
 							&bytes, std::NumberBases::hexadecimal);
 						tokenType = TokenTypes::integerLiteral;
 						break;
 					case '.':
 						compileCursor = compileCursor + 1;
-						floatValue = std::CString::getUint(
+						floatValue = std::str::CString::getUint(
 							data, compileCursor, len - compileCursor,
 							&bytes, std::NumberBases::decimal);
 						tokenType = TokenTypes::floatingLiteral;
 						break;
 					default:
-						integerValue = std::CString::getUint(
+						integerValue = std::str::CString::getUint(
 							data, compileCursor, len - compileCursor,
 							&bytes, std::NumberBases::octal);
 						tokenType = TokenTypes::integerLiteral;
@@ -2139,7 +2141,7 @@ class Lexical {
 				}
 			}
 		} else if (character >= '1' && character <= '9'){
-			integerValue = std::CString::getUint(
+			integerValue = std::str::CString::getUint(
 				data, compileCursor, len - compileCursor,
 				&bytes, std::NumberBases::decimal);
 			compileCursor = compileCursor + bytes;
@@ -2149,7 +2151,7 @@ class Lexical {
 				tokenType = TokenTypes::integerLiteral;
 			} else {
 				compileCursor = compileCursor + 1;
-				floatValue = std::CString::getUint(
+				floatValue = std::str::CString::getUint(
 					data, compileCursor, len - compileCursor,
 					&bytes, std::NumberBases::decimal);
 				tokenType = TokenTypes::floatingLiteral;
@@ -2175,13 +2177,17 @@ class Lexical {
 	
 	static lexical::IntegerLiteral* getIntegerLiteral(
 		Main* main, int i){
-		lexical::IntegerLiteral* literal =
-			(lexical::IntegerLiteral*)
-				(main->integerLiterals.findSorted(&i,
-					lexical::IntegerLiteral::cmpInt));
-		if (literal == nullptr){
+		std::ds::PtrDArray* literals = 
+			&main->integerLiterals;
+		unsigned int j = literals->findSorted(
+			&i, lexical::IntegerLiteral::cmpInt);
+		lexical::IntegerLiteral* literal;
+		if (j != 0){
+			literal = (lexical::IntegerLiteral*)
+				(literals->data[j - 1]);
+		} else {
 			literal = lexical::IntegerLiteral::create(i);
-			main->integerLiterals.insertSorted(literal,
+			literals->insertSorted(literal,
 				lexical::IntegerLiteral::cmp);
 		}
 		return literal;
@@ -2189,30 +2195,37 @@ class Lexical {
 	
 	static lexical::IntegerLiteral* insertIntegerLiteral(
 		Main* main, lexical::IntegerLiteral* literal){
-		lexical::IntegerLiteral* i =
-			(lexical::IntegerLiteral*)
-				(main->integerLiterals.findSorted(
-					&literal->number,
-					lexical::IntegerLiteral::cmpInt));
-		if (i == nullptr){
-			main->integerLiterals.insertSorted(literal,
+		std::ds::PtrDArray* literals = 
+			&main->integerLiterals;
+		unsigned int j = literals->findSorted(
+			&literal->number,
+			lexical::IntegerLiteral::cmpInt);
+		lexical::IntegerLiteral* i;
+		if (j == 0){
+			literals->insertSorted(literal,
 				lexical::IntegerLiteral::cmp);
 			i = literal;
-		} else if (i != literal){
-			delete literal;
+		} else {
+			i = (lexical::IntegerLiteral*)
+				(literals->data[j - 1]);
+			if (i != literal) {delete literal;}
 		}
 		return i;
 	}
 	
 	static lexical::FloatingLiteral* getFloatingLiteral(
 		Main* main, float f){
-		lexical::FloatingLiteral* literal =
-			(lexical::FloatingLiteral*)
-				(main->floatingLiterals.findSorted(&f,
-					lexical::FloatingLiteral::cmpFloat));
-		if (literal == nullptr){
+		std::ds::PtrDArray* literals = 
+			&main->floatingLiterals;
+		unsigned int j = literals->findSorted(
+			&f, lexical::FloatingLiteral::cmpFloat);
+		lexical::FloatingLiteral* literal;
+		if (j != 0){
+			literal = (lexical::FloatingLiteral*)
+				(literals->data[j - 1]);
+		} else {
 			literal = lexical::FloatingLiteral::create(f);
-			main->floatingLiterals.insertSorted(literal,
+			literals->insertSorted(literal,
 				lexical::FloatingLiteral::cmp);
 		}
 		return literal;
@@ -2220,17 +2233,20 @@ class Lexical {
 	
 	static lexical::FloatingLiteral* insertFloatingLiteral(
 		Main* main, lexical::FloatingLiteral* literal){
-		lexical::FloatingLiteral* f =
-			(lexical::FloatingLiteral*)
-				(main->floatingLiterals.findSorted(
-					&literal->number,
-					lexical::FloatingLiteral::cmpFloat));
-		if (f == nullptr){
-			main->floatingLiterals.insertSorted(literal,
+		std::ds::PtrDArray* literals = 
+			&main->floatingLiterals;
+		unsigned int j = literals->findSorted(
+			&literal->number,
+			lexical::FloatingLiteral::cmpFloat);
+		lexical::FloatingLiteral* f ;
+		if (j == 0){
+			literals->insertSorted(literal,
 				lexical::FloatingLiteral::cmp);
 			f = literal;
-		} else if (f != literal){
-			delete literal;
+		} else {
+			f = (lexical::FloatingLiteral*)
+				(literals->data[j - 1]);
+			if (f != literal) {delete literal;}
 		}
 		return f;
 	}
@@ -2283,74 +2299,90 @@ class Lexical {
 	
 	static lexical::CharacterLiteral* getCharacterLiteral(
 		Main* main, unsigned char c){
-		lexical::CharacterLiteral* literal =
-			(lexical::CharacterLiteral*)
-				(main->characterLiterals.findSorted(&c,
-					lexical::CharacterLiteral::cmpUchar));
-		if (literal == nullptr){
+		std::ds::PtrDArray* literals = 
+			&main->characterLiterals;
+		unsigned int j = literals->findSorted(
+			&c, lexical::CharacterLiteral::cmpUchar);
+		lexical::CharacterLiteral* literal;
+		if (j != 0){
+			literal = (lexical::CharacterLiteral*)
+				(literals->data[j - 1]);
+		} else {
 			literal = lexical::CharacterLiteral::create(c);
-			main->characterLiterals.insertSorted(literal,
+			literals->insertSorted(literal,
 				lexical::CharacterLiteral::cmp);
 		}
 		return literal;
 	}
-	
+
 	static unsigned int getStringToken(Main* main,
 		data::ClassType* classType,
-		unsigned int compileCursor, std::String* string){
-		unsigned int characters =
-			setStringOrGetLength(classType,
-				compileCursor, nullptr);
-		string->setLength(characters);
-		compileCursor = setStringOrGetLength(classType,
-			compileCursor, string->data);
-		return compileCursor;
-	}
-	
-	static unsigned int setStringOrGetLength(
-		data::ClassType* classType,
-		unsigned int compileCursor, unsigned char[] dst){
+		unsigned int compileCursor, std::str::String* string){
 		unsigned int len = classType->code.length;
 		unsigned char[] data = classType->code.data;
-		unsigned int characters = 0;
+		unsigned char[] dst = nullptr;
 		unsigned char character;
-		/* No need for bound check as it was done beforehand. */
 		while (true){
-			character = data[compileCursor];
-			switch (character){
-				case '"':
-					compileCursor = Parse::ignoreWhitespaceAndComment(
-						classType, compileCursor + 1);
-					character = data[compileCursor];
-					if (character == '"'){
-						/* Merge adjancent string literals. */
-						compileCursor = compileCursor + 1;
+			unsigned int i = compileCursor;
+			unsigned int characters = 0;
+			/* No need for bound check as it was done beforehand. */
+			while (true){
+				character = data[i];
+				switch (character){
+					case '"':
+						i = Parse::ignoreWhitespaceAndComment(
+							classType, i + 1);
+						character = data[i];
+						if (character == '"'){
+							/* Merge adjancent string literals. */
+							i = i + 1;
+							continue;
+						}
+						break;
+					case '\\':
+						if (dst != nullptr){
+							dst[characters] =
+								getEscapedChar(data[i + 1]);
+						}
+						characters = characters + 1;
+						i = i + 2;
 						continue;
-					}
-					break;
-				case '\\':
-					if (dst != nullptr){
-						dst[characters] =
-							getEscapedChar(data[compileCursor + 1]);
-					}
-					characters = characters + 1;
-					compileCursor = compileCursor + 2;
-					continue;
-				default:
-					if (dst != nullptr){
-						dst[characters] = character;
-					}
-					characters = characters + 1;
-					compileCursor = compileCursor + 1;
-					continue;
+					default:
+						if (dst != nullptr){
+							dst[characters] = character;
+						}
+						characters = characters + 1;
+						i = i + 1;
+						continue;
+				}
+				break;
 			}
-			break;
-		}
-		if (dst == nullptr){
-			return characters;
-		} else {
-			return compileCursor;
+			if (dst == nullptr && characters > 0){
+				string->setLength(characters);
+				dst = string->data;
+				continue;
+			}
+			return i;
 		}
 	}
 	
+	static lexical::StringLiteral* getStringLiteral(
+		Main* main, std::str::String* string){
+		std::ds::PtrDArray* literals = 
+			&main->stringLiterals;
+		unsigned int j = literals->findSorted(
+			string, lexical::StringLiteral::cmpString);
+		lexical::StringLiteral* literal;
+		if (j != 0){
+			literal = (lexical::StringLiteral*)
+				(literals->data[j - 1]);
+		} else {
+			literal = new lexical::StringLiteral;
+			literal->string.move(string);
+			literals->insertSorted(literal,
+				lexical::StringLiteral::cmp);
+		}
+		return literal;
+	}
+
 }

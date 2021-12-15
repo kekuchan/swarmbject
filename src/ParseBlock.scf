@@ -72,7 +72,7 @@ class ParseBlock {
 	static void parseExpressionStacks(
 		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
-		std::DString info;
+		std::str::DString info;
 		unsigned int compileCursor;
 		data::ClassType* classType;
 		DataMemberStack* dataMemberStack;
@@ -81,7 +81,7 @@ class ParseBlock {
 			dataMemberStack = (DataMemberStack*)
 				(main->dataMembersStack.getBack());
 			if (dataMemberStack != nullptr){
-				std::PtrDArray* expressionStack =
+				std::ds::PtrDArray* expressionStack =
 					&dataMemberStack->expressionStack;
 				main->expressionStack = expressionStack;
 				lexical::DataMember* dataMember =
@@ -110,7 +110,7 @@ class ParseBlock {
 					info.addCString(": Parsing function block: ");
 					info.addString(&functionToParse->name);
 					Parse::logInfoDString(main, &info, 1);
-					std::PtrDArray* expressionStack =
+					std::ds::PtrDArray* expressionStack =
 						&main->functionExpressionStack;
 					main->expressionStack = expressionStack;
 					currentExpression = (lexical::Type*)
@@ -118,7 +118,7 @@ class ParseBlock {
 					if (currentExpression == nullptr){
 						currentExpression =
 							functionToParse->block;
-						expressionStack->pushBack(
+						expressionStack->push(
 							currentExpression);
 						main->functionStatementEnd = true;
 						main->functionMaybeCast = false;
@@ -134,7 +134,7 @@ class ParseBlock {
 		info.setCString("finished parseing");
 		Parse::logInfoDString(main, &info, 1);/*
 		debugTypes(main);*/
-		std::StringView name;
+		std::str::View name;
 		name.setCString("std");
 		Namespace* stdNamespace =
 			main->rootNamespace->getNamespace(&name);
@@ -161,7 +161,7 @@ class ParseBlock {
 	}
 	
 	static void debugTypes(Main* main){
-		std::DString info;
+		std::str::DString info;
 		main->voidType->debug(&info, true);
 		Parse::logInfoDString(main, &info, 1);
 		info.clear();
@@ -197,9 +197,9 @@ class ParseBlock {
 	}
 
 	static void debugExpressionStack(Main* main){
-		std::DString info;
+		std::str::DString info;
 		info.addCString("expressionStack: ");
-		std::PtrDArray* expressionStack =
+		std::ds::PtrDArray* expressionStack =
 			main->expressionStack;
 		lexical::Type*[] expressions =
 			(lexical::Type*[])(expressionStack->data);
@@ -215,7 +215,7 @@ class ParseBlock {
 	}
 	
 	static bool isInSwitch(
-		std::PtrDArray* expressionStack){
+		std::ds::PtrDArray* expressionStack){
 		unsigned int len = expressionStack->size;
 		return (len >= 2 && ((lexical::Type*)
 			(expressionStack->data[len - 2]))->type ==
@@ -239,7 +239,7 @@ class ParseBlock {
 				"directly in a block.");
 			return false;
 		}
-		std::PtrDArray* expressionStack =
+		std::ds::PtrDArray* expressionStack =
 			main->expressionStack;
 		if (isInSwitch(expressionStack)){
 			Parse::logErrorCString(main, compileCursor,
@@ -251,9 +251,9 @@ class ParseBlock {
 			(lexical::BlockStatement*)currentExpression;
 		if (block->getVariable(
 			&main->token) != nullptr){
-			std::DString error;
+			std::str::DString error;
 			error.addChar('\'');
-			error.addStringView(&main->token);
+			error.addView(&main->token);
 			error.addCString("' variable already declared in block.");
 			Parse::logError(main, compileCursor, &error);
 			return false;
@@ -270,7 +270,7 @@ class ParseBlock {
 			lexical::VariableDeclaration::create(variable);
 		block->insertStatement(declaration);
 		main->currentExpression = declaration;
-		expressionStack->pushBack(declaration);
+		expressionStack->push(declaration);
 		main->statementEnd = false;
 		return true;
 	}
@@ -283,7 +283,7 @@ class ParseBlock {
 	}
 	
 	static bool debugToken(unsigned char type){
-		std::DString info;
+		std::str::DString info;
 		Lexical::tokenTypeToString(type, &info);
 		info.debug();
 		return false;
@@ -304,9 +304,9 @@ class ParseBlock {
 				case TokenTypes::classKeyword:
 				case TokenTypes::staticKeyword:
 					{
-						std::DString error;
+						std::str::DString error;
 						error.addChar('\'');
-						error.addStringView(&main->token);
+						error.addView(&main->token);
 						error.addCString("' keyword at invalid place.");
 						Parse::logError(main, compileCursor, &error);
 						return false;
@@ -441,7 +441,7 @@ class ParseBlock {
 							"'break' has to be directly in a block.");
 						return false;
 					} else {
-						std::PtrDArray* expressionStack =
+						std::ds::PtrDArray* expressionStack =
 							main->expressionStack;
 						int i = expressionStack->size - 2;
 						lexical::Type*[] expressions =
@@ -481,7 +481,7 @@ class ParseBlock {
 							"'continue' has to be directly in a block.");
 						return false;
 					} else {
-						std::PtrDArray* expressionStack =
+						std::ds::PtrDArray* expressionStack =
 							main->expressionStack;
 						int i = expressionStack->size - 2;
 						lexical::Type*[] expressions =
@@ -559,7 +559,7 @@ class ParseBlock {
 					return false;
 				case TokenTypes::newKeyword:
 					{
-						std::PtrDArray* dataMembersStack =
+						std::ds::PtrDArray* dataMembersStack =
 							&main->dataMembersStack;
 						if (!isNextUnary(main) ||
 							dataMembersStack->size > 0){
@@ -653,7 +653,7 @@ class ParseBlock {
 					break;
 				case TokenTypes::identifier:
 					{
-						std::PtrDArray* dataMembersStack =
+						std::ds::PtrDArray* dataMembersStack =
 							&main->dataMembersStack;
 						unsigned int len = dataMembersStack->size;
 						if (!parseIdentifier(app,
@@ -682,10 +682,10 @@ class ParseBlock {
 					return false;
 				case TokenTypes::stringLiteral:
 					{
-						std::String string;
+						std::str::String string;
 						compileCursor = Lexical::getStringToken(
 							main, classType, compileCursor, &string);
-						std::PtrDArray* expressionStack =
+						std::ds::PtrDArray* expressionStack =
 							main->expressionStack;
 						unsigned int i = expressionStack->size;
 						lexical::Type*[] expressions =
@@ -702,17 +702,8 @@ class ParseBlock {
 									i = i - 1;
 									continue;
 								default:
-									expression = (lexical::StringLiteral*)
-										(main->stringLiterals.findSorted(
-											&string,
-											lexical::StringLiteral::cmpString));
-									if (expression == nullptr){
-										expression = new lexical::StringLiteral;
-										expression->string.move(&string);
-										main->stringLiterals.insertSorted(
-											expression,
-											lexical::StringLiteral::cmp);
-									}
+									expression = Lexical::getStringLiteral(
+										main, &string);
 									break;
 							}
 							break;
@@ -764,10 +755,10 @@ class ParseBlock {
 							lexical::Types::variableDeclaration){
 							expression->operand1 = main->currentExpression;
 							main->currentExpression = expression;
-							std::PtrDArray* expressionStack =
+							std::ds::PtrDArray* expressionStack =
 								main->expressionStack;
 							unsigned int len = expressionStack->size;
-							std::PtrDArray* statements =
+							std::ds::PtrDArray* statements =
 								&((lexical::BlockStatement*)
 									(expressionStack->data[len - 2]))->statements;
 							statements->data[statements->size - 1] =
@@ -943,7 +934,7 @@ class ParseBlock {
 					switch (main->currentExpression->type){
 						case lexical::Types::functionCall:
 							{
-								std::PtrDArray* arguments =
+								std::ds::PtrDArray* arguments =
 									&((lexical::FunctionCall*)
 										(main->currentExpression))->arguments;
 								unsigned int len = arguments->size;
@@ -992,7 +983,7 @@ class ParseBlock {
 							case lexical::Types::functionCall:
 								((lexical::FunctionCall*)
 									(main->currentExpression))->
-										arguments.pushBack(nullptr);
+										arguments.push(nullptr);
 								break;
 							case lexical::Types::newAsync:
 								break;
@@ -1029,9 +1020,9 @@ class ParseBlock {
 							"Block end before end of statement.");
 						return false;
 					} else {
-						std::PtrDArray* expressionStack =
+						std::ds::PtrDArray* expressionStack =
 							main->expressionStack;
-						expressionStack->popBack();
+						expressionStack->pop();
 						unsigned int len = expressionStack->size;
 						if (len == 0){
 							main->functionsToParse.popFront();
@@ -1068,7 +1059,7 @@ class ParseBlock {
 											new lexical::IfStatement;
 										expression->operand3 = ifStatement;
 										main->currentExpression = ifStatement;
-										expressionStack->pushBack(ifStatement);
+										expressionStack->push(ifStatement);
 										compileCursor = Lexical::getNextToken(main,
 											classType, compileCursor);
 										if (*tokenType != TokenTypes::leftParenthesis){
@@ -1086,14 +1077,14 @@ class ParseBlock {
 											new lexical::BlockStatement;
 										expression->operand3 = block;
 										main->currentExpression = block;
-										expressionStack->pushBack(block);
+										expressionStack->push(block);
 										main->statementEnd = true;
 									}
 								}
 								break;
 							case lexical::Types::whileStatement:
 							case lexical::Types::switchStatement:
-								expressionStack->popBack();
+								expressionStack->pop();
 								main->currentExpression = (lexical::Type*)
 									(expressionStack->data[len - 2]);
 								break;
@@ -1203,7 +1194,7 @@ class ParseBlock {
 							}
 							break;
 						}
-						main->expressionStack->popBack();
+						main->expressionStack->pop();
 						main->currentExpression = (lexical::Type*)
 							(main->expressionStack->data[
 								main->expressionStack->size - 1]);
@@ -1261,7 +1252,7 @@ class ParseBlock {
 						}
 						break;
 					}
-					main->expressionStack->popBack();
+					main->expressionStack->pop();
 					main->currentExpression = (lexical::Type*)
 						(main->expressionStack->data[
 							main->expressionStack->size - 1]);
@@ -1324,7 +1315,7 @@ class ParseBlock {
 									{
 										lexical::FunctionCall* expression =
 											(lexical::FunctionCall*)currentExpression;
-										std::PtrDArray* arguments =
+										std::ds::PtrDArray* arguments =
 											&expression->arguments;
 										unsigned int len = arguments->size;
 										if (len > 0 &&
@@ -1339,7 +1330,7 @@ class ParseBlock {
 									}
 									/* No break */
 								case lexical::Types::parenthesized:
-									main->expressionStack->popBack();
+									main->expressionStack->pop();
 									main->currentExpression =
 										(lexical::Type*)
 											(main->expressionStack->data[
@@ -1373,7 +1364,7 @@ class ParseBlock {
 										expression->dataType = dataType;
 										if (isNewAsyncValid(main, expression,
 											classType, compileCursor)){
-											main->expressionStack->popBack();
+											main->expressionStack->pop();
 											main->currentExpression =
 												(lexical::Type*)
 													(main->expressionStack->data[
@@ -1413,7 +1404,7 @@ class ParseBlock {
 										(lexical::IfStatement*)
 											currentExpression->operand2 = expression;
 										main->currentExpression = expression;
-										main->expressionStack->pushBack(
+										main->expressionStack->push(
 											expression);
 										main->statementEnd = true;
 										break;
@@ -1444,7 +1435,7 @@ class ParseBlock {
 										(lexical::BinaryOperator*)
 											currentExpression->operand2 = expression;
 										main->currentExpression = expression;
-										main->expressionStack->pushBack(
+										main->expressionStack->push(
 											expression);
 										main->statementEnd = true;
 										break;
@@ -1485,7 +1476,7 @@ class ParseBlock {
 										(lexical::BinaryOperator*)
 											currentExpression->operand2 = expression;
 										main->currentExpression = expression;
-										main->expressionStack->pushBack(
+										main->expressionStack->push(
 											expression);
 										main->statementEnd = true;
 										break;
@@ -1530,7 +1521,7 @@ class ParseBlock {
 								return false;
 							case lexical::Types::block:
 								{
-									std::PtrDArray* statements =
+									std::ds::PtrDArray* statements =
 										&((lexical::BlockStatement*)
 										(main->currentExpression))->statements;
 									unsigned int len = statements->size;
@@ -1547,7 +1538,7 @@ class ParseBlock {
 											(main->expressionStack->data[0]);
 									if (Lexical::popExpression(main, classType)){
 										Lexical::doConstParse(main, expression);
-										main->dataMembersStack.popBack();
+										main->dataMembersStack.pop();
 										return true;
 									}
 									return false;
@@ -1649,7 +1640,7 @@ class ParseBlock {
 				main, expression->operand, classType);
 		if (dataType1 == nullptr) {return false;}
 		bool isPointer;
-		std::PtrDArray* parameters;
+		std::ds::PtrDArray* parameters;
 		lexical::Type* lexicalExpression =
 			main->lexicalExpression;
 		if (lexicalExpression != nullptr &&
@@ -1675,7 +1666,7 @@ class ParseBlock {
 		unsigned int parametersLen =
 			parameters->size;
 		if (argumentsLen != parametersLen){
-			std::DString error;
+			std::str::DString error;
 			error.addCString("Calling function ");
 			if (isPointer){
 				error.addCString("pointer ");
@@ -1718,7 +1709,7 @@ class ParseBlock {
 
 	static lexical::DataMember* getDataMember(
 		data::ClassType* classType,
-		std::StringView* name){
+		std::str::View* name){
 		lexical::DataMember* dataMember;
 		while (classType != nullptr){
 			dataMember = classType->getDataMember(name);
@@ -1730,7 +1721,7 @@ class ParseBlock {
 
 	static lexical::MemberFunction* getMemberFunction(
 		data::ClassType* classType,
-		std::StringView* name){
+		std::str::View* name){
 		lexical::MemberFunction* memberFunction;
 		while (classType != nullptr){
 			memberFunction = classType->getFunction(name);
@@ -1743,7 +1734,7 @@ class ParseBlock {
 	static bool classMemberToExpression(
 		std::ApplicationInstance aexcl app,
 		data::ClassType* classType,
-		std::StringView* name,
+		std::str::View* name,
 		unsigned int compileCursor){
 		Main* main = &app.main;
 		lexical::DataMember* dataMember =
@@ -1758,9 +1749,9 @@ class ParseBlock {
 				return functionMemberToExpression(
 					app, functionMember, compileCursor);
 			} else {
-				std::DString error;
+				std::str::DString error;
 				error.addCString("Class member '");
-				error.addStringView(name);
+				error.addView(name);
 				error.addCString("' not found.");
 				Parse::logError(main, compileCursor, &error);
 				return false;
@@ -1776,7 +1767,7 @@ class ParseBlock {
 		compileCursor = Lexical::getNextToken(main,
 			classType, compileCursor);
 		if (main->tokenType != TokenTypes::identifier){
-			std::DString error;
+			std::str::DString error;
 			error.addCString(
 				"There has to be an identifier after the '");
 			if (pointer){
@@ -1936,7 +1927,8 @@ class ParseBlock {
 			main, dataMember, savedCursor)) {return false;}
 		unsigned char* tokenType = &main->tokenType;
 		if (*tokenType != TokenTypes::identifier ||
-			main->token.compareString(&dataMember->name) != 0){
+			main->token.compareString(
+				&dataMember->name) != std::Compare::equal){
 			Parse::logErrorCString(main, compileCursor,
 				"A data member name has to be after its type.");
 			return false;
@@ -1958,7 +1950,7 @@ class ParseBlock {
 				return false;
 			}
 			if (dataMember->isStatic()){
-				main->staticMembers.pushBack(dataMember);
+				main->staticMembers.push(dataMember);
 			}
 			DataMemberStack* dataMemberStack;
 			unsigned int len = main->dataMembersStack.size;
@@ -1979,8 +1971,8 @@ class ParseBlock {
 				lexical::BinaryOperator::create(
 					lexical::Types::assignment);
 			expression->operand1 = dataMember;
-			dataMemberStack->expressionStack.pushBack(expression);
-			main->dataMembersStack.pushBack(dataMemberStack);
+			dataMemberStack->expressionStack.push(expression);
+			main->dataMembersStack.push(dataMemberStack);
 			dataMember->cursor = compileCursor;
 		} else if (*tokenType != TokenTypes::semicolon){
 			Parse::logErrorCString(main, compileCursor,
@@ -1996,9 +1988,9 @@ class ParseBlock {
 		std::fs::File* openedFile){
 		Main* main = &app.main;
 		unsigned int compileCursor = main->compileCursor;
-		std::DString* classOrMemberPath =
+		std::str::DString* classOrMemberPath =
 			&main->classOrMemberPath;
-		std::DString* classMemberName =
+		std::str::DString* classMemberName =
 			&main->classMemberName;
 		unsigned int rootPath = main->rootPath;
 		unsigned int len = classOrMemberPath->length;
@@ -2006,7 +1998,7 @@ class ParseBlock {
 		unsigned int i;
 		if (openedFile == nullptr){
 			if (nameLen != 0){
-				std::DString error;
+				std::str::DString error;
 				error.addCString("Identifier '");
 				error.addSubReplace(classOrMemberPath->data,
 					rootPath + 4, len - rootPath - 4, "/", 0, 1,
@@ -2017,13 +2009,13 @@ class ParseBlock {
 				Parse::logError(main, compileCursor, &error);
 				return;
 			}
-			i = std::Memory::indexOfUcharReverse(
+			i = std::arr::Uchar::findLast(
 				'/', classOrMemberPath->data, 0, len) - 1;
-			classMemberName->setSubstring(
+			classMemberName->set(
 				classOrMemberPath->data, i + 1,
 				len - i - 1);
 			if (i == rootPath + 3){
-				std::DString error;
+				std::str::DString error;
 				error.addCString("Identifier '");
 				error.addDString(classMemberName);
 				error.addCString("' could not be resolved.");
@@ -2042,14 +2034,14 @@ class ParseBlock {
 		unsigned int j = i;
 		Namespace* compileNamespace = main->rootNamespace;
 		data::ClassType* classType;
-		std::StringView name;
+		std::str::View name;
 		while (true){
-			j = classOrMemberPath->indexOfChar('/', j);
+			j = classOrMemberPath->find('/', j);
 			if (j == 0){
 				j = len + 1;
 			}
 			j = j - 1;
-			name.setSubstring(classOrMemberPath->data, i, j - i);
+			name.set(classOrMemberPath->data, i, j - i);
 			if (j < len){
 				Namespace* nextNameSpace =
 					compileNamespace->getNamespace(&name);
@@ -2078,7 +2070,7 @@ class ParseBlock {
 		Main* main = &app.main;
 		data::ClassType* classType = main->currentParseClass;
 		if (openedFile == nullptr){
-			std::DString error;
+			std::str::DString error;
 			error.addCString("Class: ");
 			error.addString(&classType->name);
 			error.addCString(" does not exists.");
@@ -2086,7 +2078,7 @@ class ParseBlock {
 			return;
 		}
 		unsigned int len = openedFile->getSize();
-		std::String* code = &classType->code;
+		std::str::String* code = &classType->code;
 		code->setLength(len);
 		openedFile->read(code->data, 0, len);
 		Parse::parseClass(app, classType,
@@ -2130,7 +2122,7 @@ class ParseBlock {
 						return false;
 					} else if (!isSubClass(functionToParse->parentClass,
 						dataMember->parentClass)){
-						std::DString error;
+						std::str::DString error;
 						error.addCString("Non-static data member '");
 						error.addString(&dataMember->name);
 						error.addCString("' referenced outside of its class.");
@@ -2159,9 +2151,9 @@ class ParseBlock {
 		unsigned int compileCursor){
 		Main* main = &app.main;
 		if (!putValueIntoExpression(main, dataMember)){
-			std::DString error;
+			std::str::DString error;
 			error.addCString("Data member '");
-			error.addStringView(&main->token);
+			error.addView(&main->token);
 			error.addCString("' at invalid place.");
 			Parse::logError(main, 0, &error);
 			return false;
@@ -2201,9 +2193,9 @@ class ParseBlock {
 		unsigned int compileCursor){
 		Main* main = &app.main;
 		if (!putValueIntoExpression(main, memberFunction)){
-			std::DString error;
+			std::str::DString error;
 			error.addCString("Member function '");
-			error.addStringView(&main->token);
+			error.addView(&main->token);
 			error.addCString("' at invalid place.");
 			Parse::logError(main, 0, &error);
 			return false;
@@ -2227,7 +2219,7 @@ class ParseBlock {
 						return false;
 					} else if (!isSubClass(functionToParse->parentClass,
 						memberFunction->parentClass)){
-						std::DString error;
+						std::str::DString error;
 						error.addCString("Non-static function '");
 						error.addString(&memberFunction->name);
 						error.addCString("' referenced outside of its class.");
@@ -2274,13 +2266,13 @@ class ParseBlock {
 		data::ClassType* classType,
 		unsigned int compileCursor){
 		Main* main = &app.main;
-		std::StringView* token = &main->token;
+		std::str::View* token = &main->token;
 		unsigned int savedCursor =
 			compileCursor - main->token.length;
 		/* If scope resolution, then it is a namespace or class name. */
 		compileCursor = Parse::ignoreWhitespaceAndComment(
 			classType, compileCursor);
-		std::String* code = &classType->code;
+		std::str::String* code = &classType->code;
 		if (compileCursor + 2 > code->length ||
 			code->data[compileCursor] != ':' ||
 			code->data[compileCursor + 1] != ':'){
@@ -2297,9 +2289,9 @@ class ParseBlock {
 						checkMaybeCast(main);
 						if (!putValueIntoExpression(
 							main, variable)){
-							std::DString error;
+							std::str::DString error;
 							error.addCString("Local variable '");
-							error.addStringView(token);
+							error.addView(token);
 							error.addCString("' at invalid place.");
 							Parse::logError(main, 0, &error);
 							return false;
@@ -2320,9 +2312,9 @@ class ParseBlock {
 					checkMaybeCast(main);
 					if (!putValueIntoExpression(
 						main, parameter)){
-						std::DString error;
+						std::str::DString error;
 						error.addCString("Function parameter '");
-						error.addStringView(token);
+						error.addView(token);
 						error.addCString("' at invalid place.");
 						Parse::logError(main, 0, &error);
 						return false;
@@ -2350,7 +2342,7 @@ class ParseBlock {
 		}
 		/* Find in namespaces. */
 		Namespace* compileNamespace = main->rootNamespace;
-		std::DString* path = &main->classOrMemberPath;
+		std::str::DString* path = &main->classOrMemberPath;
 		while (true){
 			Namespace* nextNameSpace =
 				compileNamespace->getNamespace(token);
@@ -2361,7 +2353,7 @@ class ParseBlock {
 					main->classMemberName.clear();
 					path->trim(main->rootPath + 3/*src*/);
 					compileNamespace->getPath(path);
-					path->addStringView(token);
+					path->addView(token);
 					break;
 				} else {
 					data::Type* dataType = classDataType;
@@ -2403,9 +2395,9 @@ class ParseBlock {
 							return functionMemberToExpression(
 								app, functionMember, compileCursor);
 						} else {
-							std::DString error;
+							std::str::DString error;
 							error.addCString("Not found: '");
-							error.addStringView(token);
+							error.addView(token);
 							error.addCString("'.");
 							Parse::logError(main, 0, &error);
 							return false;
@@ -2430,7 +2422,7 @@ class ParseBlock {
 							break;
 					}
 					{
-						std::DString error;
+						std::str::DString error;
 						error.addCString("Wrong token after class: '");
 						error.addString(&classDataType->name);
 						error.addCString("'.");
@@ -2469,7 +2461,7 @@ class ParseBlock {
 					return false;
 				}
 				path->addChar('/');
-				path->addStringView(token);
+				path->addView(token);
 				continue;
 			}
 			unsigned int len = path->length;
@@ -2635,7 +2627,7 @@ class ParseBlock {
 						(lexical::FunctionCall*)currentExpression;
 					unsigned int len = expression->arguments.size;
 					if (len == 0){
-						expression->arguments.pushBack(value);
+						expression->arguments.push(value);
 					} else {
 						void** argument = &expression->
 							arguments.data[len-1];
@@ -2753,7 +2745,7 @@ class ParseBlock {
 						*operatorOperand = *statement;
 						*statement = operator;
 						main->currentExpression = operator;
-						main->expressionStack->pushBack(
+						main->expressionStack->push(
 							operator);
 						return true;
 					}
@@ -2774,7 +2766,7 @@ class ParseBlock {
 							getOperand(currentExpression);
 						*operatorOperand = *expressionOperand;
 						*expressionOperand = operator;
-						main->expressionStack->pushBack(
+						main->expressionStack->push(
 							operator);
 						main->currentExpression = operator;
 						return true;
@@ -2787,7 +2779,7 @@ class ParseBlock {
 							getOperand2(currentExpression);
 						*operatorOperand = *expressionOperand;
 						*expressionOperand = operator;
-						main->expressionStack->pushBack(
+						main->expressionStack->push(
 							operator);
 						main->currentExpression = operator;
 						return true;
@@ -2803,7 +2795,7 @@ class ParseBlock {
 							getOperand(operator);
 						*operatorOperand = *argument;
 						*argument = operator;
-						main->expressionStack->pushBack(
+						main->expressionStack->push(
 							operator);
 						main->currentExpression = operator;
 						return true;
@@ -2822,7 +2814,7 @@ class ParseBlock {
 						}
 						*operatorOperand = *expressionOperand;
 						*expressionOperand = operator;
-						main->expressionStack->pushBack(operator);
+						main->expressionStack->push(operator);
 						main->currentExpression = operator;
 						return true;
 					}
@@ -2845,7 +2837,7 @@ class ParseBlock {
 				}
 				*operatorOperand = *expressionOperand;
 				*expressionOperand = operator;
-				main->expressionStack->pushBack(operator);
+				main->expressionStack->push(operator);
 				main->currentExpression = operator;
 				return true;
 			}
@@ -2885,10 +2877,10 @@ class ParseBlock {
 					if (!main->statementEnd) {return false;}
 					lexical::BlockStatement* expression =
 						(lexical::BlockStatement*)currentExpression;
-					expression->statements.pushBack(operator);
+					expression->statements.push(operator);
 					main->statementEnd = false;
 					main->currentExpression = operator;
-					main->expressionStack->pushBack(operator);
+					main->expressionStack->push(operator);
 					return true;
 				}
 			case lexical::Types::functionCall:
@@ -2897,7 +2889,7 @@ class ParseBlock {
 						(lexical::FunctionCall*)currentExpression;
 					unsigned int len = expression->arguments.size;
 					if (len == 0){
-						expression->arguments.pushBack(nullptr);
+						expression->arguments.push(nullptr);
 						len = 1;
 					}
 					operand = (lexical::Type**)
@@ -2923,7 +2915,7 @@ class ParseBlock {
 		if (*operand != nullptr) {return false;}
 		*operand = operator;
 		main->currentExpression = operator;
-		main->expressionStack->pushBack(operator);
+		main->expressionStack->push(operator);
 		return true;
 	}
 

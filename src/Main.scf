@@ -68,6 +68,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class Main {
+
 	std::bom::Window appWindow;
 	std::dom::Node document;
 	std::dom::Node body;
@@ -83,8 +84,8 @@ class Main {
 		fix for browsers, where auto is not reliable. */
 	unsigned int windowHeight;
 	bool fileSaved;
-	std::DString currentClassPath;
-	std::DString clipboard;
+	std::str::DString currentClassPath;
+	std::str::DString clipboard;
 	std::dom::Node findContainer;
 	std::js::Object onRunHtml;
 
@@ -94,34 +95,34 @@ class Main {
 	lexical::DataMember* currentParseDataMember;
 	lexical::MemberFunction* currentParseFunction;
 	lexical::FunctionParameter* currentParseParameter;
-	std::PtrCircuralArray functionsToParse;
-	std::PtrDArray functionExpressionStack;
+	std::ds::PtrCircuralArray functionsToParse;
+	std::ds::PtrDArray functionExpressionStack;
 	bool functionStatementEnd;
 	bool functionMaybeCast;
-	std::PtrDArray dataMembersStack;
+	std::ds::PtrDArray dataMembersStack;
 	/* Cache character, string, integer and floating literals,
 		instead of having multiple copies of them. */
-	std::PtrDArray characterLiterals;
-	std::PtrDArray stringLiterals;
-	std::PtrDArray integerLiterals;
-	std::PtrDArray floatingLiterals;
-	std::PtrDArray staticMembers;
-	std::PtrDArray sortedVariables;
+	std::ds::PtrDArray characterLiterals;
+	std::ds::PtrDArray stringLiterals;
+	std::ds::PtrDArray integerLiterals;
+	std::ds::PtrDArray floatingLiterals;
+	std::ds::PtrDArray staticMembers;
+	std::ds::PtrDArray sortedVariables;
 	bool needAsyncStaticObject;
 	data::ClassType* savedClassType;
 	unsigned int compileCursor;
-	std::StringView token;
+	std::str::View token;
 	unsigned char tokenType;
 	lexical::Type* lexicalToken;
-	std::PtrArray keywords;
+	std::ds::PtrArray keywords;
 	lexical::Type* lexicalExpression;
-	std::PtrDArray* expressionStack;
+	std::ds::PtrDArray* expressionStack;
 	bool statementEnd;
 	bool maybeCast;
 	lexical::Type* currentExpression;
 	bool isConstLiteral;
-	std::DString classOrMemberPath;
-	std::DString classMemberName;
+	std::str::DString classOrMemberPath;
+	std::str::DString classMemberName;
 	unsigned int rootPath;
 
 	lexical::Type* nullptrLiteral;
@@ -145,9 +146,9 @@ class Main {
 	data::Type* floatType;
 	data::Type* doubleType;
 
-	std::DString compiledCode;
+	std::str::DString compiledCode;
 	bool compileMemory;
-	std::PtrDArray classesStack;
+	std::ds::PtrDArray classesStack;
 	unsigned int nestedBlocks;
 	unsigned int charsInLine;
 	unsigned int stackEnd;
@@ -323,7 +324,7 @@ class Main {
 			elementBeforeRow(&end, range.getEndOffset());
 			std::dom::Node sibling;
 			std::dom::Node parent;
-			std::DString data;
+			std::str::DString data;
 			while (true){
 				if (start.isNull()){
 					main->elementWithText.getFirstChild(&sibling);
@@ -352,7 +353,7 @@ class Main {
 				} else if (sibling.getNodeType() ==
 					std::dom::NodeTypes::text){
 					data.clear();
-					std::dom::CharacterData::getData(
+					std::dom::CharacterData::getDataDString(
 						&sibling, &data);
 					if (data.data[0] == '\t'){
 						std::dom::CharacterData::deleteData(
@@ -404,7 +405,7 @@ class Main {
 			}
 			/* Count the tabs at the start of the line. */
 			unsigned int tabs = 0;
-			std::DString data;
+			std::str::DString data;
 			while (node.getNodeType() ==
 				std::dom::NodeTypes::text){
 				bool tab = !node.isSameNode(&start);
@@ -417,7 +418,7 @@ class Main {
 					until = offset;
 				}
 				data.clear();
-				std::dom::CharacterData::getData(
+				std::dom::CharacterData::getDataDString(
 					&node, &data);
 				unsigned int i = 0;
 				while (i < until){
@@ -434,7 +435,7 @@ class Main {
 			}
 			brToCaret(&range, &main->document);
 			data.clear();
-			data.reserve(tabs);
+			data.reserve(tabs + 1);
 			unsigned int i = 0;
 			while (i < tabs){
 				data.addChar('\t');
@@ -448,7 +449,7 @@ class Main {
 		}
 	}
 	
-	static void rangeToString(std::DString* string,
+	static void rangeToString(std::str::DString* string,
 		std::dom::Node* startContainer,
 		unsigned int startOffset,
 		std::dom::Node* endContainer,
@@ -477,7 +478,7 @@ class Main {
 		if (node.getNodeType() ==
 			std::dom::NodeTypes::text &&
 			!node.isSameNode(endContainer)){
-			std::dom::CharacterData::substringData(
+			std::dom::CharacterData::substringDataDString(
 				&node, string, startOffset,
 				std::dom::CharacterData::
 					getLength(&node) - startOffset);
@@ -486,7 +487,7 @@ class Main {
 		while (!node.isSameNode(endContainer)){
 			if (node.getNodeType() ==
 				std::dom::NodeTypes::text){
-				std::dom::CharacterData::getData(
+				std::dom::CharacterData::getDataDString(
 					&node, string);
 			} else {
 				string->addChar('\n');
@@ -496,11 +497,11 @@ class Main {
 		if (node.getNodeType() ==
 			std::dom::NodeTypes::text){
 			if (node.isSameNode(startContainer)){
-			std::dom::CharacterData::substringData(
+			std::dom::CharacterData::substringDataDString(
 				&node, string, startOffset,
 					endOffset - startOffset);
 			} else {
-				std::dom::CharacterData::substringData(
+				std::dom::CharacterData::substringDataDString(
 					&node, string, 0, endOffset);
 			}
 		}
@@ -508,7 +509,7 @@ class Main {
 	
 	static void getRangeToString(Main* main,
 		std::dom::Range* range,
-		std::DString* string){
+		std::str::DString* string){
 		std::dom::Selection selection;
 		main->appWindow.getSelection(&selection);
 		selection.getRangeAt(range, 0);
@@ -527,7 +528,7 @@ class Main {
 		Main* main = &app.main;
 		main->setModifiedTitle();
 		std::dom::Range range;
-		std::DString string;
+		std::str::DString string;
 		getRangeToString(main, &range, &string);
 		range.deleteContents();
 		e->setTextClipboardData(string.data, 0, string.length);
@@ -538,12 +539,12 @@ class Main {
 		e->preventDefault();
 		Main* main = &app.main;
 		std::dom::Range range;
-		std::DString string;
+		std::str::DString string;
 		getRangeToString(main, &range, &string);
 		e->setTextClipboardData(string.data, 0, string.length);
 	}
 	
-	static void stringToRange(std::DString* string,
+	static void stringToRange(std::str::DString* string,
 		std::dom::Range* range, std::dom::Node* document){
 		unsigned int start = 0;
 		unsigned int i = 0;
@@ -576,12 +577,12 @@ class Main {
 		std::ApplicationInstance aexcl app){
 		e->preventDefault();
 		Main* main = &app.main;
-		std::DString string;
-		e->getTextClipboardData(&string);
+		std::str::DString string;
+		e->getTextClipboardDataDString(&string);
 		main->doPaste(&string);
 	}
 
-	void doPaste(std::DString* string){
+	void doPaste(std::str::DString* string){
 		std::dom::Selection selection;
 		appWindow.getSelection(&selection);
 		std::dom::Range range;
@@ -618,7 +619,7 @@ class Main {
 	
 	static void onClickOnOpenClass(
 		std::ApplicationInstance aexcl app,
-		std::DString* path){
+		std::str::DString* path){
 		if (path != nullptr){
 			app.fileSystem.openFile(path->data, onClassOpened,
 				std::fs::OpenFileModes::readBinary);
@@ -638,7 +639,7 @@ class Main {
 			main->elementWithText.setOnPaste(onPasteOnPre);
 			main->elementWithText.setContentEditable(true);
 		}
-		main->currentClassPath.setSubstring(
+		main->currentClassPath.set(
 			file->path.data, 0, file->path.length);
 		unsigned int len = file->getSize();
 		unsigned char[] data = new unsigned char[len];
@@ -714,7 +715,7 @@ class Main {
 		std::ApplicationInstance aexcl app,
 		std::fs::File* file){
 		Main* main = &app.main;
-		std::DString string;
+		std::str::DString string;
 		std::dom::Node startContainer;
 		startContainer.set(&main->elementWithText);
 		std::dom::Node endContainer;
@@ -734,7 +735,7 @@ class Main {
 		e->stopPropagation();
 		Main* main = &app.main;
 		std::dom::Range range;
-		std::DString* string = &main->clipboard;
+		std::str::DString* string = &main->clipboard;
 		string->clear();
 		getRangeToString(main, &range, string);
 	}
@@ -754,7 +755,7 @@ class Main {
 		Main* main = &app.main;
 		main->setModifiedTitle();
 		std::dom::Range range;
-		std::DString* string = &main->clipboard;
+		std::str::DString* string = &main->clipboard;
 		string->clear();
 		getRangeToString(main, &range, string);
 		range.deleteContents();
@@ -773,12 +774,12 @@ class Main {
 		appWindow.getSelection(&selection);
 		std::dom::Range range;
 		selection.getRangeAt(&range, 0);
-		std::DString find;
-		std::html::InputElement::getValue(
+		std::str::DString find;
+		std::html::InputElement::getValueDString(
 			&findContainer, &find);
 		std::dom::Node node;
 		range.getStartContainer(&node);
-		std::DString string;
+		std::str::DString string;
 		unsigned int offset = range.getStartOffset();
 		unsigned int i;
 		if (node.getNodeType() !=
@@ -793,13 +794,13 @@ class Main {
 			node.getParentNode(&node);
 			if (node.isSameNode(&elementWithText)){
 				range.getStartContainer(&node);
-				std::dom::CharacterData::getData(
+				std::dom::CharacterData::getDataDString(
 					&node, &string);
 				if (next){
-					i = string.indexOf(find.data, 0,
+					i = string.findRange(find.data, 0,
 						find.length, offset + 1);
 				} else if (offset > 0){
-					i = std::Memory::indexOfReverse(
+					i = std::arr::Uchar::findLastRange(
 						find.data, 0, find.length,
 						string.data, 0, offset);
 				} else {i = 0;}
@@ -825,13 +826,13 @@ class Main {
 			if (node.getNodeType() ==
 				std::dom::NodeTypes::text){
 				string.clear();
-				std::dom::CharacterData::getData(
+				std::dom::CharacterData::getDataDString(
 					&node, &string);
 				if (next){
-					i = string.indexOf(find.data, 0,
+					i = string.findRange(find.data, 0,
 						find.length, 0);
 				} else {
-					i = std::Memory::indexOfReverse(
+					i = std::arr::Uchar::findLastRange(
 						find.data, 0, find.length,
 						string.data, 0, string.length);
 				}
@@ -888,7 +889,7 @@ class Main {
 			element, std::html::InputTypes::button);
 		std::html::InputElement::setValue(
 			element, text, 0,
-			std::CString::length(text, 0));
+			std::str::CString::length(text, 0));
 		element->setOnMouseDown(onMouseDown);
 		container->appendChild(element);
 	}
@@ -909,7 +910,7 @@ class Main {
 
 	static void onClickOnRun(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
-		std::DString* classOrMemberPath =
+		std::str::DString* classOrMemberPath =
 			&app.main.classOrMemberPath;
 		classOrMemberPath->trim(app.main.rootPath);
 		classOrMemberPath->addCString("html/compiled.html");
@@ -981,7 +982,7 @@ class Main {
 		std::html::DivElement::create(
 			document, element);
 		std::dom::Text::create(document, textNode,
-			text, 0, std::CString::length(text, 0));
+			text, 0, std::str::CString::length(text, 0));
 		element->appendChild(textNode);
 		std::css::Declaration style;
 		std::html::Element::getStyle(element, &style);
@@ -1052,10 +1053,10 @@ class Main {
 			InputElement::getChecked(&element);
 		node->getNextSibling(node);
 		node->getLastChild(&element);
-		std::DString value;
-		std::html::InputElement::getValue(
+		std::str::DString value;
+		std::html::InputElement::getValueDString(
 			&element, &value);
-		unsigned int height = std::CString::getUint(
+		unsigned int height = std::str::CString::getUint(
 			value.data, 0, value.length, nullptr,
 			std::NumberBases::decimal);
 		node->getParentNode(node);
@@ -1164,7 +1165,7 @@ class Main {
 			"Window height: ", &container);
 		std::html::InputElement::create(
 			document, &element);
-		std::DString value;
+		std::str::DString value;
 		value.addUint(main->windowHeight,
 			std::NumberBases::decimal);
 		std::html::InputElement::setValue(
@@ -1186,7 +1187,7 @@ class Main {
 	
 	static void onChangeCompilePath(
 		std::ApplicationInstance aexcl app,
-		std::DString* path){
+		std::str::DString* path){
 		Main* main = &app.main;
 		if (path != nullptr){
 			std::dom::Node node;
@@ -1196,7 +1197,7 @@ class Main {
 			unsigned int len = path->length;
 			std::dom::CharacterData::setData(
 				&node, path->data, 0, len);
-			main->classOrMemberPath.setSubstring(
+			main->classOrMemberPath.set(
 				path->data, 0, len);
 			main->rootPath = len;
 		}
@@ -1388,12 +1389,12 @@ class Main {
 		style.setMinHeight(len.set(
 			100, std::css::Units::px));
 		unsigned char[] text =
-			"Welcome to the SWARMBJECT developement environment!\n\n"
+			"Welcome to the SWARMBJECT development environment!\n\n"
 			"License\n\n";
 		stringToEditor(this, text,
-			std::CString::length(text, 0));
+			std::str::CString::length(text, 0));
 		stringToEditor(this, getLicense(),
-			std::CString::length(getLicense(), 0));
+			std::str::CString::length(getLicense(), 0));
 		editorContainer.appendChild(&elementWithText);
 
 		std::html::DivElement::create(
@@ -1445,7 +1446,7 @@ class Main {
 		addRow(&document, &div, &textNode,
 			"/", &compileContainer);
 		rootPath = 1;
-		classOrMemberPath.setSubstring("/", 0, 1);
+		classOrMemberPath.set("/", 0, 1);
 		div.setOnClick(onClickOnCompilePath);
 		
 		addRow(&document, &div, &textNode,

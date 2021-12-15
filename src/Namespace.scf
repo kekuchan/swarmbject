@@ -68,38 +68,39 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class Namespace {
-	std::String name;
-	std::PtrDArray namespaces;
-	std::PtrDArray classes;
+	std::str::String name;
+	std::ds::PtrDArray namespaces;
+	std::ds::PtrDArray classes;
 	Namespace* parentNamespace;
 	
 	static Namespace* create(
-		std::StringView* string, Namespace* parent){
+		std::str::View* string, Namespace* parent){
 		Namespace* namespace = new Namespace;
-		namespace->name.setStringView(string);
+		namespace->name.setView(string);
 		namespace->parentNamespace = parent;
 		return namespace;
 	}
-	
-	static char cmpName(void* i, void* j){
-		return ((Namespace*)i)->name.compare(
+
+	static unsigned char cmpName(void* i, void* j){
+		return ((Namespace*)i)->name.compareString(
 			&((Namespace*)j)->name);
 	}
 
-	static char cmpString(void* i, void* j){
-		return ((std::StringView*)i)->compareString(
+	static unsigned char cmpString(void* i, void* j){
+		return ((std::str::View*)i)->compareString(
 			&((Namespace*)j)->name);
 	}
-	
+
 	void insertNamespace(Namespace* ns){
 		namespaces.insertSorted(ns, cmpName);
 	}
 	
 	Namespace* getNamespace(
-		std::StringView* name){
-		return (Namespace*)
-			(namespaces.findSorted(name,
-				cmpString));
+		std::str::View* name){
+		unsigned int i = namespaces.findSorted(
+			name, cmpString);
+		if (i == 0) {return nullptr;}
+		return (Namespace*)(namespaces.data[i - 1]);
 	}
 	
 	void insertClass(data::ClassType* classType){
@@ -108,13 +109,14 @@ class Namespace {
 	}
 	
 	data::ClassType* getClass(
-		std::StringView* name){
-		return (data::ClassType*)
-			(classes.findSorted(name,
-				data::ClassType::cmpString));
+		std::str::View* name){
+		unsigned int i = classes.findSorted(
+			name, data::ClassType::cmpString);
+		if (i == 0) {return nullptr;}
+		return (data::ClassType*)(classes.data[i - 1]);
 	}
 	
-	void getPath(std::DString* string){
+	void getPath(std::str::DString* string){
 		Namespace* ns = parentNamespace;
 		if (ns != nullptr){
 			ns->getPath(string);
@@ -123,36 +125,36 @@ class Namespace {
 		string->addChar('/');
 	}
 	
-	void debug(std::DString* string, bool recurse){
+	void debug(std::str::DString* string, bool recurse){
 		string->addString(&name);
-		string->addSubstring(" (", 0, 2);
+		string->add(" (", 0, 2);
 		Namespace*[] compileNamespaces = (Namespace*[])
 			(namespaces.data);
 		unsigned int len = namespaces.size;
 		unsigned int i;
 		if (len > 0){
 			i = 0;
-			string->addSubstring("namespaces (", 0, 12);
+			string->add("namespaces (", 0, 12);
 			while (i < len){
 				if (recurse){
 					compileNamespaces[i]->debug(string, recurse);
 				} else {
 					string->addString(&(compileNamespaces[i]->name));
 				}
-				string->addSubstring(", ", 0, 2);
+				string->add(", ", 0, 2);
 				i = i + 1;
 			}
-			string->addSubstring(") ", 0, 2);
+			string->add(") ", 0, 2);
 		}
 		data::ClassType*[] compileClasses = (data::ClassType*[])
 			(classes.data);
 		len = classes.size;
 		if (len > 0){
-			string->addSubstring("classes (", 0, 9);
+			string->add("classes (", 0, 9);
 			i = 0;
 			while (i < len){
 				compileClasses[i]->debug(string, recurse);
-				string->addSubstring(", ", 0, 2);
+				string->add(", ", 0, 2);
 				i = i + 1;
 			}
 			string->addChar(')');
