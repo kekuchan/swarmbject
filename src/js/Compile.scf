@@ -102,10 +102,10 @@ class Compile {
 		while (i < len){
 			data::ClassType* classType = classes[i];
 			if (classType->size == -1){
-				main->classesStack.pushBack(classType);
+				main->classesStack.push(classType);
 				if (!setSizeofClass(main,
 					classType)) {return false;}
-				main->classesStack.popBack();
+				main->classesStack.pop();
 			}
 			i = i + 1;
 		}
@@ -192,7 +192,7 @@ class Compile {
 		unsigned int len = main->classesStack.size - 1;
 		while (i < len){
 			if (classes[i] == classType){
-				std::DString error;
+				std::str::DString error;
 				error.addString(&classType->name);
 				error.addCString(" has infinite size as it");
 				while (i <= len){
@@ -213,10 +213,10 @@ class Compile {
 		data::ClassType* base = classType->base;
 		if (base != nullptr){
 			if (base->size == -1){
-				main->classesStack.pushBack(base);
+				main->classesStack.push(base);
 				if (!setSizeofClass(main,
 					base)) {return false;}
-				main->classesStack.popBack();
+				main->classesStack.pop();
 			}
 			classType->specifiers = classType->specifiers |
 				(base->specifiers &
@@ -254,7 +254,7 @@ class Compile {
 				i = i + 1;
 				continue;
 			}
-			main->sortedVariables.pushBack(
+			main->sortedVariables.push(
 				dataMember);
 			while (true){
 				switch (dataType->type){
@@ -293,11 +293,11 @@ class Compile {
 								if (align < 4) {align = 4;}
 							} else {
 								if (classMember->size == -1){
-									main->classesStack.pushBack(
+									main->classesStack.push(
 										classMember);
 									if (!setSizeofClass(main,
 										classMember)) {return false;}
-									main->classesStack.popBack();
+									main->classesStack.pop();
 									/* As sortedMembers changed. */
 									main->sortedVariables.clear();
 									unsigned int j = 0;
@@ -308,7 +308,7 @@ class Compile {
 											(dataMember->getSpecifiers() &
 												(data::SpecifierTypes::isStatic |
 												data::SpecifierTypes::isConstexpr)) == 0){
-											main->sortedVariables.pushBack(
+											main->sortedVariables.push(
 												dataMember);
 										}
 										j = j + 1;
@@ -367,7 +367,7 @@ class Compile {
 	}
 	
 	static void addLicense(
-		std::DString* code){
+		std::str::DString* code){
 		code->addCString(
 			"Generated with the SWARMBJECT compiler.\n"
 			"The SWARMBJECT compiler and the SWARMBJECT std namespace\n"
@@ -379,14 +379,14 @@ class Compile {
 		std::ApplicationInstance aexcl app,
 		std::fs::File* openedFile){
 		Main* main = &app.main;
-		std::StringView name;
+		std::str::View name;
 		name.setCString("std");
 		Namespace* stdNamespace =
 			main->rootNamespace->getNamespace(&name);
 		name.setCString("ApplicationInstance");
 		data::ClassType* appClass =
 			stdNamespace->getClass(&name);
-		std::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->compiledCode;
 		code->setCString(
 			"<!DOCTYPE HTML>"
 			"<html>\n"
@@ -464,7 +464,7 @@ class Compile {
 	static void addTabs(Main* main){
 		unsigned int i = main->nestedBlocks;
 		main->charsInLine = main->charsInLine + i;
-		std::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->compiledCode;
 		while (i > 0){
 			code->addChar('\t');
 			i = i - 1;
@@ -473,31 +473,31 @@ class Compile {
 
 	static void addCString(Main* main,
 		unsigned char[] string){
-		addSubstring(main, string,
-			std::CString::length(string, 0));
+		add(main, string,
+			std::str::CString::length(string, 0));
 	}
 	
 	static void addDString(Main* main,
-		std::DString* string){
-		addSubstring(main, string->data, string->length);
+		std::str::DString* string){
+		add(main, string->data, string->length);
 	}
 	
 	static void addString(Main* main,
-		std::String* string){
-		addSubstring(main, string->data, string->length);
+		std::str::String* string){
+		add(main, string->data, string->length);
 	}
 
-	static void addSubstring(Main* main,
+	static void add(Main* main,
 		unsigned char[] string, unsigned int len){
 		splitIfLongLine(main, len);
-		main->compiledCode.addSubstring(string, 0, len);
+		main->compiledCode.add(string, 0, len);
 	}
 
 	unsigned int constexpr maxLineLength = 50;
 
 	static void splitIfLongLine(Main* main,
 		unsigned int len){
-		std::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->compiledCode;
 		unsigned int lineLength =
 			main->charsInLine + len;
 		if (lineLength <= maxLineLength){
@@ -512,12 +512,12 @@ class Compile {
 
 	static void addUint(Main* main,
 		unsigned int i){
-		unsigned int len = std::CString::uintLength(
+		unsigned int len = std::str::CString::uintLength(
 			i, std::NumberBases::decimal);
 		splitIfLongLine(main, len);
-		std::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->compiledCode;
 		code->addLength(len, true, true);
-		std::CString::setUintEnd(
+		std::str::CString::setUintEnd(
 			i, code->data, code->length - 1,
 			std::NumberBases::decimal);
 	}
@@ -533,7 +533,7 @@ class Compile {
 	}
 	
 	static unsigned int encodeString(Main* main,
-		std::String* string){
+		std::str::String* string){
 		unsigned int i = 0;
 		unsigned char[] data = string->data;
 		unsigned int len = string->length;
@@ -549,7 +549,7 @@ class Compile {
 
 	static unsigned int sortVariables(
 		unsigned int offset,
-		std::PtrDArray* array){
+		std::ds::PtrDArray* array){
 		lexical::Variable*[] variables =
 			(lexical::Variable*[])
 			(array->data);
@@ -637,17 +637,17 @@ class Compile {
 		unsigned char[] string =
 			dataTypeToMemoryStart(dataType);
 		unsigned int len =
-			std::CString::length(string, 0);
+			std::str::CString::length(string, 0);
 		unsigned int align =
 			getAlignOfDataType(dataType);
 		if (align > 1) {len = len - 1;}
-		addSubstring(main, string, len);
+		add(main, string, len);
 		addUint(main, dataMember->offset / align);
 		addChar(main, ']');
 	}
 
 	static unsigned int compileGlobals(Main* main){
-		std::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->compiledCode;
 		code->addCString(
 			"function _setGlobals(){\n\t");
 		main->charsInLine = 0;
@@ -700,7 +700,7 @@ class Compile {
 		std::ApplicationInstance aexcl app,
 		std::fs::File* openedFile){
 		Main* main = &app.main;
-		std::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->compiledCode;
 		unsigned int* nestedBlocks = &main->nestedBlocks;
 		Namespace* rootNamespace = main->rootNamespace;
 		code->setCString("/*\n");
@@ -1539,7 +1539,7 @@ class Compile {
 			(compileNamespace->classes.data);
 		len = compileNamespace->classes.size;
 		if (len > 0){
-			std::DString* code = &main->compiledCode;
+			std::str::DString* code = &main->compiledCode;
 			i = 0;
 			while (i < len){
 				data::ClassType* classType = classes[i];
@@ -1587,7 +1587,7 @@ class Compile {
 		data::ClassType*[] classes = (data::ClassType*[])
 			(compileNamespace->classes.data);
 		len = compileNamespace->classes.size;
-		std::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->compiledCode;
 		i = 0;
 		while (i < len){
 			data::ClassType* classType = classes[i];
@@ -1666,7 +1666,7 @@ class Compile {
 		data::ClassType*[] classes = (data::ClassType*[])
 			(compileNamespace->classes.data);
 		len = compileNamespace->classes.size;
-		std::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->compiledCode;
 		i = 0;
 		while (i < len){
 			data::ClassType* classType = classes[i];
@@ -1780,7 +1780,7 @@ class Compile {
 		data::ClassType*[] classes = (data::ClassType*[])
 			(compileNamespace->classes.data);
 		len = compileNamespace->classes.size;
-		std::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->compiledCode;
 		i = 0;
 		while (i < len){
 			data::ClassType* classType = classes[i];
@@ -1812,7 +1812,7 @@ class Compile {
 			std::fs::OpenFileModes::writeBinary);
 	}
 
-	static void getNamespacePrefix(std::DString* code,
+	static void getNamespacePrefix(std::str::DString* code,
 		Namespace* compileNamespace){
 		Namespace* ns = compileNamespace->parentNamespace;
 		if (ns != nullptr){
@@ -1847,20 +1847,20 @@ class Compile {
 		}
 	}
 
-	static void getClassPrefix(std::DString* code,
+	static void getClassPrefix(std::str::DString* code,
 		data::ClassType* compileClass){
 		getNamespacePrefix(code, compileClass->parentNamespace);
 		code->addString(&compileClass->name);
 	}
 
-	static void getDataMemberName(std::DString* code,
+	static void getDataMemberName(std::str::DString* code,
 		lexical::DataMember* dataMember){
 		getClassPrefix(code, dataMember->parentClass);
 		code->addChar('_');
 		code->addString(&dataMember->name);
 	}
 
-	static void getFunctionName(std::DString* code,
+	static void getFunctionName(std::str::DString* code,
 		lexical::MemberFunction* memberFunction){
 		getClassPrefix(code, memberFunction->parentClass);
 		code->addChar('_');
@@ -1880,7 +1880,7 @@ class Compile {
 	}
 
 	static unsigned char getDataType(
-		std::DString* code, data::Type* dataType){
+		std::str::DString* code, data::Type* dataType){
 		switch (dataType->type){
 			case data::Types::boolT:
 			case data::Types::ucharT:
@@ -1914,7 +1914,7 @@ class Compile {
 		}
 	}
 
-	static void getMemberOffset(std::DString* code,
+	static void getMemberOffset(std::str::DString* code,
 		lexical::DataMember* dataMember){
 		code->addUint(dataMember->offset,
 			std::NumberBases::decimal);
@@ -1925,7 +1925,7 @@ class Compile {
 
 	static void doCompileNamespace(Main* main,
 		Namespace* compileNamespace){
-		std::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->compiledCode;
 		code->addCString("//start of namespace: ");
 		code->addString(&compileNamespace->name);
 		code->addCString("\n\n");
@@ -1941,9 +1941,9 @@ class Compile {
 			(compileNamespace->classes.data);
 		len = compileNamespace->classes.size;
 		i = 0;
-		std::StringView constructor;
+		std::str::View constructor;
 		constructor.setCString("_constructor");
-		std::StringView destructor;
+		std::str::View destructor;
 		destructor.setCString("_destructor");
 		while (i < len){
 			data::ClassType* classType = classes[i];
@@ -2410,7 +2410,7 @@ class Compile {
 					lexical::FunctionParameter* parameter =
 						parameters[k];
 					if (parameter->offset != -1){
-						main->sortedVariables.pushBack(
+						main->sortedVariables.push(
 							parameter);
 					}
 					code->addCString("\n\t");
@@ -2531,7 +2531,7 @@ class Compile {
 		return string;
 	}
 	
-	static void getMemoryStart(std::DString* code,
+	static void getMemoryStart(std::str::DString* code,
 		data::Type* dataType){
 		code->addCString(
 			dataTypeToMemoryStart(dataType));
@@ -2592,7 +2592,7 @@ class Compile {
 	}
 	
 	static void getMemoryEnd(
-		std::DString* code, data::Type* dataType){
+		std::str::DString* code, data::Type* dataType){
 		code->addCString(
 			dataTypeToMemoryEnd(dataType));
 	}
@@ -2615,7 +2615,7 @@ class Compile {
 	
 	static void addOffsetName(Main* main,
 		data::Type* dataType, unsigned char[] base,
-		unsigned int offset, std::String* name){
+		unsigned int offset, std::str::String* name){
 		bool memoryEnd =
 			addMemoryStart(main, dataType);
 		addCString(main, base);
@@ -2629,7 +2629,7 @@ class Compile {
 	}
 	
 	static void addUintName(Main* main,
-		unsigned int uint, std::String* name){
+		unsigned int uint, std::str::String* name){
 		addUint(main, uint);
 		addCString(main, "/*");
 		addString(main, name);
@@ -2663,9 +2663,9 @@ class Compile {
 		addCString(main, string);
 		compileExpression(main, operator->operand1);
 		addChar(main, ')');
-		main->expressionStack->pushBack(expression);
+		main->expressionStack->push(expression);
 		compileExpression(main, operator->operand2);
-		main->expressionStack->popBack();
+		main->expressionStack->pop();
 	}
 
 	static void compileExpression(Main* main,
@@ -2715,15 +2715,15 @@ class Compile {
 						(lexical::StringLiteral*)expression;
 					addUint(main, literal->address);
 					addCString(main, "/*");
-					std::String* string = &literal->string;
-					unsigned int strLen = std::Memory::replacedLength(
+					std::str::String* string = &literal->string;
+					unsigned int strLen = std::arr::Uchar::replacedSize(
 						string->data, 0, string->length,
 						"/", 0, 1, 2);
 					splitIfLongLine(main, strLen);
-					std::DString* code = &main->compiledCode;
+					std::str::DString* code = &main->compiledCode;
 					unsigned int len = code->length;
 					code->addLength(strLen, true, true);
-					std::Memory::setReplace(code->data, len,
+					std::arr::Uchar::setReplace(code->data, len,
 						string->data, 0, string->length,
 						"/", 0, 1, "\\/", 0, 2);
 					addCString(main, "*/");
@@ -3315,7 +3315,7 @@ class Compile {
 		return false;
 	}
 
-	static void getCall(std::DString* code,
+	static void getCall(std::str::DString* code,
 		data::ClassType* classType,
 		unsigned char[] string){
 		getClassPrefix(code, classType);
@@ -3327,7 +3327,7 @@ class Compile {
 		unsigned char[] string){
 		unsigned int len = getNsPrefixLength(
 				classType->parentNamespace) +
-			classType->name.length + std::CString::length(string, 0);
+			classType->name.length + std::str::CString::length(string, 0);
 		splitIfLongLine(main, len);
 		getCall(&main->compiledCode, classType, string);
 	}
@@ -3414,7 +3414,7 @@ class Compile {
 			functionEndCallDestructors(main);
 			main->charsInLine = 0;
 			addTabs(main);
-			std::DString* code = &main->compiledCode;
+			std::str::DString* code = &main->compiledCode;
 			code->addCString("_stackEnd = _savedStackEnd;\n");
 			main->charsInLine = 0;
 			addTabs(main);
@@ -3437,7 +3437,7 @@ class Compile {
 	static void variableDeclarationToJs(Main* main,
 		lexical::VariableDeclaration* expression, bool assignment){
 		lexical::LocalVariable* variable = expression->variable;
-		std::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->compiledCode;
 		data::Type* dataType = variable->dataType->
 			withoutSpecifiers();
 		int offset = variable->offset;
@@ -3491,10 +3491,10 @@ class Compile {
 
 	static void blockToJs(Main* main,
 		lexical::BlockStatement* block){
-		std::PtrDArray* expressionStack =
+		std::ds::PtrDArray* expressionStack =
 			main->expressionStack;
-		expressionStack->pushBack(block);
-		std::DString* code = &main->compiledCode;
+		expressionStack->push(block);
+		std::str::DString* code = &main->compiledCode;
 		code->addCString("{\n");
 		unsigned int* nestedBlocks = &main->nestedBlocks;
 		*nestedBlocks = *nestedBlocks + 1;
@@ -3512,7 +3512,7 @@ class Compile {
 				int offset = variable->offset;
 				/* Use the stack. */
 				if (offset != -1){
-					main->sortedVariables.pushBack(
+					main->sortedVariables.push(
 						variable);
 				}
 				i = i + 1;
@@ -3586,7 +3586,7 @@ class Compile {
 					*nestedBlocks = *nestedBlocks - 1;
 					addTabs(main);
 					code->addChar('}');
-					expressionStack->popBack();
+					expressionStack->pop();
 					return;
 				case lexical::Types::ifStatement:
 				case lexical::Types::whileStatement:
@@ -3624,7 +3624,7 @@ class Compile {
 		*nestedBlocks = *nestedBlocks - 1;
 		addTabs(main);
 		code->addChar('}');
-		expressionStack->popBack();
+		expressionStack->pop();
 	}
 
 	static void functionCallToJs(Main* main,
