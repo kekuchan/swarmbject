@@ -1,0 +1,326 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Void {
+
+	/* Public member functions. */
+
+	/* 0 if equals, + if src > dst, - otherwise. */
+	static unsigned char compare(
+		void* src, unsigned int i,
+		void* dst, unsigned int j, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements){
+		len = i + len;
+		while (i < len){
+			unsigned char cmp = compareElements(
+				getElement(src, i), getElement(dst, j));
+			if (cmp != std::Compare::equal) {return cmp;}
+			i = i + 1;
+			j = j + 1;
+		}
+		return std::Compare::equal;
+	}
+	
+	static unsigned char compareRange(
+		void* src, unsigned int i,
+		unsigned int srcLen, void* dst,
+		unsigned int j, unsigned int dstLen,
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements){
+		unsigned int len;
+		if (srcLen > dstLen){
+			len = dstLen;
+		} else {
+			len = srcLen;
+		}
+		unsigned char cmp = compare(src, i, dst, j, 
+			len, getElement, compareElements);
+		if (cmp == std::Compare::equal && 
+			dstLen != srcLen){
+			if (srcLen > dstLen) 
+				{return std::Compare::greater;}
+			return std::Compare::less;
+		}
+		return cmp;
+	}
+	
+	/* Works even if overlapping. */
+	static void copy(void* src, unsigned int i,
+		void* dst, unsigned int j, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement){
+		if (i > j){
+			len = i + len;
+			while (i < len){
+				setElement(getElement(dst, j),
+					getElement(src, i));
+				i = i + 1;
+				j = j + 1;
+			}
+		} else {
+			while (len > 0){
+				len = len - 1;
+				setElement(getElement(dst, j + len),
+					getElement(src, i + len));
+			}
+		}
+	}
+
+	static unsigned int find(
+		void* element, void* src,
+		unsigned int start, unsigned int max,
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements){
+		max = max + start;
+		while (start < max){
+			if (compareElements(element, getElement(
+				src, start)) == std::Compare::equal) 
+					{return start + 1;}
+			start = start + 1;
+		}
+		return 0;
+	}
+
+	static unsigned int findLast(
+		void* element, void* src,
+		unsigned int end, unsigned int max,
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements){
+		max = max + end;
+		while (max > end){
+			max = max - 1;
+			if (compareElements(element, getElement(
+				src, max)) == std::Compare::equal) 
+					{return max + 1;}
+		}
+		return 0;
+	}
+	
+	static unsigned int findLastRange(
+		void* src, unsigned int i,
+		unsigned int len, void* dst,
+		unsigned int end, unsigned int max,
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements){
+		if (len <= max){
+			max = end + max - len + 1;
+			unsigned int j;
+			while (max > end){
+				max = max - 1;
+				j = 0;
+				while (j < len){
+					if (compareElements(
+							getElement(src, i + j),
+							getElement(dst, max + j)) != 
+						std::Compare::equal) {break;}
+					j = j + 1;
+				}
+				if (j == len) {return max + 1;}
+			}
+		}
+		return 0;
+	}
+
+	static unsigned int findRange(
+		void* src, unsigned int i,
+		unsigned int len, void* dst,
+		unsigned int start, unsigned int max,
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements){
+		if (len <= max){
+			max = start + max - len;
+			unsigned int j;
+			while (start <= max){
+				j = 0;
+				while (j < len){
+					if (compareElements(
+							getElement(src, i + j),
+							getElement(dst, start + j)) != 
+						std::Compare::equal) {break;}
+					j = j + 1;
+				}
+				start = start + 1;
+				if (j == len) {return start;}
+			}
+		}
+		return 0;
+	}
+	
+	static unsigned int findSorted(
+		void* element, void* src,
+		unsigned int start, unsigned int max,
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements){
+		max = max + start;
+		/* Trick using offset by 1 to keep variables as unsigned. */
+		start = start + 1;
+		unsigned int mid;
+		while (max >= start){
+			mid = (max + start) >> 1;
+			switch (compareElements(element,
+				getElement(src, mid - 1)){
+				case std::Compare::less:
+					end = mid - 1;
+					break;
+				case std::Compare::equal:
+					return mid;
+				case std::Compare::greater:
+					start = mid + 1;
+					break;
+			}
+		}
+		return 0;
+	}
+	
+	/* Returns a subarray's size if all 
+		occurences of src would be replaced with dst. */
+	static unsigned int replacedSize(
+		void* array, unsigned int arrayStart,
+		unsigned int arrayLen, void* src,
+		unsigned int srcStart, unsigned int srcLen,
+		unsigned int dstLen,
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements){
+		unsigned int addLen = 0;
+		if (srcLen == 0) {return arrayLen;}
+		arrayLen = arrayLen + arrayStart;
+		while (arrayStart < arrayLen){
+			if (arrayLen - arrayStart >= srcLen){
+				if (compare(array, arrayStart, src, 
+					srcStart, srcLen, getElement, 
+					compareElements) == std::Compare::equal){
+					addLen = addLen + dstLen;
+					arrayStart = arrayStart + srcLen;
+					continue;
+				}
+			}
+			addLen = addLen + 1;
+			arrayStart = arrayStart + 1;
+		}
+		return addLen;
+	}
+	
+	static void reverse(void* src,
+		unsigned int start, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void* tmp){
+		if (len <= 1) {return;}
+		len = len + start - 1;
+		while (len > start){
+			switchValue(getElement(src, start), 
+				getElement(src, len), setElement, tmp);
+			start = start + 1;
+			len = len - 1;
+		}
+	}
+	
+	/* Sets a subarray to the data but 
+		all occurences of src is replaced with dst.
+		Currently does not support if cStr is a substring of data. */
+	static void setReplace(
+		void* data, unsigned int dataStart,
+		void* array, unsigned int arrayStart,
+		unsigned int arrayLen, void* src,
+		unsigned int srcStart, unsigned int srcLen,
+		void* dst, unsigned int dstStart,
+		unsigned int dstLen,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		unsigned char(void*,void*) compareElements){
+		arrayLen = arrayLen + arrayStart;
+		while (arrayStart < arrayLen){
+			if (arrayLen - arrayStart >= srcLen){
+				if (compare(array, arrayStart, src, 
+					srcStart, srcLen, getElement, 
+					compareElements) == std::Compare::equal){
+					copy(dst, dstStart, data, dataStart, 
+						dstLen, getElement, setElement);
+					dataStart = dataStart + dstLen;
+					arrayStart = arrayStart + srcLen;
+					continue;
+				}
+			}
+			setElement(getElement(data, dataStart),
+				getElement(array, arrayStart));
+			dataStart = dataStart + 1;
+			arrayStart = arrayStart + 1;
+		}
+	}
+	
+	static void switchValue(void* src, void* dst,
+		void(void*, void*) setElement,
+		void* tmp){
+		setElement(tmp, src);
+		setElement(src, dst);
+		setElement(dst, tmp);
+	}
+
+}

@@ -67,12 +67,12 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Char {
+class Uint {
 
 	/* Public member functions. */
 
 	static unsigned char compareValue(
-		char src, char dst){
+		unsigned int src, unsigned int dst){
 		if (src < dst) {return std::Compare::less;}
 		else if (src == dst) {return std::Compare::equal;}
 		return std::Compare::greater;
