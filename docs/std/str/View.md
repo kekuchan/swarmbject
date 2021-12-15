@@ -1,172 +1,204 @@
-# "std::str::CString" class:
+# "std::str::View" class:
 
-Provides static functions for strings in unsigned 
-char arrays, where the string's end is indicated 
-with a 0 unsigned char.
+Used to create a const view of a substring, thus 
+it only points to the substring, instead of making 
+a copy of it.
 
-## "compare" static function:
+## "data" data member:
 
-Compares a string to a string.
-
-Parameters:
-* The unsigned char array of the first string.
-* The starting index of the first string in the array.
-* The unsigned char array of the second string.
-* The starting index of the second string in the array.
-
-Returns: an std::Compare value.
+The unsigned char array of the substring.
 
 ```
-unsigned char const[] first = "first string";
-unsigned char const[] second = "second string";
-unsigned char compare = std::str::CString::compare(
-	first, 0, second, 0);
-/*std::Compare::less, as 'f' < 's'.*/
-```
-		
-## "compareSubstring" static function:
-
-Compares a substring, to a string.
-
-Parameters:
-* The unsigned char array of the substring.
-* The starting index of the substring in the array.
-* The length of the substring.
-* The unsigned char array of the string.
-* The starting index of the string in the array.
-
-Returns: an std::Compare value.
-
-```
-unsigned char const[] string = "string";
-unsigned char compare = 
-	std::str::CString::compareSubstring(
-		string, 1, 1, string, 0);
-/*std::Compare::greater, as 't' > 's'.*/
-```
-
-## "getUint" static function:
-
-Gets an unsigned int from a string.
-
-Parameters:
-* The unsigned char array of the string.
-* The starting index of the number in the 
-string's array.
-* The maximum characters to read, however it also
-returns at the first non digit character.
-* Either nullptr, or a pointer to an unsigned int 
-construct, that will contain the number of 
-characters used while reading.
-* The number's base, as in std::NumberBases.
-
-Returns: unsigned int.
-
-```
-unsigned char const[] string = "2021";
-unsigned short year = std::str::CString::getUint(
-	string, 0, 4, nullptr, 
-	std::NumberBases::decimal); /*2021*/
-```
-
-## "length" static function:
-
-Counts the unsigned chars of the string, excluding the 
-ending 0 unsigned char. This is not nessesary the 
-same as the number of characters in the string, as 
-with UTF-8, a character can use 1-4 unsigned chars.
-
-Parameters:
-* The unsigned char array of the string.
-* The starting index of the string in the array.
-
-Returns: unsigned int.
-
-```
-unsigned char const[] string = "2021";
-unsigned int length = 
-	std::str::CString::length(string, 0); /*4*/
-```
-
-## "numberBaseToUint" static function:
-
-Converts a number base enum value to
-unsigned int base value.
-
-Parameters:
-* The base to convert.
-
-Returns: unsigned int.
-
-```
-unsigned int base = 
-	std::str::CString::numberBaseToUint(
-		std::NumberBases::decimal); /*10*/
+std::str::View string;
+string.set("2021", 2, 2);
+unsigned char const[] data = string.data;
+/*The view is only '2','1', but the data is "2021".*/
 ```
 	
-## "setUint" static function:
+## "length" data member:
 
-Sets an unsigned int to a string.
+The number of unsigned chars of the substring.
+This is not nessesary the same as the number 
+of characters in the string, as with UTF-8, 
+a character can use 1-4 unsigned chars.
+
+```
+std::str::View string;
+string.set("2021", 2, 2);
+unsigned int length = string.length; /*2*/
+```
+
+## "start" data member:
+
+The starting index of the substring 
+in its array.
+
+```
+std::str::View string;
+string.set("2021", 2, 2);
+unsigned int start = string.start; /*2*/
+```
+
+## "clear" member function:
+
+Clears the view to its initial state.
+
+Returns: void.
+
+```
+std::str::View string;
+string.set("2021", 2, 2);
+string.clear();
+unsigned int length = string.length; /*0*/
+```
+	
+## "compare" member function:
+
+Compares the substring to another substring.
 
 Parameters:
-* The unsigned int to set.
-* The unsigned char array of the string.
-* The starting index to write in the array.
-* The number's base to write, as in std::NumberBases.
+* The unsigned char array of the 
+substring to compare with.
+* The starting index of the substring 
+to compare with in its array.
+* The length of the substring to compare with.
 
-Returns: the number of characters used while 
-writing as an unsigned int.
+Returns: an std::Compare value.
 
 ```
-unsigned char[] string = new unsigned char[5];
-/*4 characters and the ending 0.*/
-string[4] = 0;
-unsigned int chars = 
-	std::str::CString::setUint(2021, string, 0, 
-		std::NumberBases::decimal);
-/*chars=4, string="2021"*/
+std::str::View first;
+first.addCString("first string");
+unsigned char const[] second = "second string";
+unsigned char compare = first.compare(second, 
+	0, std::str::CString::length(second, 0));
+/*std::Compare::less, as 'f' < 's'.*/
 ```
 
-## "setUintEnd" static function:
+## "compareCString" member function:
 
-Sets an unsigned int to a string to end at a given 
-index. This is faster than "setUint", as it can 
-start processing the number backwards immediately.
+Compares the substring to a 0 ended 
+unsigned char array string.
 
 Parameters:
-* The unsigned int to set.
-* The unsigned char array of the string.
-* The ending index to write in the array.
-* The number's base to write, as in std::NumberBases.
+* The 0 ended unsigned char array string 
+to compare with.
 
-Returns: the number of characters used while 
-writing as an unsigned int.
+Returns: an std::Compare value.
 
 ```
-unsigned char[] string = new unsigned char[5];
-/*4 characters and the ending 0.*/
-string[4] = 0;
-unsigned int chars = 
-	std::str::CString::setUintEnd(2021, string, 3, 
-		std::NumberBases::decimal);
-/*chars=4, string="2021"*/
+std::str::View string;
+string.setCString("first string");
+unsigned char compare = 
+	string.compareCString("second string");
+/*std::Compare::less, as 'f' < 's'.*/
 ```
 
-## "uintLength" static function:
+## "compareDString" member function:
 
-Gets the length of an unsigned int 
-as if it were a string.
+Compares the substring to an std::str::DString.
 
 Parameters:
-* The unsigned int.
-* The number's base as a string.
+* A pointer to the DString to compare with.
 
-Returns: unsigned int.
+Returns: an std::Compare value.
 
 ```
-unsigned int chars = 
-	std::str::CString::uintLength(2021,
-		std::NumberBases::decimal); /*4*/
+std::str::View first;
+first.addCString("first string");
+std::str::DString second;
+second.addCString("second string");
+unsigned char compare = 
+	first.compareDString(&second);
+/*std::Compare::less, as 'f' < 's'.*/
+```
+
+## "compareString" member function:
+
+Compares the substring to an std::str::String.
+
+Parameters:
+* A pointer to the String to compare with.
+
+Returns: an std::Compare value.
+
+```
+std::str::View first;
+first.setCString("first string");
+std::str::String second;
+second.setCString("second string");
+unsigned char compare = first.compare(&second);
+/*std::Compare::less, as 'f' < 's'.*/
+```
+
+## "compareView" member function:
+
+Compares the substring to an std::str::View.
+
+Parameters:
+* A pointer to the std::str::View to compare with.
+
+Returns: an std::Compare value.
+
+```
+std::str::View first;
+first.setCString("first string");
+std::str::View second;
+second.setCString("second string");
+unsigned char compare = first.compareView(&second);
+/*std::Compare::less, as 'f' < 's'.*/
+```
+
+## "set" member function:
+
+Sets the view to point to a substring.
+
+Parameters:
+* The unsigned char array of the substring 
+to point to.
+* The starting index of the substring 
+to point to in its array.
+* The length of the substring to copy to point to.
+
+Returns: void.
+
+```
+std::str::View string;
+string.set("2021", 2, 2);
+/*'2','1'*/
+```
+		
+## "setCString" member function:
+
+Sets the view to point to a 0 ended 
+unsigned char array string.
+
+Parameters:
+* The 0 ended unsigned char array string.
+
+Returns: void.
+
+```
+std::str::View string;
+string.setCString("2021");
+/*'2','0','2','1'*/
+```
+
+## "setView" member function:
+
+Sets the view to point to the same 
+substring as another std::str::View.
+
+Parameters:
+* A pointer to the std::str::View to copy.
+	
+Returns: void.
+
+```
+std::str::View year;
+year.setCString("2021");
+std::str::View string;
+string.setView(&year);
+/*'2','0','2','1'*/
 ```
 
 # Software license
