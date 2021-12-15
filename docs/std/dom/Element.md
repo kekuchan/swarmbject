@@ -149,19 +149,41 @@ unsigned int width =
 
 ## "getTagName" static function:
 
+Copy the element's tag name to an array.
+		
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* The unsigned char array to copy to.
+* The starting index of the array to copy to.
+
+Returns: the length of the tag name.
+
+```
+/*In Main::main.*/
+std::str::DString string;
+string.shift(0, 
+	std::dom::Element::getTagName(
+		&div, nullptr, 0));
+std::dom::Element::getTagName(
+	&div, string.data, 0);
+/*"DIV"*/
+```
+
+## "getTagNameDString" static function:
+
 Inserts the element's tag name to an 
-std::DString's end.
+std::str::DString's end.
 
 Parameters:
 * A pointer to the element, as an std::dom::Node.
-* A pointer an std::DString.
+* A pointer an std::str::DString.
 
 Returns: void.
 
 ```
 /*In Main::main.*/
-std::DString string;
-std::dom::Element::getTagName(
+std::str::DString string;
+std::dom::Element::getTagNameDString(
 	&div, &string);
 /*"DIV"*/
 ```

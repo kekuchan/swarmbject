@@ -58,20 +58,43 @@ std::dom::CharacterData::deleteData(
 
 ## "getData" static function:
 
-Inserts the character data to an 
-std::DString's end.
+Copy the character data to an array.
+		
+Parameters:
+* A pointer to the character data,
+as an std::dom::Node.
+* The unsigned char array to copy to.
+* The starting index of the array to copy to.
+
+Returns: the length of the character data.
+
+```
+/*In Main::main.*/
+std::str::DString string;
+string.shift(0, 
+	std::dom::CharacterData::getData(
+		&text, nullptr, 0));
+std::dom::CharacterData::getData(
+	&text, string.data, 0);
+/*"2021"*/
+```
+
+## "getDataDString" static function:
+
+Inserts a character data 
+to an std::str::DString's end.
 
 Parameters:
 * A pointer to the character data,
 as an std::dom::Node.
-* A pointer an std::DString.
+* A pointer an std::str::DString.
 
 Returns: void.
 
 ```
 /*In Main::main.*/
-std::DString string;
-std::dom::CharacterData::getData(
+std::str::DString string;
+std::dom::CharacterData::getDataDString(
 	&text, &string);
 /*"2021"*/
 ```
@@ -143,13 +166,39 @@ std::dom::CharacterData::setData(
 
 ## "substringData" static function:
 
-Inserts a substring of the character data 
-to an std::DString's end.
+Copy a substring of the 
+character data to an array.
 
 Parameters:
 * A pointer to the character data,
 as an std::dom::Node.
-* A pointer an std::DString.
+* The starting UTF-8 index to copy from.
+* The number of UTF-8 unsigned chars to copy.
+* The unsigned char array to copy to.
+* The starting index of the array to copy to.
+
+Returns: the length of the substring.
+
+```
+/*In Main::main.*/
+std::str::DString string;
+string.shift(0, 
+	std::dom::CharacterData::substringData(
+		&text, 2, 2, nullptr, 0));
+std::dom::CharacterData::substringData(
+	&text, 2, 2, string.data, 0);
+/*"21"*/
+```
+
+## "substringDataDString" static function:
+
+Inserts a substring of the character data 
+to an std::str::DString's end.
+
+Parameters:
+* A pointer to the character data,
+as an std::dom::Node.
+* A pointer an std::str::DString.
 * The starting UTF-8 index to copy from.
 * The number of UTF-8 unsigned chars to copy.
 
@@ -157,8 +206,8 @@ Returns: void.
 
 ```
 /*In Main::main.*/
-std::DString string;
-std::dom::CharacterData::substringData(
+std::str::DString string;
+std::dom::CharacterData::substringDataDString(
 	&text, &string, 2, 2);
 /*"21"*/
 ```

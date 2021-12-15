@@ -96,18 +96,37 @@ e->getTarget(&node);
 
 ## "getTextClipboardData" member function:
 
+Copy the plain text data of the 
+clipboard to an array.
+		
+Parameters:
+* The unsigned char array to copy to.
+* The starting index of the array to copy to.
+
+Returns: the length of the text data.
+
+```
+/*In Main::onPaste.*/
+std::str::DString string;
+string.shift(0, 
+	e->getTextClipboardData(nullptr, 0));
+e->getTextClipboardData(string.data, 0);
+```
+
+## "getTextClipboardDataDString" member function:
+
 Inserts the plain text data of the 
-clipboard to an std::DString's end.
+clipboard to an std::str::DString's end.
 
 Parameters:
-* A pointer an std::DString.
+* A pointer an std::str::DString.
 
 Returns: void.
 
 ```
 /*In Main::onPaste.*/
-std::DString string;
-e->getTextClipboardData(&string);
+std::str::DString string;
+e->getTextClipboardDataDString(&string);
 ```
 
 ## "preventDefault" member function:
