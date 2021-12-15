@@ -70,7 +70,15 @@ SUCH DAMAGE.
 class Range {
 
 	std::js::Object jsObject;
-	
+
+	/* Public member functions. */
+
+	void deleteContents(){
+		if (jsObject.isNull()) {return;}
+		void* rangeObject = jsObject.getJsObject();
+		constwrite "	rangeObject.deleteContents();\n";
+	}
+
 	bool getCollapsed(){
 		if (jsObject.isNull()) {return false;}
 		void* rangeObject = jsObject.getJsObject();
@@ -78,15 +86,7 @@ class Range {
 		constwrite "	collapsed = rangeObject.collapsed;\n";
 		return collapsed;
 	}
-	
-	void getStartContainer(std::dom::Node* node){
-		if (jsObject.isNull()) {return;}
-		void* rangeObject = jsObject.getJsObject();
-		void* container;
-		constwrite "	container = rangeObject.startContainer;\n";
-		node->jsObject.setJsObject(container);
-	}
-	
+
 	void getEndContainer(std::dom::Node* node){
 		if (jsObject.isNull()) {return;}
 		void* rangeObject = jsObject.getJsObject();
@@ -94,25 +94,7 @@ class Range {
 		constwrite "	container = rangeObject.endContainer;\n";
 		node->jsObject.setJsObject(container);
 	}
-	
-	unsigned int getStartOffset(){
-		if (jsObject.isNull()) {return 0;}
-		void* rangeObject = jsObject.getJsObject();
-		unsigned int offset;
-		constwrite "	offset = rangeObject.startOffset;\n";
-		void* container;
-		constwrite "	container = rangeObject.startContainer;\n";
-		unsigned int type;
-		constwrite "	type = container.nodeType;\n";
-		if (type == std::dom::NodeTypes::text){
-			void* dataObject;
-			constwrite "	dataObject = container.data;\n";
-			offset = std::js::String::sublength(
-				dataObject, 0, offset);
-		}
-		return offset;
-	}
-	
+
 	unsigned int getEndOffset(){
 		if (jsObject.isNull()) {return 0;}
 		void* rangeObject = jsObject.getJsObject();
@@ -130,23 +112,33 @@ class Range {
 		}
 		return offset;
 	}
-	
-	void setStart(std::dom::Node* node,
-		unsigned int offset){
+
+	void getStartContainer(std::dom::Node* node){
 		if (jsObject.isNull()) {return;}
 		void* rangeObject = jsObject.getJsObject();
-		void* nodeObject = node->jsObject.getJsObject();
+		void* container;
+		constwrite "	container = rangeObject.startContainer;\n";
+		node->jsObject.setJsObject(container);
+	}
+
+	unsigned int getStartOffset(){
+		if (jsObject.isNull()) {return 0;}
+		void* rangeObject = jsObject.getJsObject();
+		unsigned int offset;
+		constwrite "	offset = rangeObject.startOffset;\n";
+		void* container;
+		constwrite "	container = rangeObject.startContainer;\n";
 		unsigned int type;
-		constwrite "	type = nodeObject.nodeType;\n";
+		constwrite "	type = container.nodeType;\n";
 		if (type == std::dom::NodeTypes::text){
 			void* dataObject;
-			constwrite "	dataObject = nodeObject.data;\n";
-			offset = std::js::String::offset(dataObject, 0,
-				offset);
+			constwrite "	dataObject = container.data;\n";
+			offset = std::js::String::sublength(
+				dataObject, 0, offset);
 		}
-		constwrite "	rangeObject.setStart(nodeObject, offset);\n";
+		return offset;
 	}
-	
+
 	void setEnd(std::dom::Node* node,
 		unsigned int offset){
 		if (jsObject.isNull()) {return;}
@@ -162,11 +154,21 @@ class Range {
 		}
 		constwrite "	rangeObject.setEnd(nodeObject, offset);\n";
 	}
-	
-	void deleteContents(){
+
+	void setStart(std::dom::Node* node,
+		unsigned int offset){
 		if (jsObject.isNull()) {return;}
 		void* rangeObject = jsObject.getJsObject();
-		constwrite "	rangeObject.deleteContents();\n";
+		void* nodeObject = node->jsObject.getJsObject();
+		unsigned int type;
+		constwrite "	type = nodeObject.nodeType;\n";
+		if (type == std::dom::NodeTypes::text){
+			void* dataObject;
+			constwrite "	dataObject = nodeObject.data;\n";
+			offset = std::js::String::offset(dataObject, 0,
+				offset);
+		}
+		constwrite "	rangeObject.setStart(nodeObject, offset);\n";
 	}
-	
+
 }

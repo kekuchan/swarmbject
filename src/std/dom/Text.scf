@@ -69,6 +69,8 @@ SUCH DAMAGE.
 */
 class Text {
 
+	/* Public member functions. */
+
 	static void create(std::dom::Node* documentNode,
 		std::dom::Node* node, unsigned char[] text,
 		unsigned int start, unsigned int len){

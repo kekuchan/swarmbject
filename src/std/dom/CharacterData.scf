@@ -69,32 +69,7 @@ SUCH DAMAGE.
 */
 class CharacterData {
 
-	static void getData(
-		std::dom::Node* node, std::DString* text){
-		if (node->isNull()) {return;}
-		void* nodeObject = node->jsObject.getJsObject();
-		void* dataObject;
-		constwrite "	dataObject = nodeObject.data;\n";
-		text->addJsStr(dataObject);
-	}
-
-	static void setData(
-		std::dom::Node* node, unsigned char[] text,
-		unsigned int start, unsigned int len){
-		if (node->isNull()) {return;}
-		void* nodeObject = node->jsObject.getJsObject();
-		void* textObject = std::js::String::decode(
-			&text[start], len);
-		constwrite "	nodeObject.data = textObject;\n";
-	}
-
-	static unsigned int getLength(std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		void* dataObject;
-		constwrite "	dataObject = nodeObject.data;\n";
-		return std::js::String::length(dataObject);
-	}
+	/* Public member functions. */
 
 	static void appendData(
 		std::dom::Node* node, unsigned char[] text,
@@ -104,6 +79,46 @@ class CharacterData {
 		void* textObject = std::js::String::decode(
 			&text[start], len);
 		constwrite "	nodeObject.appendData(textObject);\n";
+	}
+
+	static void deleteData(std::dom::Node* node,
+		unsigned int offset, unsigned int len){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* dataObject;
+		constwrite "	dataObject = nodeObject.data;\n";
+		offset = std::js::String::offset(dataObject, 0,
+			offset);
+		len = std::js::String::offset(dataObject, offset,
+			len);
+		constwrite "	nodeObject.deleteData(offset, len);\n";
+	}
+
+	static unsigned int getData(std::dom::Node* node, 
+		unsigned char[] text, unsigned int start){
+		if (node->isNull()) {return 0;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* dataObject;
+		constwrite "	dataObject = nodeObject.data;\n";
+		return std::js::String::encode(
+			dataObject, text, start);
+	}
+
+	static void getDataDString(
+		std::dom::Node* node, 
+		std::str::DString* string){
+		unsigned int start = string->length;
+		string->shift(start, 
+			getData(node, nullptr, 0));
+		getData(node, string->data, start);
+	}
+
+	static unsigned int getLength(std::dom::Node* node){
+		if (node->isNull()) {return 0;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* dataObject;
+		constwrite "	dataObject = nodeObject.data;\n";
+		return std::js::String::length(dataObject);
 	}
 
 	static void insertData(
@@ -121,23 +136,21 @@ class CharacterData {
 		constwrite "	nodeObject.insertData(offset, textObject);\n";
 	}
 
-	static void deleteData(std::dom::Node* node,
-		unsigned int offset, unsigned int len){
+	static void setData(
+		std::dom::Node* node, unsigned char[] text,
+		unsigned int start, unsigned int len){
 		if (node->isNull()) {return;}
 		void* nodeObject = node->jsObject.getJsObject();
-		void* dataObject;
-		constwrite "	dataObject = nodeObject.data;\n";
-		offset = std::js::String::offset(dataObject, 0,
-			offset);
-		len = std::js::String::offset(dataObject, offset,
-			len);
-		constwrite "	nodeObject.deleteData(offset, len);\n";
+		void* textObject = std::js::String::decode(
+			&text[start], len);
+		constwrite "	nodeObject.data = textObject;\n";
 	}
 
-	static void substringData(
-		std::dom::Node* node, std::DString* text,
-		unsigned int offset, unsigned int len){
-		if (node->isNull()) {return;}
+	static unsigned int substringData(
+		std::dom::Node* node, unsigned int offset, 
+		unsigned int len, unsigned char[] text, 
+		unsigned int start){
+		if (node->isNull()) {return 0;}
 		void* nodeObject = node->jsObject.getJsObject();
 		void* dataObject;
 		constwrite "	dataObject = nodeObject.data;\n";
@@ -147,7 +160,19 @@ class CharacterData {
 			len);
 		constwrite "	dataObject = "
 			"nodeObject.substringData(offset, len);\n";
-		text->addJsStr(dataObject);
+		return std::js::String::encode(
+			dataObject, text, start);
+	}
+
+	static void substringDataDString(
+		std::dom::Node* node, 
+		std::str::DString* string, 
+		unsigned int offset, unsigned int len){
+		unsigned int start = string->length;
+		string->shift(start, substringData(
+			node, offset, len, nullptr, 0));
+		substringData(node, offset, len, 
+			string->data, start);
 	}
 
 }

@@ -99,12 +99,13 @@ class Node {
 	}
 	
 	void debug(bool recursive){
-		std::DString text;
+		std::str::DString text;
 		getDebug(recursive, &text);
 		text.debug();
 	}
 
-	void getDebug(bool recursive, std::DString* text){
+	void getDebug(bool recursive, 
+		std::str::DString* text){
 		unsigned int nodeType = getNodeType();
 		switch (nodeType){
 			case std::dom::NodeTypes::none :
@@ -112,7 +113,8 @@ class Node {
 				break;
 			case std::dom::NodeTypes::element :
 				text->addCString("element: ");
-				std::dom::Element::getTagName(this, text);
+				std::dom::Element::getTagNameDString(
+					this, text);
 				if (recursive){
 					unsigned int len = getChildNodesLength();
 					if (len > 0){
@@ -139,7 +141,8 @@ class Node {
 					std::dom::CharacterData::getLength(this),
 					std::NumberBases::decimal);
 				text->addCString("): '");
-				std::dom::CharacterData::getData(this, text);
+				std::dom::CharacterData::getDataDString(
+					this, text);
 				text->addCString("'\n");
 				break;
 			case std::dom::NodeTypes::cdataSection :
@@ -174,12 +177,35 @@ class Node {
 	
 	/* Public member functions. */
 	
-	void getParentNode(std::dom::Node* node){
+	void appendChild(std::dom::Node* node){
+		if (isNull() || isNullStatic(node)) {return;}
+		void* parentObject = jsObject.getJsObject();
+		void* nodeObject = node->jsObject.getJsObject();
+		constwrite "	parentObject.appendChild(nodeObject);\n";
+	}
+	
+	void getChildNode(std::dom::Node* node,
+		unsigned int i){
 		if (isNull() || node == nullptr) {return;}
 		void* nodeObject = jsObject.getJsObject();
 		void* getObject;
-		constwrite "	getObject = nodeObject.parentNode;\n";
+		constwrite "	getObject = nodeObject.childNodes[i];\n";
 		node->jsObject.setJsObject(getObject);
+	}
+	
+	unsigned int getChildNodesLength(){
+		if (isNull()) {return 0;}
+		void* nodeObject = jsObject.getJsObject();
+		unsigned int len;
+		constwrite "	len = nodeObject.childNodes.length;\n";
+		return len;
+	}
+	
+	void setContentEditable(bool editable){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		constwrite
+			"	nodeObject.contentEditable = editable;\n";
 	}
 	
 	void getFirstChild(std::dom::Node* node){
@@ -198,19 +224,37 @@ class Node {
 		node->jsObject.setJsObject(getObject);
 	}
 	
-	void getPreviousSibling(std::dom::Node* node){
-		if (isNull() || node == nullptr) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* getObject;
-		constwrite "	getObject = nodeObject.previousSibling;\n";
-		node->jsObject.setJsObject(getObject);
-	}
-	
 	void getNextSibling(std::dom::Node* node){
 		if (isNull() || node == nullptr) {return;}
 		void* nodeObject = jsObject.getJsObject();
 		void* getObject;
 		constwrite "	getObject = nodeObject.nextSibling;\n";
+		node->jsObject.setJsObject(getObject);
+	}
+	
+	unsigned int getNodeType(){
+		if (isNull()){
+			return std::dom::NodeTypes::none;
+		}
+		void* nodeObject = jsObject.getJsObject();
+		unsigned int type;
+		constwrite "	type = nodeObject.nodeType;\n";
+		return type;
+	}
+	
+	void getParentNode(std::dom::Node* node){
+		if (isNull() || node == nullptr) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* getObject;
+		constwrite "	getObject = nodeObject.parentNode;\n";
+		node->jsObject.setJsObject(getObject);
+	}
+	
+	void getPreviousSibling(std::dom::Node* node){
+		if (isNull() || node == nullptr) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* getObject;
+		constwrite "	getObject = nodeObject.previousSibling;\n";
 		node->jsObject.setJsObject(getObject);
 	}
 	
@@ -229,19 +273,32 @@ class Node {
 			"nodeObject, beforeObject);\n";
 	}
 	
+	bool isNull(){
+		return jsObject.isNull();
+	}
+	
+	static bool isNullStatic(
+		std::dom::Node* node){
+		return node == nullptr ||
+			node->jsObject.isNull();
+	}
+	
+	bool isSameNode(std::dom::Node* node){
+		std::js::Object* src;
+		if (node != nullptr){
+			src = &node->jsObject;
+		} else {
+			src = nullptr;
+		}
+		return jsObject.equals(src);
+	}
+	
 	void removeChild(std::dom::Node* node){
 		if (isNull() || isNullStatic(node)) {return;}
 		void* parentObject = jsObject.getJsObject();
 		void* nodeObject = node->jsObject.getJsObject();
 		constwrite "	parentObject.removeChild("
 			"nodeObject);\n";
-	}
-	
-	void appendChild(std::dom::Node* node){
-		if (isNull() || isNullStatic(node)) {return;}
-		void* parentObject = jsObject.getJsObject();
-		void* nodeObject = node->jsObject.getJsObject();
-		constwrite "	parentObject.appendChild(nodeObject);\n";
 	}
 	
 	void replaceChild(std::dom::Node* newNode,
@@ -254,112 +311,6 @@ class Node {
 		constwrite "	parentObject.replaceChild("
 			"newObject, nodeObject);\n";
 	}
-	
-	unsigned int getChildNodesLength(){
-		if (isNull()) {return 0;}
-		void* nodeObject = jsObject.getJsObject();
-		unsigned int len;
-		constwrite "	len = nodeObject.childNodes.length;\n";
-		return len;
-	}
-	
-	void getChildNode(std::dom::Node* node,
-		unsigned int i){
-		if (isNull() || node == nullptr) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* getObject;
-		constwrite "	getObject = nodeObject.childNodes[i];\n";
-		node->jsObject.setJsObject(getObject);
-	}
-	
-	unsigned int getNodeType(){
-		if (isNull()){
-			return std::dom::NodeTypes::none;
-		}
-		void* nodeObject = jsObject.getJsObject();
-		unsigned int type;
-		constwrite "	type = nodeObject.nodeType;\n";
-		return type;
-	}
-	
-	void scrollIntoView(){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		constwrite "	nodeObject.scrollIntoView();\n";
-	}
-	
-	void setContentEditable(bool editable){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		constwrite
-			"	nodeObject.contentEditable = editable;\n";
-	}
-
-	void setOnMouseDown(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.onmousedown = jsCallback;\n";
-	}
-
-	void setOnClick(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.onclick = jsCallback;\n";
-	}
-
-	void setOnChange(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.onchange = jsCallback;\n";
-	}
-
-	void setOnKeyDown(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.onkeydown = jsCallback;\n";
-	}
-
-	void setOnCut(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.oncut = jsCallback;\n";
-	}
-
-	void setOnCopy(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.oncopy = jsCallback;\n";
-	}
-
-	void setOnPaste(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.onpaste = jsCallback;\n";
-	}
-	
-	bool isNull(){
-		return jsObject.isNull();
-	}
-	
-	static bool isNullStatic(
-		std::dom::Node* node){
-		return node == nullptr ||
-			node->jsObject.isNull();
-	}
 
 	void set(std::dom::Node* node){
 		std::js::Object* src;
@@ -371,14 +322,66 @@ class Node {
 		jsObject.copyFromObject(src);
 	}
 	
-	bool isSameNode(std::dom::Node* node){
-		std::js::Object* src;
-		if (node != nullptr){
-			src = &node->jsObject;
-		} else {
-			src = nullptr;
-		}
-		return jsObject.equals(src);
+	void scrollIntoView(){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		constwrite "	nodeObject.scrollIntoView();\n";
+	}
+
+	void setOnChange(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.onchange = jsCallback;\n";
+	}
+
+	void setOnClick(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.onclick = jsCallback;\n";
+	}
+
+	void setOnCopy(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.oncopy = jsCallback;\n";
+	}
+
+	void setOnCut(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.oncut = jsCallback;\n";
+	}
+
+	void setOnKeyDown(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.onkeydown = jsCallback;\n";
+	}
+
+	void setOnMouseDown(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.onmousedown = jsCallback;\n";
+	}
+
+	void setOnPaste(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (isNull()) {return;}
+		void* nodeObject = jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.onpaste = jsCallback;\n";
 	}
 	
 }

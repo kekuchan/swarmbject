@@ -68,34 +68,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class Element {
-	
-	static void getTagName(
-		std::dom::Node* node, std::DString* text){
-		if (node->isNull()) {return;}
-		void* nodeObject = node->jsObject.getJsObject();
-		void* nameObject;
-		constwrite "	nameObject = nodeObject.tagName;\n";
-		text->addJsStr(nameObject);
-	}
-	
-	static unsigned int getClientLeft(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int clientLeft;
-		constwrite "	clientLeft = nodeObject.clientLeft;\n";
-		return clientLeft;
-	}
-	
-	static unsigned int getClientTop(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int clientTop;
-		constwrite "	clientTop = nodeObject.clientTop;\n";
-		return clientTop;
-	}
-	
+
+	/* Public member functions. */
+
 	static unsigned int getClientHeight(
 		std::dom::Node* node){
 		if (node->isNull()) {return 0;}
@@ -104,7 +79,25 @@ class Element {
 		constwrite "	clientHeight = nodeObject.clientHeight;\n";
 		return clientHeight;
 	}
-	
+
+	static unsigned int getClientLeft(
+		std::dom::Node* node){
+		if (node->isNull()) {return 0;}
+		void* nodeObject = node->jsObject.getJsObject();
+		unsigned int clientLeft;
+		constwrite "	clientLeft = nodeObject.clientLeft;\n";
+		return clientLeft;
+	}
+
+	static unsigned int getClientTop(
+		std::dom::Node* node){
+		if (node->isNull()) {return 0;}
+		void* nodeObject = node->jsObject.getJsObject();
+		unsigned int clientTop;
+		constwrite "	clientTop = nodeObject.clientTop;\n";
+		return clientTop;
+	}
+
 	static unsigned int getClientWidth(
 		std::dom::Node* node){
 		if (node->isNull()) {return 0;}
@@ -113,39 +106,7 @@ class Element {
 		constwrite "	clientWidth = nodeObject.clientWidth;\n";
 		return clientWidth;
 	}
-	
-	static unsigned int getScrollLeft(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int scrollLeft;
-		constwrite "	scrollLeft = nodeObject.scrollLeft;\n";
-		return scrollLeft;
-	}
-	
-	static void setScrollLeft(std::dom::Node* node,
-		unsigned int scrollLeft){
-		if (node->isNull()) {return;}
-		void* nodeObject = node->jsObject.getJsObject();
-		constwrite "	nodeObject.scrollLeft = scrollLeft;\n";
-	}
-	
-	static unsigned int getScrollTop(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int scrollTop;
-		constwrite "	scrollTop = nodeObject.scrollTop;\n";
-		return scrollTop;
-	}
-	
-	static void setScrollTop(std::dom::Node* node,
-		unsigned int scrollTop){
-		if (node->isNull()) {return;}
-		void* nodeObject = node->jsObject.getJsObject();
-		constwrite "	nodeObject.scrollTop = scrollTop;\n";
-	}
-	
+
 	static unsigned int getScrollHeight(
 		std::dom::Node* node){
 		if (node->isNull()) {return 0;}
@@ -154,7 +115,25 @@ class Element {
 		constwrite "	scrollHeight = nodeObject.scrollHeight;\n";
 		return scrollHeight;
 	}
-	
+
+	static unsigned int getScrollLeft(
+		std::dom::Node* node){
+		if (node->isNull()) {return 0;}
+		void* nodeObject = node->jsObject.getJsObject();
+		unsigned int scrollLeft;
+		constwrite "	scrollLeft = nodeObject.scrollLeft;\n";
+		return scrollLeft;
+	}
+
+	static unsigned int getScrollTop(
+		std::dom::Node* node){
+		if (node->isNull()) {return 0;}
+		void* nodeObject = node->jsObject.getJsObject();
+		unsigned int scrollTop;
+		constwrite "	scrollTop = nodeObject.scrollTop;\n";
+		return scrollTop;
+	}
+
 	static unsigned int getScrollWidth(
 		std::dom::Node* node){
 		if (node->isNull()) {return 0;}
@@ -162,6 +141,40 @@ class Element {
 		unsigned int scrollWidth;
 		constwrite "	scrollWidth = nodeObject.scrollWidth;\n";
 		return scrollWidth;
+	}
+
+	static unsigned int getTagName(
+		std::dom::Node* node, unsigned char[] text, 
+		unsigned int start){
+		if (node->isNull()) {return 0;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* nameObject;
+		constwrite "	nameObject = nodeObject.tagName;\n";
+		return std::js::String::encode(
+			nameObject, text, start);
+	}
+
+	static void getTagNameDString(
+		std::dom::Node* node, 
+		std::str::DString* string){
+		unsigned int start = string->length;
+		string->shift(start, getTagName(
+			node, nullptr, 0));
+		getTagName(node, string->data, start);
+	}
+
+	static void setScrollLeft(std::dom::Node* node,
+		unsigned int scrollLeft){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		constwrite "	nodeObject.scrollLeft = scrollLeft;\n";
+	}
+
+	static void setScrollTop(std::dom::Node* node,
+		unsigned int scrollTop){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		constwrite "	nodeObject.scrollTop = scrollTop;\n";
 	}
 
 }
