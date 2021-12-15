@@ -1,6 +1,6 @@
-# "std::html::InputElement" class:
+# "std::html::PreElement" class:
 
-Static functions to work with INPUT elements.
+Static functions to work with PRE elements.
 
 ```
 class Main {
@@ -9,19 +9,16 @@ class Main {
 		app.getWindow(&window);
 		std::dom::Node document;
 		window.getDocumentNode(&document);
-		std::dom::Node input;
-		std::html::InputElement::create(
-			&document, &input);
 		std::dom::Node node;
 		std::html::Document::getBody(&document, &node);
-		node.appendChild(&input);
+		std::dom::Node pre;
 	}
 }
 ```
 
 ## "create" static function:
 
-Creates an INPUT element.
+Creates a PRE element.
 
 Parameters:
 * A pointer to an std::dom::Node document node.
@@ -31,123 +28,8 @@ Returns: void.
 
 ```
 /*In Main::main.*/
-std::html::InputElement::create(
-	&document, &input);
-```
-
-## "getChecked" static function:
-
-Checks if a checkbox element is checked.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-
-Returns: true, if checked, false otherwise.
-
-```
-/*In Main::main.*/
-std::html::InputElement::setType(
-	&input, std::html::InputTypes::checkbox);
-bool checked = std::html::InputElement::
-	getChecked(&input);
-```
-
-## "getValue" static function:
-
-Copy the value of a text input to an array.
-		
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-* The unsigned char array to copy to.
-* The starting index of the array to copy to.
-
-Returns: the length of the value.
-
-```
-/*In Main::main.*/
-std::html::InputElement::setType(
-	&input, std::html::InputTypes::text);
-std::str::DString string;
-string.shift(0, 
-	std::html::InputElement::getValue(
-		&input, nullptr, 0));
-std::html::InputElement::getValue(
-	&input, string.data, 0);
-
-## "getValueDString" static function:
-
-Inserts the value of a text input 
-to an std::str::DString's end.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-* A pointer an std::str::DString.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::html::InputElement::setType(
-	&input, std::html::InputTypes::text);
-std::str::DString string;
-std::html::InputElement::getValueDString(
-	&input, &string);
-```
-
-## "setChecked" static function:
-
-Sets if a checkbox element is checked.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-* A boolean value whether to check the checkbox.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::html::InputElement::setType(
-	&input, std::html::InputTypes::checkbox);
-std::html::InputElement::setChecked(
-	&input, true);
-```
-
-## "setType" static function:
-
-Sets the input element's type.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-* The type as an std::html::InputTypes value.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::html::InputElement::setType(
-	&input, std::html::InputTypes::checkbox);
-```
-
-## "setValue" static function:
-
-Sets the text input element's value 
-to be a copy of a substring.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-* The unsigned char array of the substring to copy.
-* The starting index of the substring to copy 
-in its array.
-* The length of the substring to copy.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::html::InputElement::setType(
-	&input, std::html::InputTypes::text);
-std::html::InputElement::setValue(
-	&input, "2021", 0, 4);
+std::html::PreElement::create(
+	&document, &pre);
 ```
 
 # Software license
