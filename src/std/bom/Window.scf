@@ -81,6 +81,22 @@ class Window {
 		node->jsObject.setJsObject(documentObject);
 	}
 	
+	unsigned int getInnerHeight(){
+		if (jsObject.isNull()) {return 0;}
+		void* nodeObject = jsObject.getJsObject();
+		unsigned int innerHeight;
+		constwrite "	innerHeight = nodeObject.innerHeight;\n";
+		return innerHeight;
+	}
+	
+	unsigned int getInnerWidth(){
+		if (jsObject.isNull()) {return 0;}
+		void* nodeObject = jsObject.getJsObject();
+		unsigned int innerWidth;
+		constwrite "	innerWidth = nodeObject.innerWidth;\n";
+		return innerWidth;
+	}
+	
 	void getSelection(std::dom::Selection* selection){
 		if (jsObject.isNull()) {return;}
 		void* windowObject = jsObject.getJsObject();
@@ -96,22 +112,6 @@ class Window {
 		void* jsCallback = std::dom::Node::
 			getJsCallback(callback);
 		constwrite "	nodeObject.onresize = jsCallback;\n";
-	}
-	
-	unsigned int getInnerHeight(){
-		if (jsObject.isNull()) {return 0;}
-		void* nodeObject = jsObject.getJsObject();
-		unsigned int innerHeight;
-		constwrite "	innerHeight = nodeObject.innerHeight;\n";
-		return innerHeight;
-	}
-	
-	unsigned int getInnerWidth(){
-		if (jsObject.isNull()) {return 0;}
-		void* nodeObject = jsObject.getJsObject();
-		unsigned int innerWidth;
-		constwrite "	innerWidth = nodeObject.innerWidth;\n";
-		return innerWidth;
 	}
 
 }
