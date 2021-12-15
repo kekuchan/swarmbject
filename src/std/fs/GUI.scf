@@ -69,14 +69,14 @@ SUCH DAMAGE.
 */
 class GUI {
 
-	std::dom::Node browseContainer;
-	std::DString path;
 	unsigned char bools;
-	std::js::Object loadedFile;
-	unsigned int folderCursor;
-	std::DBuffer folderContent;
-	void(std::ApplicationInstance, std::DString*) call;
+	std::dom::Node browseContainer;
+	void(std::ApplicationInstance, std::str::DString*) call;
 	bool fileSelection;
+	std::ds::DBuffer folderContent;
+	unsigned int folderCursor;
+	std::js::Object loadedFile;
+	std::str::DString path;
 
 	unsigned char constexpr operationPending = 1;
 	unsigned char constexpr menuChanged = operationPending << 1;
@@ -135,7 +135,7 @@ class GUI {
 		if (folder == nullptr){
 			return gui->cancelPath(app);
 		}
-		std::DString name;
+		std::str::DString name;
 		std::bom::Window appWindow;
 		app.getWindow(&appWindow);
 		std::dom::Node document;
@@ -327,7 +327,7 @@ class GUI {
 			e->getTarget(&element);
 			element.getPreviousSibling(&element);
 			element.getLastChild(&element);
-			std::html::InputElement::getValue(
+			std::html::InputElement::getValueDString(
 				&element, &gui->path);
 			gui->path.addChar('/');
 			gui->bools = operationPending;
@@ -378,9 +378,9 @@ class GUI {
 			e->getTarget(&element);
 			element.getPreviousSibling(&element);
 			element.getLastChild(&element);
-			std::DString src;
+			std::str::DString src;
 			src.setDString(&gui->path);
-			std::html::InputElement::getValue(
+			std::html::InputElement::getValueDString(
 				&element, &src);
 			gui->bools = operationPending;
 			app.fileSystem.openFile(src.data, onFileCreated,
@@ -399,7 +399,7 @@ class GUI {
 		std::ApplicationInstance aexcl app){
 		std::fs::GUI* gui = &app.fileSystem.gui;
 		if ((gui->bools & operationPending) == 0){
-			std::DString* path = &gui->path;
+			std::str::DString* path = &gui->path;
 			unsigned int len = path->length;
 			if (len > 1){
 				backtrackPath(path);
@@ -416,8 +416,8 @@ class GUI {
 			std::dom::Node node;
 			e->getTarget(&node);
 			node.getFirstChild(&node);
-			std::DString* path = &gui->path;
-			std::dom::CharacterData::getData(
+			std::str::DString* path = &gui->path;
+			std::dom::CharacterData::getDataDString(
 				&node, path);
 			unsigned int len = path->length;
 			if (path->data[len - 1] == '/'){
@@ -474,7 +474,7 @@ class GUI {
 				string = "Delete file?";
 			}
 			gui->addRow(&document, &element, &node, string,
-				std::CString::length(string, 0));
+				std::str::CString::length(string, 0));
 			gui->addRow(&document, &element, &node, "Yes", 3);
 			element.setOnClick(onClickYesDelete);
 		}
@@ -496,7 +496,7 @@ class GUI {
 	}
 	
 	static void onDeleted(std::ApplicationInstance aexcl app,
-		std::String* path){
+		std::str::String* path){
 		app.fileSystem.gui.cancelPath(app);
 	}
 	
@@ -545,8 +545,8 @@ class GUI {
 			e->getTarget(&element);
 			element.getPreviousSibling(&element);
 			element.getLastChild(&element);
-			std::DString src;
-			std::html::InputElement::getValue(
+			std::str::DString src;
+			std::html::InputElement::getValueDString(
 				&element, &src);
 			gui->bools = operationPending;
 			if (gui->path.data[gui->path.length - 1] == '/'){
@@ -612,7 +612,7 @@ class GUI {
 			style.setBorderBottomStyle(keyword.set(
 				std::css::BorderStyles::solid));
 			gui->bools = operationPending;
-			std::DString* path = &gui->path;
+			std::str::DString* path = &gui->path;
 			unsigned char[] data = path->data;
 			unsigned int length = path->length;
 			unsigned int start;
@@ -620,10 +620,10 @@ class GUI {
 				/* File format version. */
 				gui->folderContent.addU8(0);
 				if (length > 1){
-					start = std::Memory::indexOfUcharReverse(
+					start = std::arr::Uchar::findLast(
 						'/', data, 0, length - 1);
 					path->trim(length - 1);
-					path->addSubstring(".saf", 0, 4);
+					path->add(".saf", 0, 4);
 					std::html::AElement::setDownload(&element,
 						path->data, start, length - start + 3);
 					path->trim(length - 1);
@@ -639,7 +639,7 @@ class GUI {
 				app.fileSystem.openFolder(data,
 					onDownloadFolderOpened, false);
 			} else {
-				start = std::Memory::indexOfUcharReverse(
+				start = std::arr::Uchar::findLast(
 					'/', data, 0, length - 1);
 				std::html::AElement::setDownload(&element,
 					data, start, length - start);
@@ -658,14 +658,14 @@ class GUI {
 		if (folder == nullptr){
 			return gui->cancelPath(app);
 		}
-		std::DString* path = &gui->path;
-		std::String* folderPath = &folder->path;
+		std::str::DString* path = &gui->path;
+		std::str::String* folderPath = &folder->path;
 		unsigned char type;
-		std::DString name;
+		std::str::DString name;
 		unsigned int len = path->length;
 		if (len > folderPath->length){
 			unsigned int nameStart = 
-				std::Memory::indexOfUcharReverse(
+				std::arr::Uchar::findLast(
 					'/', path->data, 0, len - 1);
 			while (true){
 				type = folder->getType();
@@ -673,8 +673,9 @@ class GUI {
 				name.clear();
 				folder->getName(&name);
 				folder->next();
-				if (std::CString::compare(name.data, 0,
-					path->data, nameStart) == 0) {break;}
+				if (std::str::CString::compare(
+						name.data, 0, path->data, nameStart) == 
+					std::Compare::equal) {break;}
 			}
 			path->erase(nameStart, len - nameStart);
 			len = path->length;
@@ -693,7 +694,7 @@ class GUI {
 				gui->folderContent.addU8(0);
 				path->data[len - 1] = 0;
 				unsigned int start =
-					std::Memory::indexOfUcharReverse(
+					std::arr::Uchar::findLast(
 						'/', path->data, 0, len - 1);
 				unsigned int pathChar = path->data[start];
 				path->data[start] = 0;
@@ -729,9 +730,9 @@ class GUI {
 		unsigned int bufferSize = gui->folderContent.size;
 		gui->folderContent.addSize(fileSize, true, true);
 		file->read(gui->folderContent.data, bufferSize, fileSize);
-		std::DString* path = &gui->path;
+		std::str::DString* path = &gui->path;
 		unsigned int start =
-			std::Memory::indexOfUcharReverse(
+			std::arr::Uchar::findLast(
 				'/', path->data, 0, path->length - 1);
 		unsigned int pathChar = path->data[start];
 		path->data[start] = 0;
@@ -850,7 +851,7 @@ class GUI {
 		void* contentObject;
 		constwrite "	contentObject = new Uint8Array(e.target.result);\n";
 		gui->loadedFile.setJsObject(contentObject);
-		std::DString* path = &gui->path;
+		std::str::DString* path = &gui->path;
 		unsigned int start = path->length;
 		void* jsObject = gui->browseContainer.jsObject.getJsObject();
 		void* nameObject;
@@ -885,10 +886,10 @@ class GUI {
 		gui->nextUpload(app);
 	}
 	
-	static void backtrackPath(std::DString* path){
+	static void backtrackPath(std::str::DString* path){
 		unsigned int len = path->length;
 		unsigned int start =
-			std::Memory::indexOfUcharReverse(
+			std::arr::Uchar::findLast(
 				'/', path->data, 0, len - 1);
 		path->erase(start, len - start);
 	}
@@ -977,7 +978,7 @@ class GUI {
 		bools = operationPending | menuChanged | pathChanged;
 		unsigned int len = path.length;
 		unsigned int nameStart =
-			std::Memory::indexOfUcharReverse(
+			std::arr::Uchar::findLast(
 				'/', path.data, 0, len);
 		path.erase(nameStart, len - nameStart);
 		app.fileSystem.openFolder(path.data, list, false);
@@ -993,7 +994,7 @@ class GUI {
 	/* Public member functions */
 
 	void select(
-		void(std::ApplicationInstance, std::DString*) callback,
+		void(std::ApplicationInstance, std::str::DString*) callback,
 		bool isFile){
 		if (callback == nullptr) {return;}
 		call = callback;

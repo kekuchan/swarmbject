@@ -68,19 +68,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class Operation {
-	void(std::fs::FileSystem*, void*) callStart;
-	std::String path;
 	void() callback;
-	std::SLList list;
+	void(std::fs::FileSystem*, void*) callStart;
 	std::js::Object fileObject;
+	std::ds::SLList list;
 	unsigned char mode;
+	std::str::String path;
 	
 	Operation(){
 		callStart = nullptr;
 		callback = nullptr;
 	}
 	
-	static std::SLList* getList(void* operation){
+	static std::ds::SLList* getList(void* operation){
 		return &((std::fs::Operation*)operation->list);
 	}
 }
