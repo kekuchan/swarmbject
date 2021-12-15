@@ -68,91 +68,6 @@ rgb.color.set(255, 255, 255);
 style.setBackgroundColor(&rgb);
 ```
 
-## "setBorderWidth" member function:
-
-Sets the border width.
-
-Parameters:
-* Either nullptr to unset, or a pointer 
-to an std::css::Short object.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::css::Short len;
-style.setBorderWidth(len.set(
-	1, std::css::Units::px));
-```
-
-## "setBorderBottomWidth" member function:
-
-Sets the border bottom width.
-
-Parameters:
-* Either nullptr to unset, or a pointer 
-to an std::css::Short object.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::css::Short len;
-style.setBorderBottomWidth(len.set(
-	1, std::css::Units::px));
-```
-
-## "setBorderLeftWidth" member function:
-
-Sets the border left width.
-
-Parameters:
-* Either nullptr to unset, or a pointer 
-to an std::css::Short object.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::css::Short len;
-style.setBorderLeftWidth(len.set(
-	1, std::css::Units::px));
-```
-
-## "setBorderRightWidth" member function:
-
-Sets the border right width.
-
-Parameters:
-* Either nullptr to unset, or a pointer 
-to an std::css::Short object.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::css::Short len;
-style.setBorderRightWidth(len.set(
-	1, std::css::Units::px));
-```
-
-## "setBorderTopWidth" member function:
-
-Sets the border top width.
-
-Parameters:
-* Either nullptr to unset, or a pointer 
-to an std::css::Short object.
-
-Returns: void.
-
-```
-/*In Main::main.*/
-std::css::Short len;
-style.setBorderTopWidth(len.set(
-	1, std::css::Units::px));
-```
-
 ## "setBorderStyle" member function:
 
 Sets the border style.
@@ -241,6 +156,91 @@ Returns: void.
 std::css::Keyword keyword;
 style.setBorderTopStyle(keyword.set(
 	std::css::BorderStyles::solid));
+```
+
+## "setBorderWidth" member function:
+
+Sets the border width.
+
+Parameters:
+* Either nullptr to unset, or a pointer 
+to an std::css::Short object.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::css::Short len;
+style.setBorderWidth(len.set(
+	1, std::css::Units::px));
+```
+
+## "setBorderBottomWidth" member function:
+
+Sets the border bottom width.
+
+Parameters:
+* Either nullptr to unset, or a pointer 
+to an std::css::Short object.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::css::Short len;
+style.setBorderBottomWidth(len.set(
+	1, std::css::Units::px));
+```
+
+## "setBorderLeftWidth" member function:
+
+Sets the border left width.
+
+Parameters:
+* Either nullptr to unset, or a pointer 
+to an std::css::Short object.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::css::Short len;
+style.setBorderLeftWidth(len.set(
+	1, std::css::Units::px));
+```
+
+## "setBorderRightWidth" member function:
+
+Sets the border right width.
+
+Parameters:
+* Either nullptr to unset, or a pointer 
+to an std::css::Short object.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::css::Short len;
+style.setBorderRightWidth(len.set(
+	1, std::css::Units::px));
+```
+
+## "setBorderTopWidth" member function:
+
+Sets the border top width.
+
+Parameters:
+* Either nullptr to unset, or a pointer 
+to an std::css::Short object.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::css::Short len;
+style.setBorderTopWidth(len.set(
+	1, std::css::Units::px));
 ```
 
 ## "setDisplay" member function:
