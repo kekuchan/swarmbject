@@ -68,7 +68,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class Document {
-	
+
+	/* Public member functions */
+
 	static void getBody(
 		std::dom::Node* documentNode,
 		std::dom::Node* node){
