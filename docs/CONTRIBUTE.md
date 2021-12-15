@@ -1,4 +1,4 @@
-# Contribute
+# Contribute 
 
 In order to contribute, you have to certify that:
 
@@ -54,6 +54,92 @@ or if modifications are needed.
 By creating an issue, you agree, that the ideas described
 in the issue may be implemented under the license
 of the SWARMBJECT project.
+
+# Extending the language 
+
+## Planned features 
+
+### Parameters with default values 
+
+```
+/*In the std::str::CString class:*/
+static unsigned int length(
+	unsigned char const[] string,
+	unsigned int start = 0){
+}
+
+/*In some function:*/
+unsigned int length = 
+	std::str::CString::length("2021"); /*4*/
+```
+
+### Creating fix sized arrays 
+without the new operator 
+
+### Determining the number of elements 
+in fix sized arrays 
+
+### Refer to a previous argument with its index 
+
+### ?: expression as if () {} else {}
+
+### Sending an array in an async function 
+
+### static arrays 
+
+### constexpr member functions 
+
+### constif statement 
+
+```
+bool constexpr compile = true;
+
+/*In some function:*/
+constif (compile){
+	/*This block is compiled. */
+} else {
+	/*This block is ignored. */
+}
+```
+
+### alock specifier 
+
+Async function parameters with the alock 
+specifier lock the pointed async object, as 
+its async calls has to wait until unlocked 
+when the function returns, expect when the
+return calls an async function passing the 
+locked object to a aexcl or alock parameter.
+
+### Moving an async object to another thread 
+or instance 
+
+Serialization and deserialization is 
+provided by the programmer.
+
+## Unlikely features 
+
+There are many useful features, that however 
+goes against the simplicity goal of the 
+SWARMBJECT project, thus unlikely to be implemented.
+
+### Member functions with the 
+same name, but different parameters 
+
+### Class constructors with parameters 
+
+### Member functions with 
+non-pointer class parameters 
+
+### Member functions returning 
+non-pointer class types 
+
+### Implementable operators for classes 
+
+### Adding and substracting from pointers 
+
+### Determining the implementation specific 
+size used to store the language constructs 
 
 # Software license
 

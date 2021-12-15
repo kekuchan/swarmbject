@@ -71,13 +71,7 @@ class Event {
 
 	std::js::Object jsObject;
 
-	void getTarget(std::dom::Node* node){
-		if (jsObject.isNull()) {return;}
-		void* eventObject = jsObject.getJsObject();
-		void* getObject;
-		constwrite "	getObject = eventObject.target;\n";
-		node->jsObject.setJsObject(getObject);
-	}
+	/* Public member functions. */
 
 	void getCurrentTarget(std::dom::Node* node){
 		if (jsObject.isNull()) {return;}
@@ -103,6 +97,33 @@ class Event {
 		return shiftKey;
 	}
 
+	void getTarget(std::dom::Node* node){
+		if (jsObject.isNull()) {return;}
+		void* eventObject = jsObject.getJsObject();
+		void* getObject;
+		constwrite "	getObject = eventObject.target;\n";
+		node->jsObject.setJsObject(getObject);
+	}
+
+	unsigned int getTextClipboardData(
+		unsigned char[] text, unsigned int start){
+		if (jsObject.isNull()) {return 0;}
+		void* eventObject = jsObject.getJsObject();
+		void* dataObject;
+		constwrite "	dataObject = "
+			"eventObject.clipboardData.getData('text');\n";
+		return std::js::String::encode(
+			dataObject, text, start);
+	}
+
+	void getTextClipboardDataDString(
+		std::str::DString* string){
+		unsigned int start = string->length;
+		string->shift(start, 
+			getTextClipboardData(nullptr, 0));
+		getTextClipboardData(string->data, start);
+	}
+
 	void preventDefault(){
 		if (jsObject.isNull()) {return;}
 		void* eventObject = jsObject.getJsObject();
@@ -119,15 +140,6 @@ class Event {
 			"		'text/plain', textObject);\n";
 	}
 
-	void getTextClipboardData(std::DString* text){
-		if (jsObject.isNull()) {return;}
-		void* eventObject = jsObject.getJsObject();
-		void* dataObject;
-		constwrite "	dataObject = "
-			"eventObject.clipboardData.getData('text');\n";
-		text->addJsStr(dataObject);
-	}
-	
 	void stopPropagation(){
 		if (jsObject.isNull()) {return;}
 		void* eventObject = jsObject.getJsObject();

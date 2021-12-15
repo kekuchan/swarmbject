@@ -69,6 +69,8 @@ SUCH DAMAGE.
 */
 class InputElement {
 
+	/* Public member functions */
+
 	static void create(
 		std::dom::Node* documentNode,
 		std::dom::Node* node){
@@ -77,6 +79,40 @@ class InputElement {
 		constwrite "	getObject = "
 			"document.createElement('INPUT');\n";
 		node->jsObject.setJsObject(getObject);
+	}
+
+	static bool getChecked(
+		std::dom::Node* node){
+		if (node->isNull()) {return false;}
+		void* nodeObject = node->jsObject.getJsObject();
+		bool checked;
+		constwrite "	checked = nodeObject.checked;\n";
+		return checked;
+	}
+
+	static unsigned int getValue(std::dom::Node* node,
+		unsigned char[] text, unsigned int start){
+		if (node->isNull()) {return 0;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* attribute;
+		constwrite "	attribute = nodeObject.value;\n";
+		return std::js::String::encode(
+			attribute, text, start);
+	}
+
+	static void getValueDString(std::dom::Node* node,
+		std::str::DString* string){
+		unsigned int start = string->length;
+		string->shift(start, 
+			getValue(node, nullptr, 0));
+		getValue(node, string->data, start);
+	}
+
+	static void setChecked(
+		std::dom::Node* node, bool value){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		constwrite "	nodeObject.checked = value;\n";
 	}
 
 	static void setType(
@@ -101,15 +137,6 @@ class InputElement {
 		constwrite "	nodeObject.type = textObject;\n";
 	}
 
-	static void getValue(
-		std::dom::Node* node, std::DString* value){
-		if (node->isNull()) {return;}
-		void* nodeObject = node->jsObject.getJsObject();
-		void* attribute;
-		constwrite "	attribute = nodeObject.value;\n";
-		value->addJsStr(attribute);
-	}
-
 	static void setValue(
 		std::dom::Node* node, unsigned char[] value,
 		unsigned int start, unsigned int len){
@@ -120,19 +147,4 @@ class InputElement {
 		constwrite "	nodeObject.value = valueObject;\n";
 	}
 
-	static bool getChecked(
-		std::dom::Node* node){
-		if (node->isNull()) {return false;}
-		void* nodeObject = node->jsObject.getJsObject();
-		bool checked;
-		constwrite "	checked = nodeObject.checked;\n";
-		return checked;
-	}
-
-	static void setChecked(
-		std::dom::Node* node, bool value){
-		if (node->isNull()) {return;}
-		void* nodeObject = node->jsObject.getJsObject();
-		constwrite "	nodeObject.checked = value;\n";
-	}
 }

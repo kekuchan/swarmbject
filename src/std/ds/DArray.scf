@@ -1,0 +1,435 @@
+/*
+Copyright (c) 2021 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class DArray {
+
+	unsigned int capacity;
+	void* data;
+	unsigned int size;
+
+	DArray(){
+		size = 0;
+		capacity = 0;
+		data = nullptr;
+	}
+
+	void* addSize(unsigned int len, bool copy, bool del,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray){
+		unsigned int previousSize = size;
+		unsigned int newSize = previousSize + len;
+		unsigned int newCapacity = capacity;
+		void* newData;
+		if (newCapacity < newSize){
+			if (newCapacity == 0){
+				newCapacity = len;
+				newData = newArray(len);
+			} else {
+				newCapacity = newCapacity * 2;
+				if (newCapacity < newSize) {newCapacity = newSize;}
+				void* previousData = data;
+				newData = newArray(newCapacity);
+				if (copy){
+					std::arr::Void::copy(previousData, 0,
+						newData, 0, previousSize,
+						getElement, setElement);
+				}
+				if (del) {deleteArray(previousData);}
+			}
+			data = newData;
+			capacity = newCapacity;
+		} else {newData = data;}
+		size = newSize;
+		return newData;
+	}
+	
+	void* insertSize(unsigned int len,
+		unsigned int start,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray){
+		unsigned int previousSize = size;
+		if (start > previousSize) {return nullptr;}
+		void* previousData = data;
+		void* newData = addSize(len, false, false,
+			getElement, setElement, newArray, deleteArray);
+		std::arr::Void::copy(previousData, start,
+			newData, start + len, previousSize - start,
+			getElement, setElement);
+		if (newData != previousData){
+			std::arr::Void::copy(previousData, 0,
+				newData, 0, start,
+				getElement, setElement);
+			deleteArray(previousData);
+		}
+		return newData;
+	}
+
+	/* Public member functions. */
+
+	void add(void* src,
+		unsigned int i, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray){
+		if (len == 0) {return;}
+		void* previousData = data;
+		unsigned int previousSize = size;
+		void* newData = addSize(len, true, false,
+			getElement, setElement, newArray, deleteArray);
+		std::arr::Void::copy(src, i,
+			newData, previousSize, len,
+			getElement, setElement);
+		if (newData != previousData){
+			deleteArray(previousData);
+		}
+	}
+
+	void clear(){
+		size = 0;
+	}
+
+	unsigned char compare(void* dst,
+		unsigned int i, unsigned int dstLen,
+		unsigned char(void*,void*) compareElements,
+		void*(void*, unsigned int) getElement){
+		return std::arr::Void::compareRange(
+			data, 0, size, dst, i, 
+			dstLen, getElement, compareElements);
+	}
+
+	void copy(unsigned int start, void* src, 
+		unsigned int i, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement){
+		unsigned int dataLen = size;
+		if (start + len > dataLen){
+			if (start >= dataLen) {return;}
+			len = dataLen - start;
+		}
+		std::arr::Void::copy(src, i, data, 
+			start, len, getElement, setElement);
+	}
+	
+	void erase(unsigned int start, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement){
+		unsigned int newSize = size;
+		if (start < newSize){
+			void* newData = data;
+			if (start + len < newSize){
+				newSize = newSize - len;
+				std::arr::Void::copy(newData, start + len,
+					newData, start, newSize - start,
+					getElement, setElement);
+				size = newSize;
+			} else {
+				size = start;
+			}
+		}
+	}
+
+	unsigned int find(void* element,
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements,
+		unsigned int start){
+		unsigned int len = size;
+		if (start >= len) {return 0;}
+		return std::arr::Void::find(
+			element, data, start, len - start, 
+			getElement, compareElements);
+	}
+
+	unsigned int findLast(void* element,
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements,
+		unsigned int start){
+		unsigned int len = size;
+		if (start > len) {start = len;}
+		return std::arr::Void::findLast(
+			element, data, 0, start, 
+			getElement, compareElements);
+	}
+
+	unsigned int findLastRange(void* src, 
+		unsigned int i, unsigned int len, 
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements,
+		unsigned int start){
+		unsigned int max = size;
+		if (start > max) {start = max;}
+		return std::arr::Void::findLastRange(
+			src, i, len, data, 0, start, 
+			getElement, compareElements);
+	}
+	
+	unsigned int findRange(void* src, 
+		unsigned int i, unsigned int len, 
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements,
+		unsigned int start){
+		unsigned int max = size;
+		if (start >= max) {return 0;}
+		return std::arr::Void::findRange(
+			src, i, len, data, start, max - start, 
+			getElement, compareElements);
+	}
+	
+	unsigned int findSorted(void* element,
+		void*(void*, unsigned int) getElement,
+		unsigned char(void*,void*) compareElements){
+		return std::arr::Void::findSorted(
+			element, data, 0, size, 
+			getElement, compareElements);
+	}
+
+	void insert(unsigned int start,
+		void* element, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray){
+		void* newData = insertSize(len, start,
+			getElement, setElement, newArray, deleteArray);
+		if (newData != nullptr){
+			while (len > 0){
+				len = len - 1;
+				setElement(getElement(
+					newData, start + len), element);
+			}
+		}
+	}
+
+	void insertRange(
+		unsigned int start, void* src, 
+		unsigned int i, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray){
+		void* newData = insertSize(len, start,
+			getElement, setElement, newArray, deleteArray);
+		if (newData != nullptr){
+			std::arr::Void::copy(src, i,
+				newData, start, len,
+				getElement, setElement);
+		}
+	}
+
+	void insertSorted(void* element,
+		unsigned char(void*,void*) compare,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray){
+		unsigned int end = size;
+		if (end > 0){
+			/* Trick using offset by 1 to keep variables as unsigned. */
+			unsigned int start = 1;
+			unsigned int mid;
+			void* arrayData = data;
+			while (true){
+				mid = (end + start) >> 1;
+				switch (compare(element,
+					getElement(arrayData, mid - 1))){
+					case std::Compare::less:
+						end = mid - 1;
+						if (start > end) {break;}
+						continue;
+					case std::Compare::equal:
+						end = mid - 1;
+						break;
+					case std::Compare::greater:
+						if (start == end){
+							end = mid;
+							break;
+						}
+						start = mid + 1;
+						continue;
+				}
+				break;
+			}
+		}
+		insert(end, element, 1, getElement,
+			setElement, newArray, deleteArray);
+	}
+
+	void move(std::ds::DArray* src,
+		void(void*) deleteArray){
+		if (src == this) {return;}
+		size = src->size;
+		capacity = src->capacity;
+		if (deleteArray != nullptr){
+			deleteArray(data);
+		} else {delete[] data;}
+		data = src->data;
+		src->size = 0;
+		src->capacity = 0;
+		src->data = nullptr;
+	}
+	
+	void pop(void* element,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement){
+		unsigned int previousSize = size;
+		if (previousSize > 0){
+			if (element != nullptr){
+				setElement(element,
+					getElement(data, previousSize - 1));
+			}
+			size = previousSize - 1;
+		} else if (element != nullptr){
+			setElement(element, nullptr);
+		}
+	}
+
+	void push(void* element,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray){
+		void* newData = addSize(1, true, true,
+			getElement, setElement, newArray, deleteArray);
+		if (element != nullptr){
+			setElement(getElement(
+				data, size - 1), element);
+		}
+	}
+
+	void reserve(unsigned int newCapacity,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray){
+		if (newCapacity > capacity){
+			void* previousData = data;
+			void* newData = newArray(newCapacity);
+			if (previousData != nullptr){
+				std::arr::Void::copy(previousData, 0,
+					newData, 0, size,
+					getElement, setElement);
+				deleteArray(previousData);
+			}
+			data = newData;
+		}
+		capacity = newCapacity;
+	}
+	
+	void reverse(
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void* tmp){
+		std::arr::Void::reverse(
+			data, 0, size,
+			getElement, setElement, tmp);
+	}
+	
+	/* Should work even if the regions overlap, as then 
+		its size can not be greater than its container. */
+	void set(void* src, 
+		unsigned int start, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray){
+		void* newData;
+		unsigned int previousSize = size;
+		if (len > previousSize){
+			newData = addSize(len - previousSize, 
+				false, true, getElement, setElement, 
+				newArray, deleteArray);
+		} else {
+			newData = data;
+			size = len;
+		}
+		std::arr::Void::copy(src, start, newData,
+			0, len, getElement, setElement);
+	}
+
+	void shift(
+		unsigned int start, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		void(void*, void*) setElement,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray){
+		insertSize(len, start, getElement, 
+			setElement, newArray, deleteArray);
+	}
+	
+	void trim(unsigned int len){
+		if (len < size){
+			size = len;
+		}
+	}
+
+}

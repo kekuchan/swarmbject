@@ -54,12 +54,34 @@ bool checked = std::html::InputElement::
 
 ## "getValue" static function:
 
+Copy the value of a text input to an array.
+		
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* The unsigned char array to copy to.
+* The starting index of the array to copy to.
+
+Returns: the length of the value.
+
+```
+/*In Main::main.*/
+std::html::InputElement::setType(
+	&input, std::html::InputTypes::text);
+std::str::DString string;
+string.shift(0, 
+	std::html::InputElement::getValue(
+		&input, nullptr, 0));
+std::html::InputElement::getValue(
+	&input, string.data, 0);
+
+## "getValueDString" static function:
+
 Inserts the value of a text input 
-to an std::DString's end.
+to an std::str::DString's end.
 
 Parameters:
 * A pointer to the element, as an std::dom::Node.
-* A pointer an std::DString.
+* A pointer an std::str::DString.
 
 Returns: void.
 
@@ -67,8 +89,8 @@ Returns: void.
 /*In Main::main.*/
 std::html::InputElement::setType(
 	&input, std::html::InputTypes::text);
-std::DString string;
-std::html::InputElement::getValue(
+std::str::DString string;
+std::html::InputElement::getValueDString(
 	&input, &string);
 ```
 

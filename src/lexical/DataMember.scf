@@ -73,14 +73,14 @@ class DataMember : lexical::Variable {
 	lexical::Type* value;
 	
 	static lexical::DataMember* create(
-		unsigned int setCursor, std::StringView* string,
+		unsigned int setCursor, std::str::View* string,
 		data::ClassType* parent){
 		lexical::DataMember* dataMember =
 			new lexical::DataMember;
 		dataMember->type = lexical::Types::dataMember;
 		dataMember->cursor = setCursor;
 		dataMember->dataType = nullptr;
-		dataMember->name.setStringView(string);
+		dataMember->name.setView(string);
 		dataMember->parentClass = parent;
 		dataMember->offset = -1;
 		dataMember->value = nullptr;

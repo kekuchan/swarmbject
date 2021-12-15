@@ -69,7 +69,7 @@ SUCH DAMAGE.
 */
 class Type {
 	unsigned char type;
-	std::PtrDArray types;
+	std::ds::PtrDArray types;
 
 	static data::Type* create(
 		unsigned char type){
@@ -79,7 +79,7 @@ class Type {
 		return dataType;
 	}
 
-	data::Type* getOrSetSpecifiers(
+	data::Specifiers* getOrSetSpecifiers(
 		unsigned char specifiers){
 		data::Type* dataType;
 		if (type != data::Types::specifiersT){
@@ -89,34 +89,40 @@ class Type {
 				(data::Specifiers*)this->specifiers;
 			dataType = (data::Specifiers*)this->dataType;
 		}
-		void* specifiersT = dataType->
-			types.findSorted(&specifiers,
-				data::Specifiers::cmpUchar);
-		if (specifiersT == nullptr){
-			specifiersT =
-				data::Specifiers::create(
-					dataType, specifiers);
+		unsigned int i = dataType->types.findSorted(
+			&specifiers, data::Specifiers::cmpUchar);
+		data::Specifiers* specifiersT;
+		if (i != 0){
+			specifiersT = (data::Specifiers*)
+				(dataType->types.data[i - 1]);
+		} else {
+			specifiersT = data::Specifiers::create(
+				dataType, specifiers);
 			dataType->types.insertSorted(
 				specifiersT, data::Specifiers::cmp);
 		}
-		return (data::Type*)specifiersT;
+		return specifiersT;
 	}
 
-	data::Type* getOrSetPtr(bool isArray){
-		char(void*,void*) compare;
+	data::PointerType* getOrSetPtr(bool isArray){
+		unsigned char(void*,void*) compare;
 		if (isArray){
 			compare = data::PointerType::cmpArrayPtr;
 		} else {
 			compare = data::PointerType::cmpPtr;
 		}
-		void* ptr =
+		unsigned int i = 
 			types.findSorted(nullptr, compare);
-		if (ptr == nullptr){
+		data::PointerType* ptr;
+		if (i != 0){
+			ptr = (data::PointerType*)
+				(types.data[i - 1]);
+		} else {
 			ptr = data::PointerType::create(
 				this, isArray);
 			types.insertSorted(ptr, compare);
 		}
-		return (data::Type*)ptr;
+		return ptr;
 	}
 
 	bool isNumericType(){
@@ -180,9 +186,9 @@ class Type {
 		return this;
 	}
 
-	void debug(std::DString* string, bool recurse){
+	void debug(std::str::DString* string, bool recurse){
 		Lexical::dataTypeToString(this, string);
-		string->addSubstring(" (types: ", 0, 9);
+		string->add(" (types: ", 0, 9);
 		data::Type*[] dataTypes = (data::Type*[])
 			(types.data);
 		unsigned int i = 0;
@@ -193,7 +199,7 @@ class Type {
 			} else {
 				Lexical::dataTypeToString(dataTypes[i], string);
 			}
-			string->addSubstring(", ", 0, 2);
+			string->add(", ", 0, 2);
 			i = i + 1;
 		}
 		string->addChar(')');

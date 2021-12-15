@@ -68,6 +68,53 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class DataView {
+
+	static unsigned char compare(
+		void* view, unsigned char[] dst,
+		unsigned int start, unsigned int len){
+		unsigned char cmp = compareRange(
+			view, 0, dst, start, len);
+		if (cmp == std::Compare::equal){
+			unsigned int viewLength;
+			constwrite "	viewLength = view.byteLength;\n";
+			if (viewLength != len){
+				if (viewLength > len){
+					return std::Compare::greater;
+				}
+				return std::Compare::less;
+			}
+		}
+		return cmp;
+	}
+
+	/* Compares view to submemory. */
+	static unsigned char compareRange(void* view,
+		unsigned int viewStart, unsigned char[] dst,
+		unsigned int dstStart, unsigned int len){
+		unsigned int viewLength;
+		constwrite "	viewLength = view.byteLength;\n";
+		if (viewStart > viewLength) 
+			{return std::Compare::less;}
+		viewLength = viewLength - viewStart;
+		unsigned int minLength;
+		if (len < viewLength){
+			minLength = len;
+		} else {minLength = viewLength;}
+		unsigned int i = 0;
+		while (i < minLength){
+			unsigned char viewChar;
+			constwrite "		viewChar = view.getUint8(viewStart + i);\n";
+			unsigned char memoryChar = dst[dstStart + i];
+			if (viewChar != memoryChar){
+				if (viewChar > memoryChar) 
+					{return std::Compare::greater;}
+				return std::Compare::less;
+			}
+			i = i + 1;
+		}
+		if (len == minLength) {return std::Compare::equal;}
+		return std::Compare::less;
+	}
 	
 	static void copyViews(void* src, void* dst,
 		unsigned int srcStart, unsigned int dstStart,
@@ -78,6 +125,17 @@ class DataView {
 				"		dst.setUint8(dstStart + i, \n"
 				"			src.getUint8(srcStart + i));\n";
 			i = i + 1;
+		}
+	}
+
+	static void get(void* src,
+		unsigned int srcStart, unsigned char[] dst,
+		unsigned int dstStart, unsigned int len){
+		while (len > 0){
+			len = len - 1;
+			unsigned char srcChar;
+			constwrite "		srcChar = src.getUint8(srcStart + len);\n";
+			dst[dstStart + len] = srcChar;
 		}
 	}
 	
@@ -92,6 +150,16 @@ class DataView {
 			i = i + 1;
 		}
 		return array;
+	}
+
+	static void set(unsigned char[] src,
+		unsigned int srcStart, void* dst,
+		unsigned int dstStart, unsigned int len){
+		while (len > 0){
+			len = len - 1;
+			unsigned char memoryChar = src[srcStart + len];
+			constwrite "		dst.setUint8(dstStart + len, memoryChar);\n";
+		}
 	}
 
 }

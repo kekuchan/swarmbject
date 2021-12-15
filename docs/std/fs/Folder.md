@@ -20,12 +20,12 @@ class Main {
 
 ## "path" data member:
 
-The folder's path as std::String.
+The folder's path as std::str::String.
 It should not be modified.
 
 ```
 /*In Main::onOpened.*/
-std::String* path = &folder->path;
+std::str::String* path = &folder->path;
 /*"/tut/"*/
 ```
 
@@ -44,16 +44,16 @@ unsigned int entries = folder->entries();
 ## "getName" member function:
 
 Inserts the currently pointed entry's 
-name to an std::DString's end.
+name to an std::str::DString's end.
 
 Parameters:
-* A pointer an std::DString.
+* A pointer an std::str::DString.
 
 Returns: void.
 
 ```
 /*In Main::main.*/
-std::DString string;
+std::str::DString string;
 folder->getName(&string);
 /*"Year.md".*/
 ```

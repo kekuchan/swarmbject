@@ -78,14 +78,14 @@ class FloatingLiteral : lexical::Type {
 		return floatingLiteral;
 	}
 
-	static char cmp(void* i, void* j){
-		return std::Memory::compareFloat(
+	static unsigned char cmp(void* i, void* j){
+		return std::arr::Float::compareValue(
 			((lexical::FloatingLiteral*)i)->number,
 			((lexical::FloatingLiteral*)j)->number);
 	}
 
-	static char cmpFloat(void* i, void* j){
-		return std::Memory::compareFloat(
+	static unsigned char cmpFloat(void* i, void* j){
+		return std::arr::Float::compareValue(
 			*((float*)i),
 			((lexical::FloatingLiteral*)j)->number);
 	}

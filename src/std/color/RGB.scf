@@ -72,12 +72,14 @@ class RGB {
 	unsigned char red;
 	unsigned char green;
 	unsigned char blue;
-	
+
+	/* Public member functions. */
+
 	void set(unsigned char r,
 		unsigned char g, unsigned char b){
 		red = r;
 		green = g;
 		blue = b;
 	}
-	
+
 }

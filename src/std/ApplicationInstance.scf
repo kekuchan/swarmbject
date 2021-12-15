@@ -69,17 +69,19 @@ SUCH DAMAGE.
 */
 async class ApplicationInstance {
 
-	Main main;
 	std::fs::FileSystem fileSystem;
-
+	Main main;
+	
 	async void run(){
 		main.main(this);
 	}
-	
+
+	/* Public member functions. */
+
 	void getWindow(std::bom::Window* appWindow){
 		void* jsObject;
 		constwrite "	jsObject = window;\n";
 		appWindow->jsObject.setJsObject(jsObject);
 	}
-	
+
 }

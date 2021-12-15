@@ -70,20 +70,7 @@ SUCH DAMAGE.
 class Declaration {
 
 	std::js::Object jsObject;
-	
-	void* getLengthText(
-		std::css::Value* value){
-		void* textObject;
-		if (value != nullptr && value->type ==
-			std::css::ValueTypes::shortValue){
-			textObject = 
-				(std::css::Short*)value->getJsString();
-		} else {
-			constwrite "		textObject = '';\n";
-		}
-		return textObject;
-	}
-	
+
 	void* getBorderStyle(std::css::Value* value){
 		void* textObject;
 		constwrite "	textObject = '';\n";
@@ -97,7 +84,20 @@ class Declaration {
 		}
 		return textObject;
 	}
-	
+
+	void* getLengthText(
+		std::css::Value* value){
+		void* textObject;
+		if (value != nullptr && value->type ==
+			std::css::ValueTypes::shortValue){
+			textObject = 
+				(std::css::Short*)value->getJsString();
+		} else {
+			constwrite "		textObject = '';\n";
+		}
+		return textObject;
+	}
+
 	void* getMarginText(std::css::Value* value){
 		void* textObject;
 		constwrite "	textObject = '';\n";
@@ -118,13 +118,13 @@ class Declaration {
 		}
 		return textObject;
 	}
-	
+
 	/* Public member functions. */
-	
+
 	bool isNull(){
 		return jsObject.isNull();
 	}
-	
+
 	void setAlign(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
@@ -140,7 +140,7 @@ class Declaration {
 		}
 		constwrite "	style.align = textObject;\n";
 	}
-	
+
 	void setBackgroundColor(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
@@ -153,41 +153,6 @@ class Declaration {
 			constwrite "		textObject = '';\n";
 		}
 		constwrite "	style.backgroundColor = textObject;\n";
-	}
-	
-	void setBorderWidth(std::css::Value* value){
-		if (isNull()) {return;}
-		void* style = jsObject.getJsObject();
-		void* textObject = getLengthText(value);
-		constwrite "	style.borderWidth = textObject;\n";
-	}
-	
-	void setBorderBottomWidth(std::css::Value* value){
-		if (isNull()) {return;}
-		void* style = jsObject.getJsObject();
-		void* textObject = getLengthText(value);
-		constwrite "	style.borderBottomWidth = textObject;\n";
-	}
-	
-	void setBorderLeftWidth(std::css::Value* value){
-		if (isNull()) {return;}
-		void* style = jsObject.getJsObject();
-		void* textObject = getLengthText(value);
-		constwrite "	style.borderLeftWidth = textObject;\n";
-	}
-	
-	void setBorderRightWidth(std::css::Value* value){
-		if (isNull()) {return;}
-		void* style = jsObject.getJsObject();
-		void* textObject = getLengthText(value);
-		constwrite "	style.borderRightWidth = textObject;\n";
-	}
-	
-	void setBorderTopWidth(std::css::Value* value){
-		if (isNull()) {return;}
-		void* style = jsObject.getJsObject();
-		void* textObject = getLengthText(value);
-		constwrite "	style.borderTopWidth = textObject;\n";
 	}
 	
 	void setBorderStyle(std::css::Value* value){
@@ -224,6 +189,41 @@ class Declaration {
 		void* textObject = getBorderStyle(value);
 		constwrite "	style.borderTopStyle = textObject;\n";
 	}
+
+	void setBorderWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.borderWidth = textObject;\n";
+	}
+
+	void setBorderBottomWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.borderBottomWidth = textObject;\n";
+	}
+
+	void setBorderLeftWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.borderLeftWidth = textObject;\n";
+	}
+
+	void setBorderRightWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.borderRightWidth = textObject;\n";
+	}
+
+	void setBorderTopWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.borderTopWidth = textObject;\n";
+	}
 	
 	void setDisplay(std::css::Value* value){
 		if (isNull()) {return;}
@@ -256,20 +256,6 @@ class Declaration {
 		void* style = jsObject.getJsObject();
 		void* textObject = getLengthText(value);
 		constwrite "	style.height = textObject;\n";
-	}
-	
-	void setMinHeight(std::css::Value* value){
-		if (isNull()) {return;}
-		void* style = jsObject.getJsObject();
-		void* textObject = getLengthText(value);
-		constwrite "	style.minHeight = textObject;\n";
-	}
-	
-	void setWidth(std::css::Value* value){
-		if (isNull()) {return;}
-		void* style = jsObject.getJsObject();
-		void* textObject = getLengthText(value);
-		constwrite "	style.width = textObject;\n";
 	}
 	
 	void setLineHeight(std::css::Value* value){
@@ -312,6 +298,13 @@ class Declaration {
 		void* style = jsObject.getJsObject();
 		void* textObject = getMarginText(value);
 		constwrite "	style.marginTop = textObject;\n";
+	}
+	
+	void setMinHeight(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.minHeight = textObject;\n";
 	}
 	
 	void setOverflow(std::css::Value* value){
@@ -413,6 +406,13 @@ class Declaration {
 			}
 		}
 		constwrite "	style.whiteSpace = textObject;\n";
+	}
+	
+	void setWidth(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getLengthText(value);
+		constwrite "	style.width = textObject;\n";
 	}
 	
 }

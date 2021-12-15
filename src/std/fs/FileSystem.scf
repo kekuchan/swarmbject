@@ -69,17 +69,17 @@ SUCH DAMAGE.
 */
 class FileSystem {
 	
-	std::js::Object database;
-	std::fs::Operation* queueStart;
-	std::fs::Operation* queueEnd;
-	unsigned int cursorId;
-	unsigned int substringStart;
-	unsigned int substringEnd;
-	unsigned int newEntryId;
-	unsigned int moveIntoFolderId;
-	unsigned int toDelete;
 	bool create;
+	unsigned int cursorId;
+	std::js::Object database;
 	unsigned int error;
+	unsigned int moveIntoFolderId;
+	unsigned int newEntryId;
+	std::fs::Operation* queueEnd;
+	std::fs::Operation* queueStart;
+	unsigned int substringEnd;
+	unsigned int substringStart;
+	unsigned int toDelete;
 	
 	/* Public data members */
 	std::fs::GUI gui;
@@ -96,6 +96,17 @@ class FileSystem {
 		std::fs::Operation* operation = new std::fs::Operation;
 		operation->callStart = openDB;
 		pushTofileSystemQueue(operation);
+	}
+
+	static bool isFolderPath(
+		unsigned char[] path, unsigned int len){
+		return len > 0 && path[len - 1] == '/';
+	}
+
+	static void onObjectStoreCreated(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "\tapp = _appObject;\n";
+		app.fileSystem.popFromfileSystemQueue();
 	}
 
 	static void openDB(std::fs::FileSystem* fileSystem,
@@ -147,17 +158,11 @@ class FileSystem {
 		app.fileSystem.database.setJsObject(databaseObject);
 	}
 
-	static void onObjectStoreCreated(void* e){
-		std::ApplicationInstance aexcl app;
-		constwrite "\tapp = _appObject;\n";
-		app.fileSystem.popFromfileSystemQueue();
-	}
-
 	/* Deletes the front operation,
 		and executes the next if there is. */
 	void popFromfileSystemQueue(){
 		std::fs::Operation* front = queueStart;
-		std::SLList::popFront(
+		std::ds::SLList::popFront(
 			(void**)&queueStart,
 			(void**)&queueEnd,
 			std::fs::Operation::getList);
@@ -176,7 +181,7 @@ class FileSystem {
 	/* Insert the operation and executes it if
 		there are no other pending operations. */
 	void pushTofileSystemQueue(std::fs::Operation* back){
-		std::SLList::pushBack((void*)back,
+		std::ds::SLList::pushBack((void*)back,
 			(void**)&queueStart,
 			(void**)&queueEnd,
 			std::fs::Operation::getList);
@@ -186,11 +191,6 @@ class FileSystem {
 			constwrite "		transaction = null;\n";
 			back->callStart(this, transaction);
 		}
-	}
-
-	static bool isFolderPath(
-		unsigned char[] path, unsigned int len){
-		return len > 0 && path[len - 1] == '/';
 	}
 
 	/* Gets the next folder or file name from the path until the
@@ -500,21 +500,21 @@ class FileSystem {
 	}
 
 	void saveFile(std::fs::File* file,
-		void(std::ApplicationInstance, std::String*) callback){
+		void(std::ApplicationInstance, std::str::String*) callback){
 		unsigned int len = file->path.length;
 		unsigned char[] path = file->path.data;
 		if (!isFilePath(path, len)) {return;}
 		std::fs::Operation* operation = new std::fs::Operation;
 		operation->callStart = doSaveFile;
-		operation->path.setSubstring(path, 0, len);
+		operation->path.set(path, 0, len);
 		operation->callback = (void())callback;
 		operation->fileObject.copyFromObject(&file->fileObject);
 		pushTofileSystemQueue(operation);
 	}
 	
 	void callbackPath(std::fs::Operation* front){
-		void(std::ApplicationInstance, std::String*) call =
-			(void(std::ApplicationInstance, std::String*))
+		void(std::ApplicationInstance, std::str::String*) call =
+			(void(std::ApplicationInstance, std::str::String*))
 			(front->callback);
 		if (call != nullptr){
 			std::ApplicationInstance aexcl app;
@@ -569,7 +569,7 @@ class FileSystem {
 			(void(std::ApplicationInstance, unsigned char[],
 				unsigned int))(front->callback);
 		if (call != nullptr){
-			std::String *path = &front->path;
+			std::str::String *path = &front->path;
 			std::ApplicationInstance aexcl app;
 			constwrite "		app = _appObject;\n";
 			unsigned char[] data = front->path.data;
@@ -581,7 +581,7 @@ class FileSystem {
 	static void doMove(std::fs::FileSystem* fileSystem,
 		void* transaction){
 		std::fs::Operation* front = fileSystem->queueStart;
-		std::String* path = &front->path;
+		std::str::String* path = &front->path;
 		unsigned int len = path->length;
 		unsigned char endOffset;
 		if (isFolderPath(path->data, len)) {endOffset = 1;}
@@ -624,13 +624,13 @@ class FileSystem {
 		}
 	}
 
-	void setMoveDst(std::String* path){
-		substringEnd = std::Memory::indexOfUcharReverse(
+	void setMoveDst(std::str::String* path){
+		substringEnd = std::arr::Uchar::findLast(
 			0, path->data, 0, substringEnd) - 1;
 		if (isFolderPath(path->data, path->length)){
 			substringEnd = substringEnd - 1;
 		}
-		substringStart = std::Memory::indexOfUcharReverse(
+		substringStart = std::arr::Uchar::findLast(
 			'/', path->data, 0, substringEnd);
 		cursorId = moveIntoFolderId;
 	}
@@ -640,7 +640,7 @@ class FileSystem {
 		constwrite "	app = _appObject;\n";
 		std::fs::FileSystem* fileSystem = &app.fileSystem;
 		std::fs::Operation* front = fileSystem->queueStart;
-		std::String* path = &front->path;
+		std::str::String* path = &front->path;
 		void* content;
 		constwrite "	content = new DataView(e.target.result);\n";
 		void* transaction;
@@ -711,7 +711,7 @@ class FileSystem {
 		constwrite "	app = _appObject;\n";
 		std::fs::FileSystem* fileSystem = &app.fileSystem;
 		std::fs::Operation* front = fileSystem->queueStart;
-		std::String* path = &front->path;
+		std::str::String* path = &front->path;
 		void* content;
 		constwrite "	content = new DataView(e.target.result);\n";
 		void* transaction;
@@ -842,14 +842,54 @@ class FileSystem {
 
 	/* Public member functions */
 
+	unsigned char deleteFile(unsigned char[] path,
+		void(std::ApplicationInstance, std::str::String*) callback){
+		unsigned int len = std::str::CString::length(path, 0);
+		if (!isFilePath(path, len)){return 1;}
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = doDeleteFile;
+		operation->path.set(path, 0, len);
+		operation->callback = (void())callback;
+		pushTofileSystemQueue(operation);
+		return 0;
+	}
+
+	unsigned char deleteFolder(unsigned char[] path,
+		void(std::ApplicationInstance, std::str::String*) callback){
+		unsigned int len = std::str::CString::length(path, 0);
+		if (!isFolderPath(path, len) || len == 1) {return 1;}
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = doDeleteFolder;
+		operation->path.set(path, 0, len);
+		operation->callback = (void())callback;
+		pushTofileSystemQueue(operation);
+		return 0;
+	}
+	
+	unsigned char openFile(unsigned char[] path,
+		void(std::ApplicationInstance, std::fs::File*) callback,
+		unsigned char mode){
+		if (mode > std::fs::
+			OpenFileModes::appendUpdateBinary) {return 1;}
+		unsigned int len = std::str::CString::length(path, 0);
+		if (!isFilePath(path, len)) {return 1;}
+		std::fs::Operation* operation = new std::fs::Operation;
+		operation->callStart = doOpenFile;
+		operation->path.set(path, 0, len);
+		operation->callback = (void())callback;
+		operation->mode = mode;
+		pushTofileSystemQueue(operation);
+		return 0;
+	}
+
 	unsigned char openFolder(unsigned char[] path,
 		void(std::ApplicationInstance, std::fs::Folder*) callback,
 		bool write){
-		unsigned int len = std::CString::length(path, 0);
+		unsigned int len = std::str::CString::length(path, 0);
 		if (!isFolderPath(path, len)) {return 1;}
 		std::fs::Operation* operation = new std::fs::Operation;
 		operation->callStart = doOpenFolder;
-		operation->path.setSubstring(path, 0, len);
+		operation->path.set(path, 0, len);
 		operation->callback = (void())callback;
 		if (write){
 			operation->mode =
@@ -861,19 +901,22 @@ class FileSystem {
 		pushTofileSystemQueue(operation);
 		return 0;
 	}
-	
-	unsigned char openFile(unsigned char[] path,
-		void(std::ApplicationInstance, std::fs::File*) callback,
-		unsigned char mode){
-		if (mode > std::fs::
-			OpenFileModes::appendUpdateBinary) {return 1;}
-		unsigned int len = std::CString::length(path, 0);
-		if (!isFilePath(path, len)) {return 1;}
+
+	unsigned char moveFile(unsigned char[] src, unsigned char[] dst,
+		void(std::ApplicationInstance, unsigned char[],
+			unsigned int) callback){
+		unsigned int srcLen = std::str::CString::length(src, 0);
+		unsigned int dstLen = std::str::CString::length(dst, 0);
+		if (!isFilePath(src, srcLen) ||
+			!isFilePath(dst, dstLen)) {return 1;}
 		std::fs::Operation* operation = new std::fs::Operation;
-		operation->callStart = doOpenFile;
-		operation->path.setSubstring(path, 0, len);
+		operation->callStart = doMove;
+		/* Pack both path to the same string,
+			separated with the 0 character. */
+		operation->path.setLength(dstLen + 1 + srcLen);
+		operation->path.copy(0, dst, 0, dstLen + 1);
+		operation->path.copy(dstLen + 1, src, 0, srcLen);
 		operation->callback = (void())callback;
-		operation->mode = mode;
 		pushTofileSystemQueue(operation);
 		return 0;
 	}
@@ -881,8 +924,8 @@ class FileSystem {
 	unsigned char moveFolder(unsigned char[] src, unsigned char[] dst,
 		void(std::ApplicationInstance, unsigned char[],
 		unsigned int) callback){
-		unsigned int srcLen = std::CString::length(src, 0);
-		unsigned int dstLen = std::CString::length(dst, 0);
+		unsigned int srcLen = std::str::CString::length(src, 0);
+		unsigned int dstLen = std::str::CString::length(dst, 0);
 		if (!isFolderPath(src, srcLen) ||
 			!isFolderPath(dst, dstLen) ||
 			isSubPath(src, dst)) {return 1;}
@@ -891,51 +934,8 @@ class FileSystem {
 		/* Pack both path to the same string,
 			separated with the 0 character. */
 		operation->path.setLength(dstLen + 1 + srcLen);
-		operation->path.replace(dst, 0, dstLen + 1, 0);
-		operation->path.replace(src, 0, srcLen, dstLen + 1);
-		operation->callback = (void())callback;
-		pushTofileSystemQueue(operation);
-		return 0;
-	}
-
-	unsigned char moveFile(unsigned char[] src, unsigned char[] dst,
-		void(std::ApplicationInstance, unsigned char[],
-			unsigned int) callback){
-		unsigned int srcLen = std::CString::length(src, 0);
-		unsigned int dstLen = std::CString::length(dst, 0);
-		if (!isFilePath(src, srcLen) ||
-			!isFilePath(dst, dstLen)) {return 1;}
-		std::fs::Operation* operation = new std::fs::Operation;
-		operation->callStart = doMove;
-		/* Pack both path to the same string,
-			separated with the 0 character. */
-		operation->path.setLength(dstLen + 1 + srcLen);
-		operation->path.replace(dst, 0, dstLen + 1, 0);
-		operation->path.replace(src, 0, srcLen, dstLen + 1);
-		operation->callback = (void())callback;
-		pushTofileSystemQueue(operation);
-		return 0;
-	}
-
-	unsigned char deleteFile(unsigned char[] path,
-		void(std::ApplicationInstance, std::String*) callback){
-		unsigned int len = std::CString::length(path, 0);
-		if (!isFilePath(path, len)){return 1;}
-		std::fs::Operation* operation = new std::fs::Operation;
-		operation->callStart = doDeleteFile;
-		operation->path.setSubstring(path, 0, len);
-		operation->callback = (void())callback;
-		pushTofileSystemQueue(operation);
-		return 0;
-	}
-
-	unsigned char deleteFolder(unsigned char[] path,
-		void(std::ApplicationInstance, std::String*) callback){
-		unsigned int len = std::CString::length(path, 0);
-		if (!isFolderPath(path, len) || len == 1) {return 1;}
-		std::fs::Operation* operation = new std::fs::Operation;
-		operation->callStart = doDeleteFolder;
-		operation->path.setSubstring(path, 0, len);
+		operation->path.copy(0, dst, 0, dstLen + 1);
+		operation->path.copy(dstLen + 1, src, 0, srcLen);
 		operation->callback = (void())callback;
 		pushTofileSystemQueue(operation);
 		return 0;

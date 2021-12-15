@@ -68,11 +68,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class File {
-	std::String path;
-	std::js::Object fileObject;
 	unsigned int cursor;
+	std::js::Object fileObject;
 	unsigned char flushed;
 	unsigned char mode;
+	std::str::String path;
 
 	unsigned char constexpr beforeFlush = 0;
 	unsigned char constexpr needFlush = beforeFlush + 1;
@@ -87,15 +87,17 @@ class File {
 		flush();
 	}
 
+	void debug(){
+		path.debug();
+		void* content = fileObject.getJsObject();
+		unsigned int size = getSize();
+		unsigned int cursorValue = cursor;
+		constwrite "alert('size: ' + size +\n"
+			"	' cursor: ' + cursorValue + ' content: ' + content);";
+	}
+
 	void* getJsBlob(){
-		void* blob;
-		if (fileObject.isNull()){
-			constwrite "		blob = new Blob([]);\n";
-		} else {
-			void* content = fileObject.getJsObject();
-			constwrite "		blob = new Blob([content]);\n";
-		}
-		return blob;
+		return fileObject.getBlob();
 	}
 
 	void setContent(void* content){
@@ -106,18 +108,27 @@ class File {
 
 	/* Public member functions */
 
+	void flush(){
+		if (flushed != needFlush){return;}
+		if (fileObject.isNull()){
+			void* content;
+			constwrite
+				"			var content = new Uint8Array("
+								"new ArrayBuffer(0));\n";
+			fileObject.setJsObject(content);
+		}
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		app.fileSystem.saveFile(this, nullptr);
+		flushed = isFlushed;
+	}
+
 	unsigned int getSize(){
 		if (fileObject.isNull()) {return 0;}
 		void* content = fileObject.getJsObject();
 		unsigned int size;
 		constwrite "	size = content.byteLength;";
 		return size;
-	}
-
-	void setCursor(unsigned int value){
-		unsigned int size = getSize();
-		if (size < value) {value = size;}
-		cursor = value;
 	}
 
 	void read(unsigned char[] dst,
@@ -131,9 +142,15 @@ class File {
 		unsigned int previousCursor = cursor;
 		unsigned int max = fileSize - previousCursor;
 		if (size > max) {size = max;}
-		std::Memory::copyJsArray(content,
+		std::js::Array::get(content,
 			previousCursor, dst, start, size);
 		cursor = previousCursor + size;
+	}
+
+	void setCursor(unsigned int value){
+		unsigned int size = getSize();
+		if (size < value) {value = size;}
+		cursor = value;
 	}
 
 	void write(unsigned char[] src,
@@ -163,33 +180,10 @@ class File {
 				"		content = newContent;\n";
 			fileObject.setJsObject(content);
 		}
-		std::Memory::setJsArray(src, start, content,
-			previousCursor, size);
+		std::js::Array::set(
+			src, start, content, previousCursor, size);
 		cursor = end;
 		flushed = needFlush;
 	}
 
-	void debug(){
-		path.debug();
-		void* content = fileObject.getJsObject();
-		unsigned int size = getSize();
-		unsigned int cursorValue = cursor;
-		constwrite "alert('size: ' + size +\n"
-			"	' cursor: ' + cursorValue + ' content: ' + content);";
-	}
-
-	void flush(){
-		if (flushed != needFlush){return;}
-		if (fileObject.isNull()){
-			void* content;
-			constwrite
-				"			var content = new Uint8Array("
-								"new ArrayBuffer(0));\n";
-			fileObject.setJsObject(content);
-		}
-		std::ApplicationInstance aexcl app;
-		constwrite "	app = _appObject;\n";
-		app.fileSystem.saveFile(this, nullptr);
-		flushed = isFlushed;
-	}
 }

@@ -69,6 +69,17 @@ SUCH DAMAGE.
 */
 class Element {
 
+	/* Public member functions */
+
+	static unsigned int getOffsetHeight(
+		std::dom::Node* node){
+		if (node->isNull()) {return 0;}
+		void* nodeObject = node->jsObject.getJsObject();
+		unsigned int offsetHeight;
+		constwrite "	offsetHeight = nodeObject.offsetHeight;\n";
+		return offsetHeight;
+	}
+
 	static unsigned int getOffsetLeft(
 		std::dom::Node* node){
 		if (node->isNull()) {return 0;}
@@ -85,15 +96,6 @@ class Element {
 		unsigned int offsetTop;
 		constwrite "	offsetTop = nodeObject.offsetTop;\n";
 		return offsetTop;
-	}
-
-	static unsigned int getOffsetHeight(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int offsetHeight;
-		constwrite "	offsetHeight = nodeObject.offsetHeight;\n";
-		return offsetHeight;
 	}
 
 	static unsigned int getOffsetWidth(

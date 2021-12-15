@@ -152,7 +152,7 @@ class Malloc {
 	unsigned char constexpr mallocTreeChunkParent = 24;
 	unsigned char constexpr mallocTreeChunkIndex = 28;
 
-	static unsigned int dlToCode(std::DString* code,
+	static unsigned int dlToCode(std::str::DString* code,
 		unsigned int dlGlobalsStart){
 		unsigned char topFootSize; /* 16 */
 		if ((twoSizeTSizes & chunkAlignMask) == 0){

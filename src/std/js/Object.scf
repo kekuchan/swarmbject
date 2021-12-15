@@ -81,6 +81,53 @@ class Object {
 	~Object(){
 		clear();
 	}
+	
+	void clear(){
+		void* jsObject;
+		constwrite "	jsObject = null;\n";
+		setJsObject(jsObject);
+	}
+	
+	void copyFromObject(std::js::Object* src){
+		void* srcObject;
+		if (src != nullptr){
+			srcObject = src->getJsObject();
+		} else {
+			constwrite "		srcObject = null;\n";
+		}
+		setJsObject(srcObject);
+	}
+	
+	void debug(){
+		if (id == 0){
+			constwrite "alert('Node: nullptr');";
+		} else {
+			void* jsObject = getJsObject();
+			constwrite "alert('Node: ' + jsObject);\n";
+		}
+	}
+	
+	bool equals(std::js::Object* src){
+		void* jsObject = getJsObject();
+		void* srcObject;
+		if (src != nullptr){
+			srcObject = src->getJsObject();
+		} else {
+			constwrite "		srcObject = null;\n";
+		}
+		constwrite "	return (jsObject === srcObject);\n";
+	}
+
+	void* getBlob(){
+		void* blob;
+		if (isNull()){
+			constwrite "		blob = new Blob([]);\n";
+		} else {
+			void* content = getJsObject();
+			constwrite "		blob = new Blob([content]);\n";
+		}
+		return blob;
+	}
 
 	void* getJsObject(){
 		void* jsObject;
@@ -89,6 +136,18 @@ class Object {
 			"	jsObject = (jsId !== 0) ?\n"
 			"		_jsObjects[jsId - 1].next : null;\n";
 		return jsObject;
+	}
+	
+	bool isNull(){
+		return id == 0;
+	}
+	
+	void move(std::js::Object* src){
+		clear();
+		if (src != nullptr){
+			id = src->id;
+			src->id = 0;
+		}
 	}
 
 	void setJsObject(void* jsObject){
@@ -118,54 +177,6 @@ class Object {
 			"		jsId = 0;\n"
 			"	}\n";
 			id = jsId;
-	}
-	
-	void copyFromObject(std::js::Object* src){
-		void* srcObject;
-		if (src != nullptr){
-			srcObject = src->getJsObject();
-		} else {
-			constwrite "		srcObject = null;\n";
-		}
-		setJsObject(srcObject);
-	}
-	
-	void move(std::js::Object* src){
-		clear();
-		if (src != nullptr){
-			id = src->id;
-			src->id = 0;
-		}
-	}
-	
-	void clear(){
-		void* jsObject;
-		constwrite "	jsObject = null;\n";
-		setJsObject(jsObject);
-	}
-	
-	bool isNull(){
-		return id == 0;
-	}
-	
-	bool equals(std::js::Object* src){
-		void* jsObject = getJsObject();
-		void* srcObject;
-		if (src != nullptr){
-			srcObject = src->getJsObject();
-		} else {
-			constwrite "		srcObject = null;\n";
-		}
-		constwrite "	return (jsObject === srcObject);\n";
-	}
-	
-	void debug(){
-		if (id == 0){
-			constwrite "alert('Node: nullptr');";
-		} else {
-			void* jsObject = getJsObject();
-			constwrite "alert('Node: ' + jsObject);\n";
-		}
 	}
 
 }

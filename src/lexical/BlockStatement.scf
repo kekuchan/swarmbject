@@ -68,8 +68,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class BlockStatement : lexical::Type {
-	std::PtrDArray variables;
-	std::PtrDArray statements;
+	std::ds::PtrDArray variables;
+	std::ds::PtrDArray statements;
 
 	BlockStatement() {
 		type = lexical::Types::block;
@@ -82,15 +82,17 @@ class BlockStatement : lexical::Type {
 	}
 
 	lexical::LocalVariable* getVariable(
-		std::StringView* name){
+		std::str::View* name){
+		unsigned int i = variables.findSorted(
+			name, lexical::Variable::cmpString);
+		if (i == 0) {return nullptr;}
 		return (lexical::LocalVariable*)
-			(variables.findSorted(name,
-				lexical::Variable::cmpString));
+			(variables.data[i - 1]);
 	}
 	
 	void insertStatement(
 		lexical::Type* statement){
-		statements.pushBack(statement);
+		statements.push(statement);
 	}
 
 }

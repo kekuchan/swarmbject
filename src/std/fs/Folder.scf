@@ -69,9 +69,9 @@ SUCH DAMAGE.
 */
 class Folder {
 
-	std::String path;
 	std::js::Object folderObject;
 	unsigned int iterator;
+	std::str::String path;
 
 	unsigned char constexpr idOffset = 0;
 	unsigned char constexpr typeOffset = 4;
@@ -80,12 +80,7 @@ class Folder {
 	Folder(){
 		iterator = 0;
 	}
-	
-	void set(void* content){
-		folderObject.setJsObject(content);
-		start();
-	}
-	
+
 	static void debugContent(void* content){
 		constwrite
 			"	var entries = content.getUint32(0);\n"
@@ -108,109 +103,6 @@ class Folder {
 			"		}\n"
 			"	}\n"
 			"	alert(string);\n";
-	}
-	
-	static unsigned int getEntryId(void* folderContent,
-		unsigned int offset){
-		unsigned int id;
-		constwrite
-			"	id = folderContent.getUint32(offset + ";
-					constwrite idOffset;
-					constwrite ");\n";
-		return id;
-	}
-	
-	static unsigned char getEntryType(void* folderContent,
-		unsigned int offset){
-		unsigned char type;
-		constwrite
-			"	type = folderContent.getUint8(offset + ";
-					constwrite typeOffset;
-					constwrite ");\n";
-		return type;
-	}
-
-	static unsigned int getEntryOffset(
-		void* folderContent, unsigned char[] string,
-		unsigned int start, unsigned int len){
-		unsigned int entries;
-		constwrite "	entries = folderContent.getUint32(0);\n";
-		unsigned int i = 4;
-		unsigned int offset;
-		unsigned char nameChar;
-		unsigned int j = entries * 4;
-		while (i <= j){
-			constwrite "		offset = folderContent.getUint32(i);\n";
-			int cmp = std::Memory::compareJsSubView(
-				folderContent, offset + nameOffset,
-				string, start, len);
-			if (cmp < 0){
-				i = i + 4;
-				continue;
-			} else if (cmp == 0){
-				constwrite "			nameChar = "
-					"folderContent.getUint8(offset + ";
-						constwrite nameOffset;
-						constwrite " + len);\n";
-				if (nameChar == 0) {return offset;}
-			}
-			break;
-		}
-		return 0;
-	}
-
-	static void* insertEntry(
-		void* folderContent, unsigned char[] string,
-		unsigned int start, unsigned int len,
-		unsigned int id, unsigned char type){
-		unsigned int entries;
-		constwrite "	entries = folderContent.getUint32(0);\n";
-		unsigned int i = 4;
-		unsigned int offset;
-		unsigned char nameChar;
-		unsigned int j = entries * 4;
-		while (i <= j){
-			constwrite "		offset = folderContent.getUint32(i);\n";
-			int cmp = std::Memory::compareJsSubView(
-				folderContent, offset + nameOffset,
-				string, start, len);
-			if (cmp >= 0) {break;}
-			i = i + 4;
-		}
-		unsigned int contentLen;
-		constwrite "	contentLen = folderContent.byteLength;\n";
-		void* newContent;
-		constwrite
-			"	newContent = new DataView(new ArrayBuffer(\n"
-			"		contentLen + 4 + ";
-					constwrite nameOffset;
-					constwrite " + len + 1));\n"
-			"	newContent.setUint32(0, entries + 1);\n"
-			"	newContent.setUint32(i, contentLen + 4);\n"
-			"	newContent.setUint32(contentLen + 4 +";
-					constwrite idOffset;
-					constwrite ", id);\n"
-			"	newContent.setUint8(contentLen + 4 +";
-					constwrite typeOffset;
-					constwrite ", type);\n";
-		while (j >= i){
-			constwrite
-				"		newContent.setUint32(j + 4,\n"
-				"			folderContent.getUint32(j) + 4);\n";
-			j = j - 4;
-		}
-		while (j >= 4){
-			constwrite
-				"		newContent.setUint32(j,\n"
-				"			folderContent.getUint32(j) + 4);\n";
-			j = j - 4;
-		}
-		i = entries * 4 + 4;
-		std::js::DataView::copyViews(
-			folderContent, newContent, i, i + 4, contentLen - i);
-		std::Memory::setJsView(string, start, newContent,
-			contentLen + 4 + nameOffset, len);
-		return newContent;
 	}
 
 	static void* deleteEntry(void* folderContent,
@@ -255,41 +147,126 @@ class Folder {
 			offset, deletedOffset - 4, contentLen - offset);
 		return newContent;
 	}
+
+	static unsigned int getEntryId(void* folderContent,
+		unsigned int offset){
+		unsigned int id;
+		constwrite
+			"	id = folderContent.getUint32(offset + ";
+					constwrite idOffset;
+					constwrite ");\n";
+		return id;
+	}
+
+	static unsigned int getEntryOffset(
+		void* folderContent, unsigned char[] string,
+		unsigned int start, unsigned int len){
+		unsigned int entries;
+		constwrite "	entries = folderContent.getUint32(0);\n";
+		unsigned int i = 4;
+		unsigned int offset;
+		unsigned char nameChar;
+		unsigned int j = entries * 4;
+		while (i <= j){
+			constwrite "		offset = folderContent.getUint32(i);\n";
+			switch (std::js::DataView::compareRange(
+				folderContent, offset + nameOffset,
+				string, start, len)){
+				case std::Compare::less:
+					i = i + 4;
+					continue;
+				case std::Compare::equal:
+					constwrite "				nameChar = "
+						"folderContent.getUint8(offset + ";
+							constwrite nameOffset;
+							constwrite " + len);\n";
+					if (nameChar == 0) {return offset;}
+					break;
+			}
+			break;
+		}
+		return 0;
+	}
+
+	static unsigned char getEntryType(void* folderContent,
+		unsigned int offset){
+		unsigned char type;
+		constwrite
+			"	type = folderContent.getUint8(offset + ";
+					constwrite typeOffset;
+					constwrite ");\n";
+		return type;
+	}
+
+	static void* insertEntry(
+		void* folderContent, unsigned char[] string,
+		unsigned int start, unsigned int len,
+		unsigned int id, unsigned char type){
+		unsigned int entries;
+		constwrite "	entries = folderContent.getUint32(0);\n";
+		unsigned int i = 4;
+		unsigned int offset;
+		unsigned char nameChar;
+		unsigned int j = entries * 4;
+		while (i <= j){
+			constwrite "		offset = folderContent.getUint32(i);\n";
+			if (std::js::DataView::compareRange(
+					folderContent, offset + nameOffset,
+					string, start, len) != 
+				std::Compare::less) {break;}
+			i = i + 4;
+		}
+		unsigned int contentLen;
+		constwrite "	contentLen = folderContent.byteLength;\n";
+		void* newContent;
+		constwrite
+			"	newContent = new DataView(new ArrayBuffer(\n"
+			"		contentLen + 4 + ";
+					constwrite nameOffset;
+					constwrite " + len + 1));\n"
+			"	newContent.setUint32(0, entries + 1);\n"
+			"	newContent.setUint32(i, contentLen + 4);\n"
+			"	newContent.setUint32(contentLen + 4 +";
+					constwrite idOffset;
+					constwrite ", id);\n"
+			"	newContent.setUint8(contentLen + 4 +";
+					constwrite typeOffset;
+					constwrite ", type);\n";
+		while (j >= i){
+			constwrite
+				"		newContent.setUint32(j + 4,\n"
+				"			folderContent.getUint32(j) + 4);\n";
+			j = j - 4;
+		}
+		while (j >= 4){
+			constwrite
+				"		newContent.setUint32(j,\n"
+				"			folderContent.getUint32(j) + 4);\n";
+			j = j - 4;
+		}
+		i = entries * 4 + 4;
+		std::js::DataView::copyViews(
+			folderContent, newContent, i, i + 4, contentLen - i);
+		std::js::DataView::set(string, start, newContent,
+			contentLen + 4 + nameOffset, len);
+		return newContent;
+	}
 	
+	void set(void* content){
+		folderObject.setJsObject(content);
+		start();
+	}
+
 	/* Public member functions */
-	
+
 	unsigned int entries(){
 		void* content = folderObject.getJsObject();
 		unsigned int len;
 		constwrite "	len = content.getUint32(0);";
 		return len;
 	}
-	
-	void next(){
-		unsigned int i = iterator + 4;
-		if (i > 4){
-			unsigned int len = entries() * 4;
-			if (i <= len) {iterator = i;}
-			else {iterator = 0;}
-		}
-	}
-	
-	void start(){
-		if (entries() != 0) {iterator = 4;}
-	}
-	
-	unsigned char getType(){
-		unsigned int i = iterator;
-		if (i == 0){
-			return std::fs::EntryTypes::none;
-		}
-		void* content = folderObject.getJsObject();
-		unsigned int offset;
-		constwrite "	offset = content.getUint32(i);";
-		return getEntryType(content, offset);
-	}
-	
-	void getName(std::DString* name){
+
+	void getName(std::str::DString* name){
 		unsigned int i = iterator;
 		if (i == 0) {return;}
 		void* content = folderObject.getJsObject();
@@ -303,6 +280,30 @@ class Folder {
 			j = j + 1;
 		}
 		name->addJsSubview(content, offset, j - offset);
+	}
+
+	unsigned char getType(){
+		unsigned int i = iterator;
+		if (i == 0){
+			return std::fs::EntryTypes::none;
+		}
+		void* content = folderObject.getJsObject();
+		unsigned int offset;
+		constwrite "	offset = content.getUint32(i);";
+		return getEntryType(content, offset);
+	}
+
+	void next(){
+		unsigned int i = iterator + 4;
+		if (i > 4){
+			unsigned int len = entries() * 4;
+			if (i <= len) {iterator = i;}
+			else {iterator = 0;}
+		}
+	}
+
+	void start(){
+		if (entries() != 0) {iterator = 4;}
 	}
 
 }

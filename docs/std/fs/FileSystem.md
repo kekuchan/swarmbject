@@ -15,7 +15,7 @@ Parameters:
 * The file's path as a 0 ended 
 unsigned char array string.
 * Either nullptr, or a pointer to a "void(
-std::ApplicationInstance, std::String*)" function 
+std::ApplicationInstance, std::str::String*)" function 
 that will be called later asynchronously after the 
 deletion, with the instance and the file's path.
 
@@ -30,7 +30,7 @@ class Main {
 	
 	static void onDeleted(
 		std::ApplicationInstance aexcl app,
-		std::String* path){
+		std::str::String* path){
 	}
 }
 ```
@@ -43,7 +43,7 @@ Parameters:
 * The folder's path as a 0 ended 
 unsigned char array string.
 * Either nullptr, or a pointer to a "void(
-std::ApplicationInstance, std::String*)" function 
+std::ApplicationInstance, std::str::String*)" function 
 that will be called later asynchronously after the 
 deletion, with the instance and the folder's path.
 
@@ -58,7 +58,7 @@ class Main {
 	
 	static void onDeleted(
 		std::ApplicationInstance aexcl app,
-		std::String* path){
+		std::str::String* path){
 	}
 }
 ```

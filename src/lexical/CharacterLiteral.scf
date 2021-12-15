@@ -79,14 +79,14 @@ class CharacterLiteral : lexical::Type {
 		return characterLiteral;
 	}
 
-	static char cmp(void* i, void* j){
-		return std::Memory::compareUchar(
+	static unsigned char cmp(void* i, void* j){
+		return std::arr::Uchar::compareValue(
 			((lexical::CharacterLiteral*)i)->character,
 			((lexical::CharacterLiteral*)j)->character);
 	}
 
-	static char cmpUchar(void* i, void* j){
-		return std::Memory::compareUchar(
+	static unsigned char cmpUchar(void* i, void* j){
+		return std::arr::Uchar::compareValue(
 			*((unsigned char*)i),
 			((lexical::CharacterLiteral*)j)->character);
 	}

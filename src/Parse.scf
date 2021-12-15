@@ -131,7 +131,7 @@ class Parse {
 			main->doubleType = data::Type::create(
 				data::Types::doubleT);
 
-			std::PtrArray* keywords = &main->keywords;
+			std::ds::PtrArray* keywords = &main->keywords;
 			keywords->setSize(KeywordTypes::size);
 			unsigned char[][] data =
 				(unsigned char[][])(keywords->data);
@@ -172,13 +172,13 @@ class Parse {
 			clear(main);
 		}
 
-		std::StringView name;
+		std::str::View name;
 		Namespace* rootNs =
 			Namespace::create(&name, nullptr);
-		name.setSubstring("std", 0, 3);
+		name.set("std", 0, 3);
 		Namespace* stdNs =
 			Namespace::create(&name, rootNs);
-		name.setSubstring("ApplicationInstance", 0, 19);
+		name.set("ApplicationInstance", 0, 19);
 		data::ClassType* classType =
 			data::ClassType::create(&name, stdNs);
 		stdNs->insertClass(classType);
@@ -218,7 +218,7 @@ class Parse {
 			std::fs::File*) onOpenFile){
 		Main* main = &app.main;
 		if (file == nullptr){
-			std::DString error;
+			std::str::DString error;
 			error.addCString("Class: ");
 			error.addString(&classType->name);
 			error.addCString(" does not exists.");
@@ -226,7 +226,7 @@ class Parse {
 			return false;
 		}
 		unsigned int len = file->getSize();
-		std::String* code = &classType->code;
+		std::str::String* code = &classType->code;
 		code->setLength(len);
 		file->read(code->data, 0, len);
 		parseClass(app, classType, onOpenFile);
@@ -250,7 +250,7 @@ class Parse {
 				"to be declared as 'async'.");
 			return;
 		}
-		std::StringView name;
+		std::str::View name;
 		name.setCString("run");
 		lexical::MemberFunction* runFunction =
 			classType->getFunction(&name);
@@ -278,8 +278,8 @@ class Parse {
 		void(std::ApplicationInstance,
 			std::fs::File*) onOpenFile){
 		Main* main = &app.main;
-		std::DString info;
-		info.addSubstring("Parsing class: ", 0, 15);
+		std::str::DString info;
+		info.add("Parsing class: ", 0, 15);
 		info.addString(&classType->name);
 		logInfoDString(main, &info, 1);
 		unsigned int compileCursor =
@@ -294,7 +294,7 @@ class Parse {
 			return;
 		}
 		if (main->token.compareString(
-			&classType->name) != 0){
+			&classType->name) != std::Compare::equal){
 			info.setCString("The class name '");
 			info.addString(&classType->name);
 			info.addCString("' was given "
@@ -533,24 +533,24 @@ class Parse {
 	static void logErrorCString(Main* main,
 		unsigned int compileCursor,
 		unsigned char[] errorMessage){
-		std::DString info;
+		std::str::DString info;
 		info.addCString(errorMessage);
 		logError(main, compileCursor, &info);
 	}
 
 	static void logError(Main* main,
 		unsigned int compileCursor,
-		std::DString* errorMessage){
+		std::str::DString* errorMessage){
 		data::ClassType* classType =
 			main->currentParseClass;
 		if (classType != nullptr){
 			if (classType->code.length != 0){
-				errorMessage->insertSubstring(": ", 0, 2, 0);
+				errorMessage->insert(0, ": ", 0, 2);
 			} else {
 				classType = nullptr;
 			}
 		} else {
-			std::String* name = nullptr;
+			std::str::String* name = nullptr;
 			lexical::DataMember* dataMember =
 				main->currentParseDataMember;
 			if (dataMember != nullptr){
@@ -568,12 +568,12 @@ class Parse {
 				}
 			}
 			if (name != nullptr){
-				errorMessage->insertSubstring(" ", 0, 1, 0);
+				errorMessage->insertChar(0, ' ', 1);
 				unsigned int len = name->length;
-				errorMessage->insertSubstring(
-					name->data, 0, len, 1);
-				errorMessage->insertSubstring(
-					": ", 0, 2, 1 + len);
+				errorMessage->insert(
+					1, name->data, 0, len);
+				errorMessage->insert(
+					1 + len, ": ", 0, 2);
 			}
 		}
 		if (classType != nullptr){
@@ -581,15 +581,15 @@ class Parse {
 			if (compileCursor > 20){
 				start = compileCursor - 20;
 			} else {start = 0;}
-			std::DString info;
+			std::str::DString info;
 			info.setCString("Error near ...");
-			info.addSubstring(classType->code.data, start,
+			info.add(classType->code.data, start,
 				compileCursor - start);
 			logInfoDString(main, &info, 1);
 			info.clear();
 			classType->getPath(&info);
-			errorMessage->insertSubstring(
-				info.data, 0, info.length, 0);
+			errorMessage->insert(
+				0, info.data, 0, info.length);
 		}
 		main->compileError = true;
 		logInfoDString(main, errorMessage, 1);
@@ -600,11 +600,11 @@ class Parse {
 		unsigned char[] infoMessage,
 		unsigned char type){
 		logInfo(main, infoMessage,
-			std::CString::length(infoMessage, 0), type);
+			std::str::CString::length(infoMessage, 0), type);
 	}
 
 	static void logInfoDString(Main* main,
-		std::DString* infoMessage,
+		std::str::DString* infoMessage,
 		unsigned char type){
 		logInfo(main, infoMessage->data,
 			infoMessage->length, type);
@@ -652,7 +652,7 @@ class Parse {
 	}
 	
 	static bool checkMemberName(Main* main,
-		std::StringView* name, unsigned int type,
+		std::str::View* name, unsigned int type,
 		data::ClassType* classType,
 		unsigned int compileCursor){
 		if (type != TokenTypes::identifier){
@@ -663,9 +663,9 @@ class Parse {
 		}
 		if (classType->getDataMember(name) != nullptr ||
 			classType->getFunction(name) != nullptr){
-			std::DString error;
+			std::str::DString error;
 			error.setCString("The '");
-			error.addStringView(name);
+			error.addView(name);
 			error.addCString("' member was "
 				"already declared as a class member.");
 			logError(main, compileCursor, &error);
@@ -687,15 +687,15 @@ class Parse {
 				classType, compileCursor);
 		}
 	
-		std::StringView previousToken;
-		previousToken.setStringView(&main->token);
+		std::str::View previousToken;
+		previousToken.setView(&main->token);
 		unsigned int previousTokenType = main->tokenType;
 		
 		if (main->tokenType == TokenTypes::identifier){
 			compileCursor = Lexical::getNextToken(main,
 				classType, compileCursor);
 			if (previousToken.compareString(
-				&classType->name) == 0 &&
+				&classType->name) == std::Compare::equal &&
 				main->tokenType != TokenTypes::asterisk){
 				if (!destructor){
 					previousToken.setCString("_constructor");
@@ -706,18 +706,18 @@ class Parse {
 				}
 				if (classType->getFunction(
 					&previousToken) != nullptr){
-					std::DString error;
+					std::str::DString error;
 					error.addCString("A ");
-					error.addSubstring(previousToken.data, 1,
+					error.add(previousToken.data, 1,
 						previousToken.length - 1);
 					error.addCString(" was already given.");
 					logError(main, compileCursor, &error);
 					return compileCursor;
 				}
 				if (main->tokenType != TokenTypes::leftParenthesis){
-					std::DString error;
+					std::str::DString error;
 					error.addCString("'(' has to be after the ");
-					error.addSubstring(previousToken.data, 1,
+					error.add(previousToken.data, 1,
 						previousToken.length - 1);
 					error.addCString(" name.");
 					logError(main, compileCursor, &error);
@@ -726,9 +726,9 @@ class Parse {
 				compileCursor = Lexical::getNextToken(main,
 					classType, compileCursor);
 				if (main->tokenType != TokenTypes::rightParenthesis){
-					std::DString error;
+					std::str::DString error;
 					error.addCString("The ");
-					error.addSubstring(previousToken.data, 1,
+					error.add(previousToken.data, 1,
 						previousToken.length - 1);
 					error.addCString(" parameter list has to be empty.");
 					logError(main, compileCursor, &error);
@@ -737,10 +737,10 @@ class Parse {
 				compileCursor = Lexical::getNextToken(main,
 					classType, compileCursor);
 				if (main->tokenType != TokenTypes::leftBrace){
-					std::DString error;
+					std::str::DString error;
 					error.addCString("The block start '{' character was "
 						"not given after the ");
-					error.addSubstring(previousToken.data, 1,
+					error.add(previousToken.data, 1,
 						previousToken.length - 1);
 					error.addCString(" parameter list.");
 					logError(main, compileCursor, &error);
@@ -797,7 +797,7 @@ class Parse {
 							classType, compileCursor);
 					}
 					if (main->tokenType == TokenTypes::identifier){
-						previousToken.setStringView(&main->token);
+						previousToken.setView(&main->token);
 						previousTokenType = main->tokenType;
 						compileCursor = Lexical::getNextToken(main,
 							classType, compileCursor);
@@ -827,7 +827,7 @@ class Parse {
 						compileCursor);
 					break;
 				default:
-					previousToken.setStringView(&main->token);
+					previousToken.setView(&main->token);
 					previousTokenType = main->tokenType;
 					compileCursor = Lexical::getNextToken(main,
 						classType, compileCursor);
@@ -1099,7 +1099,7 @@ class Parse {
 			main->currentParseFunction;
 		data::ClassType* classType =
 			parseFunction->parentClass;
-		std::DString info;
+		std::str::DString info;
 		classType->getPath(&info);
 		info.addCString(": Parsing function until block: ");
 		info.addString(&parseFunction->name);
@@ -1153,7 +1153,7 @@ class Parse {
 		}
 		if (main->tokenType != TokenTypes::identifier ||
 			main->token.compareString(
-				&parseFunction->name) != 0){
+				&parseFunction->name) != std::Compare::equal){
 			logErrorCString(main, compileCursor,
 				"A function name has to be after its type.");
 			return false;
@@ -1168,7 +1168,7 @@ class Parse {
 		data::ClassType* classType,
 		unsigned int compileCursor){
 		unsigned int previousCursor;
-		std::StringView previousToken;
+		std::str::View previousToken;
 		Namespace* compileNamespace =
 			main->rootNamespace;
 		while (true){
@@ -1177,7 +1177,7 @@ class Parse {
 					compileCursor, "Type not given");
 				return nullptr;
 			}
-			previousToken.setStringView(&main->token);
+			previousToken.setView(&main->token);
 			previousCursor = compileCursor;
 			compileCursor = Lexical::getNextToken(main,
 				classType, compileCursor);
@@ -1516,7 +1516,7 @@ class Parse {
 							}
 							compileCursor = main->compileCursor;
 							if (create){
-								pointerType->parameters.pushBack(
+								pointerType->parameters.push(
 									parameterDataType);
 							} else {
 								/* As maybe it was changed. */
@@ -1551,11 +1551,11 @@ class Parse {
 										data::FunctionPointerType::create(dataType);
 									unsigned int k = 0;
 									while (k < j){
-										pointerType->parameters.pushBack(
+										pointerType->parameters.push(
 											src[k]);
 										k = k + 1;
 									}
-									pointerType->parameters.pushBack(
+									pointerType->parameters.push(
 										parameterDataType);
 								}
 							}
@@ -1579,7 +1579,7 @@ class Parse {
 								data::FunctionPointerType::create(dataType);
 							unsigned int k = 0;
 							while (k < j){
-								pointerType->parameters.pushBack(
+								pointerType->parameters.push(
 									src[k]);
 								k = k + 1;
 							}
@@ -1681,17 +1681,17 @@ class Parse {
 		}
 		lexical::MemberFunction* parseFunction =
 			main->currentParseFunction;
-		std::StringView* name = &main->token;
+		std::str::View* name = &main->token;
 		if (parseFunction->getParameter(name) != nullptr){
-			std::DString error;
+			std::str::DString error;
 			error.addCString("The '");
-			error.addStringView(name);
+			error.addView(name);
 			error.addCString("' parameter was "
 				"already declared.");
 			logError(main, compileCursor, &error);
 			return false;
 		}
-		parameter->name.setStringView(name);
+		parameter->name.setView(name);
 		parseFunction->insertParameter(parameter);
 		return true;
 	}

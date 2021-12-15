@@ -129,20 +129,20 @@ class Specifiers : data::Type {
 		specifiers = specifiers |
 			data::SpecifierTypes::isConstexpr;
 	}
-	
-	static char cmp(void* i, void* j){
+
+	static unsigned char cmp(void* i, void* j){
 		return cmpUchar(
 			&(data::Specifiers*)i->specifiers, j);
 	}
 
-	static char cmpUchar(void* i, void* j){
+	static unsigned char cmpUchar(void* i, void* j){
 		unsigned char compared =
-			std::Memory::compareUchar(
+			std::arr::Uchar::compareValue(
 				data::Types::specifiersT,
 				((data::Type*)j)->type);
-		if (compared == 0){
+		if (compared == std::Compare::equal){
 			compared =
-				std::Memory::compareUchar(
+				std::arr::Uchar::compareValue(
 					*(unsigned char*)i,
 					(data::Specifiers*)j->specifiers);
 		}

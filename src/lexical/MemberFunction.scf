@@ -71,36 +71,36 @@ class MemberFunction : lexical::Type {
 	unsigned int cursor;
 	unsigned char specifiers;
 	data::Type* dataType;
-	std::String name;
+	std::str::String name;
 	data::ClassType* parentClass;
-	std::PtrDArray parameters;
+	std::ds::PtrDArray parameters;
 	lexical::BlockStatement* block;
 	int functionId;
 	
 	static lexical::MemberFunction* create(
 		unsigned int setCursor,
-		std::StringView* string, data::ClassType* parent){
+		std::str::View* string, data::ClassType* parent){
 		lexical::MemberFunction* memberFunction =
 			new lexical::MemberFunction;
 		memberFunction->type = lexical::Types::memberFunction;
 		memberFunction->cursor = setCursor;
 		memberFunction->specifiers = 0;
 		memberFunction->dataType = nullptr;
-		memberFunction->name.setStringView(string);
+		memberFunction->name.setView(string);
 		memberFunction->parentClass = parent;
 		memberFunction->block = nullptr;
 		memberFunction->functionId = -1;
 		return memberFunction;
 	}
-	
-	static char cmpName(void* i, void* j){
-		return std::CString::compare(
+
+	static unsigned char cmpName(void* i, void* j){
+		return std::str::CString::compare(
 			((lexical::MemberFunction*)i)->name.data, 0,
 			((lexical::MemberFunction*)j)->name.data, 0);
 	}
 
-	static char cmpString(void* i, void* j){
-		return ((std::StringView*)i)->compareString(
+	static unsigned char cmpString(void* i, void* j){
+		return ((std::str::View*)i)->compareString(
 			&((lexical::MemberFunction*)j)->name);
 	}
 	
@@ -145,15 +145,17 @@ class MemberFunction : lexical::Type {
 	}
 	
 	lexical::FunctionParameter* getParameter(
-		std::StringView* name){
+		std::str::View* name){
+		unsigned int i = parameters.find(name, 
+			lexical::DataMember::cmpString, 0);
+		if (i == 0) {return nullptr;}
 		return (lexical::FunctionParameter*)
-			(parameters.find(name,
-				lexical::FunctionParameter::cmpString));
+			(parameters.data[i - 1]);
 	}
 	
 	void insertParameter(
 		lexical::FunctionParameter* parameter){
-		parameters.pushBack(parameter);
+		parameters.push(parameter);
 	}
 
 }

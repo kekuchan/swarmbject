@@ -71,6 +71,15 @@ class Selection {
 
 	std::js::Object jsObject;
 	
+	/* Public member functions. */
+
+	void addRange(std::dom::Range* range){
+		if (jsObject.isNull()) {return;}
+		void* selectionObject = jsObject.getJsObject();
+		void* rangeObject = range->jsObject.getJsObject();
+		constwrite "	selectionObject.addRange(rangeObject);\n";
+	}
+
 	void getRangeAt(std::dom::Range* range,
 		unsigned int i){
 		if (jsObject.isNull()) {return;}
@@ -79,18 +88,11 @@ class Selection {
 		constwrite "	rangeObject = selectionObject.getRangeAt(i);\n";
 		range->jsObject.setJsObject(rangeObject);
 	}
-	
+
 	void removeAllRanges(){
 		if (jsObject.isNull()) {return;}
 		void* selectionObject = jsObject.getJsObject();
 		constwrite "	selectionObject.removeAllRanges();\n";
 	}
-	
-	void addRange(std::dom::Range* range){
-		if (jsObject.isNull()) {return;}
-		void* selectionObject = jsObject.getJsObject();
-		void* rangeObject = range->jsObject.getJsObject();
-		constwrite "	selectionObject.addRange(rangeObject);\n";
-	}
-	
+
 }

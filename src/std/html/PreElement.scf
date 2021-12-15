@@ -69,6 +69,8 @@ SUCH DAMAGE.
 */
 class PreElement {
 
+	/* Public member functions */
+
 	static void create(
 		std::dom::Node* documentNode,
 		std::dom::Node* node){

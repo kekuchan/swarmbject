@@ -69,18 +69,11 @@ SUCH DAMAGE.
 */
 class Short : std::css::Value {
 
-	unsigned char unit;
 	short number;
+	unsigned char unit;
 
 	Short(){
 		type = std::css::ValueTypes::shortValue;
-	}
-
-	std::css::Value* set(
-		short value, unsigned char unitType){
-		number = value;
-		unit = unitType;
-		return (std::css::Value*)this;
 	}
 
 	void* getJsString(){
@@ -139,6 +132,15 @@ class Short : std::css::Value {
 				break;
 		}
 		return textObject;
+	}
+	
+	/* Public member functions. */
+
+	std::css::Value* set(
+		short value, unsigned char unitType){
+		number = value;
+		unit = unitType;
+		return this;
 	}
 
 }

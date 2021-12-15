@@ -30,12 +30,12 @@ unsigned char mode = file->mode;
 	
 ## "path" data member:
 
-The file's path as std::String.
+The file's path as std::str::String.
 It should not be modified.
 
 ```
 /*In Main::onOpened.*/
-std::String* path = &file->path;
+std::str::String* path = &file->path;
 /*"/tut/Year.md"*/
 ```
 
@@ -86,7 +86,7 @@ Returns: void.
 
 ```
 /*In Main::onOpened.*/
-std::String string;
+std::str::String string;
 string.setLength(4);
 file->read(string.data, 0, 4);
 /*"2021"*/
@@ -104,7 +104,7 @@ Returns: void.
 ```
 /*In Main::onOpened.*/
 file->setCursor(2);
-std::String string;
+std::str::String string;
 string.setLength(2);
 file->read(string.data, 0, 2);
 /*"21"*/
