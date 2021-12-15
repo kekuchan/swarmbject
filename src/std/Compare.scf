@@ -67,21 +67,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-async class ApplicationInstance {
-
-	std::fs::FileSystem fileSystem;
-	Main main;
-	
-	async void run(){
-		main.main(this);
-	}
-
-	/* Public member functions. */
-
-	void getWindow(std::bom::Window* appWindow){
-		void* jsObject;
-		constwrite "	jsObject = window;\n";
-		appWindow->jsObject.setJsObject(jsObject);
-	}
-
+enum Compare {
+	less,
+	equal,
+	greater,
+	unset 
 }
