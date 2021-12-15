@@ -12,10 +12,10 @@ restored after the select.
 
 Parameters:
 * A pointer to a "void(std::ApplicationInstance, 
-std::DString*)" function that will be called 
+std::str::DString*)" function that will be called 
 after the select or cancel, with the instance 
 and a pointer to the selected entry as an 
-std::DString.
+std::str::DString.
 * A boolean value whether to select a file, 
 or if false a folder.
 
@@ -29,7 +29,7 @@ class Main {
 	
 	static void onSelect(
 		std::ApplicationInstance aexcl app,
-		std::DString* path){
+		std::str::DString* path){
 		/*The path is "/tut/Year.md" 
 			if that was selected.*/
 	}
