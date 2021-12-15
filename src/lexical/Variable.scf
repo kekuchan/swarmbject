@@ -69,16 +69,16 @@ SUCH DAMAGE.
 */
 class Variable : lexical::Type {
 	data::Type* dataType;
-	std::String name;
+	std::str::String name;
 	int offset;
-	
-	static char cmpName(void* i, void* j){
-		return ((lexical::Variable*)i)->name.compare(
+
+	static unsigned char cmpName(void* i, void* j){
+		return ((lexical::Variable*)i)->name.compareString(
 			&((lexical::Variable*)j)->name);
 	}
 
-	static char cmpString(void* i, void* j){
-		return ((std::StringView*)i)->compareString(
+	static unsigned char cmpString(void* i, void* j){
+		return ((std::str::View*)i)->compareString(
 			&((lexical::Variable*)j)->name);
 	}
 	

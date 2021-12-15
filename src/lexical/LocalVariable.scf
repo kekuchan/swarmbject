@@ -74,12 +74,12 @@ class LocalVariable : lexical::Variable {
 			destructors need to be called at the end of the block. */
 	bool callDestructors;
 	
-	static lexical::LocalVariable* create(std::StringView* string){
+	static lexical::LocalVariable* create(std::str::View* string){
 		lexical::LocalVariable* localVariable =
 			new lexical::LocalVariable;
 		localVariable->type = lexical::Types::localVariable;
 		localVariable->dataType = nullptr;
-		localVariable->name.setStringView(string);
+		localVariable->name.setView(string);
 		localVariable->offset = -1;
 		localVariable->callDestructors = false;
 		return localVariable;

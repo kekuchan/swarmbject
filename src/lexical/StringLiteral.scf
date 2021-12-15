@@ -68,7 +68,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class StringLiteral : lexical::Type {
-	std::String string;
+	std::str::String string;
 	unsigned int address;
 	
 	StringLiteral(){
@@ -76,13 +76,13 @@ class StringLiteral : lexical::Type {
 		address = 0;
 	}
 
-	static char cmp(void* i, void* j){
-		return ((lexical::StringLiteral*)i)->string.compare(
+	static unsigned char cmp(void* i, void* j){
+		return ((lexical::StringLiteral*)i)->string.compareString(
 			&((lexical::StringLiteral*)j)->string);
 	}
 
-	static char cmpString(void* i, void* j){
-		return ((std::String*)i)->compare(
+	static unsigned char cmpString(void* i, void* j){
+		return ((std::str::String*)i)->compareString(
 			&((lexical::StringLiteral*)j)->string);
 	}
 
