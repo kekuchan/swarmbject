@@ -1,21 +1,36 @@
-# "std::ds::Buffer" class:
+# "std::ds::DBuffer" class:
 
 Used to pack different types to an unsigned char 
 array, where the total number of unsigned chars 
-are known and not expected to be changing. 
-Useful for example to handle binary file formats.
+are not yet known or expected to be changing, 
+thus it is a dynamic buffer.
 
+## "capacity" data member:
+
+In order so that a new array doesn't have to be 
+created each time when the number of unsigned chars 
+changes, instead an array with a greater capacity 
+might be created than what is currently needed,
+thus a new array has to be created only when enough 
+data is inserted so that a greater capacity is
+needed. Stored as an unsigned int.
+
+```
+std::ds::DBuffer buffer;
+unsigned int capacity = buffer.capacity; /*0*/
+```
+	
 ## "data" data member:
 
 The contained data as an unsigned char array,
 if direct manipulation is needed, instead of
-the get and set functions.
+the add and get functions.
 
 ```
-std::ds::Buffer buffer;
-buffer.setSize(1);
+std::ds::DBuffer buffer;
+buffer.addU8(21);
 unsigned char[] data = buffer.data;
-data[0] = 21;
+unsigned char value = data[0]; /*21*/
 ```
 
 ## "size" data member:
@@ -24,22 +39,143 @@ As an unsigned int, the number of unsigned chars,
 that the buffer stores.
 
 ```
-std::ds::Buffer buffer;
-buffer.setSize(1);
+std::ds::DBuffer buffer;
+buffer.addU8(21);
 unsigned int size = buffer.size; /*1*/
 ```
 
-## "clear" member function:
+## "addU8" member function:
 
-Clears the buffer to its initial state. As 
-it deletes the contained array, usage of 
-the previous data member is not valid.
+Inserts an unsigned char value to the buffer's end.
+This might require creating a new array and copy 
+all the elements due to the capacity, making the 
+usage of the previous data member not valid.
+
+Parameters:
+* The unsigned char value to insert.
+
+Returns: void.
+	
+```
+std::ds::DBuffer buffer;
+buffer.addU8(21);
+unsigned char value = buffer.getU8(0); /*21*/
+```
+
+## "addU8s" member function:
+
+Inserts a sequence of unsigned char values 
+to the buffer's end. This might require creating 
+a new array and copy all the values due to the 
+capacity, making the usage of the previous data 
+member not valid.
+
+Parameters:
+* An array to copy the values from.
+* The starting index in the array to copy the values from.
+* The number of values to insert.
 
 Returns: void.
 
 ```
-std::ds::Buffer buffer;
-buffer.setSize(1);
+unsigned char[] values = new unsigned char[2];
+values[0] = 20;
+values[1] = 21;
+std::ds::DBuffer buffer;
+buffer.addU8s(values, 0, 2);
+unsigned char value = buffer.getU8(0); /*20*/
+value = buffer.getU8(1); /*21*/
+```
+
+## "addU16BE" member function:
+
+Inserts an unsigned short value to the buffer's 
+end, as a big endian (2 unsigned chars stored 
+left to right). This might require creating a 
+new array and copy all the values due to the 
+capacity, making the usage of the previous data 
+member not valid.
+
+Parameters:
+* The unsigned short value to insert.
+
+Returns: void.
+
+```
+std::ds::DBuffer buffer;
+buffer.addU16BE(2021);
+unsigned short value = buffer.getU16BE(0); /*2021*/
+```
+
+## "addU16LE" member function:
+
+Inserts an unsigned short value to the buffer's 
+end, as a little endian (2 unsigned chars stored 
+right to left). This might require creating a 
+new array and copy all the values due to the 
+capacity, making the usage of the previous data 
+member not valid.
+
+Parameters:
+* The unsigned short value to insert.
+
+Returns: void.
+
+```
+std::ds::DBuffer buffer;
+buffer.addU16LE(2021);
+unsigned short value = buffer.getU16LE(0); /*2021*/
+```
+
+## "addU32BE" member function:
+
+Inserts an unsigned int value to the buffer's 
+end, as a big endian (4 unsigned chars stored 
+left to right). This might require creating a 
+new array and copy all the values due to the 
+capacity, making the usage of the previous data 
+member not valid.
+
+Parameters:
+* The unsigned int value to insert.
+
+Returns: void.
+
+```
+std::ds::DBuffer buffer;
+buffer.addU32BE(20212021);
+unsigned short value = buffer.getU32BE(0); /*20212021*/
+```
+
+## "addU32LE" member function:
+
+Inserts an unsigned int value to the buffer's 
+end, as a little endian (4 unsigned chars stored 
+right to left). This might require creating a 
+new array and copy all the values due to the 
+capacity, making the usage of the previous data 
+member not valid.
+
+Parameters:
+* The unsigned int value to insert.
+
+Returns: void.
+
+```
+std::ds::DBuffer buffer;
+buffer.addU32LE(20212021);
+unsigned short value = buffer.getU32LE(0); /*20212021*/
+```
+
+## "clear" member function:
+
+Sets the buffer's size to 0.
+
+Returns: void.
+
+```
+std::ds::DBuffer buffer;
+buffer.addU8(21);
 buffer.clear();
 unsigned int size = buffer.size; /*0*/
 ```
@@ -53,12 +189,8 @@ Parameters:
 
 Returns: unsigned char.
 
-```
-std::ds::Buffer buffer;
-buffer.setSize(1);
-buffer.setU8(0, 21);
-unsigned char value = buffer.getU8(0); /*21*/
-```
+An example was already given at the 
+"addU8" member function.
 
 ## "getU8s" member function:
 
@@ -74,10 +206,9 @@ Parameters:
 Returns: void.
 
 ```
-std::ds::Buffer buffer;
-buffer.setSize(2);
-buffer.setU8(0, 20);
-buffer.setU8(1, 21);
+std::ds::DBuffer buffer;
+buffer.addU8(20);
+buffer.addU8(21);
 unsigned char[] values = new unsigned char[2];
 buffer.getU8s(0, values, 0, 2);
 unsigned char value = values[0]; /*20*/
@@ -95,12 +226,8 @@ Parameters:
 
 Returns: unsigned short.
 
-```
-std::ds::Buffer buffer;
-buffer.setSize(2);
-buffer.setU16BE(0, 2021);
-unsigned short value = buffer.getU16BE(0); /*2021*/
-```
+An example was already given at the 
+"addU16BE" member function.
 
 ## "getU16LE" member function:
 
@@ -113,12 +240,8 @@ Parameters:
 
 Returns: unsigned short.
 
-```
-std::ds::Buffer buffer;
-buffer.setSize(2);
-buffer.setU16LE(0, 2021);
-unsigned short value = buffer.getU16LE(0); /*2021*/
-```
+An example was already given at the 
+"addU16LE" member function.
 
 ## "getU32BE" member function:
 
@@ -131,12 +254,8 @@ Parameters:
 
 Returns: unsigned int.
 
-```
-std::ds::Buffer buffer;
-buffer.setSize(4);
-buffer.setU32BE(0, 20212021);
-unsigned short value = buffer.getU32BE(0); /*20212021*/
-```
+An example was already given at the 
+"addU32BE" member function.
 
 ## "getU32LE" member function:
 
@@ -149,147 +268,46 @@ Parameters:
 
 Returns: unsigned int.
 
-```
-std::ds::Buffer buffer;
-buffer.setSize(4);
-buffer.setU32LE(0, 20212021);
-unsigned short value = buffer.getU32LE(0); /*20212021*/
-```
+An example was already given at the 
+"addU32LE" member function.
 
 ## "move" member function:
 
-Moves the data from another std::ds::Buffer.
+Moves the data from another std::ds::DBuffer.
 The previous data is deleted.
 
 Parameters:
-* A pointer to the Buffer to move from.
+* A pointer to the DBuffer to move from.
 
 Returns: void.
 
 ```
-std::ds::Buffer first;
-first.setSize(2);
-first.setU16LE(0, 2020);
-std::ds::Buffer second;
-second.setSize(2);
-second.setU16LE(0, 2021);
+std::ds::DBuffer first;
+first.addU16LE(2020);
+std::ds::DBuffer second;
+second.addU16LE(2021);
 first.move(&second);
 /*first=2021, second=*/
 ```
 
-## "setSize" member function:
+## "reserve" member function:
 
-Changes the size of the buffer. As it creates a 
-new array and copy all the elements, usage of 
-the previous data member is not valid.
+Increases the capacity of the buffer. This 
+requires creating a new array and copy all 
+the values, making the usage of the previous 
+data member not valid.
 
 Parameters:
-* The new size the buffer.
+* The new capacity.
 
 Returns: void.
 
 ```
-std::ds::Buffer buffer;
-buffer.setSize(1);
-unsigned int size = buffer.size; /*1*/
-buffer.setSize(2);
-size = buffer.size; /*2*/
+std::ds::DBuffer buffer;
+buffer.reserve(2);
+unsigned int capacity = buffer.capacity; /*2*/
+unsigned int size = buffer.size; /*0*/
 ```
-
-## "setU8" member function:
-
-Sets an unsigned char value to the buffer.
-
-Parameters:
-* The index to set the value in the buffer.
-* The unsigned char value to set.
-
-Returns: void.
-
-An example was already given at the 
-"getU8" member function.
-
-## "setU8s" member function:
-
-Sets a sequence of unsigned char values
-to the buffer.
-
-Parameters:
-* The starting index to set the values in the buffer.
-* An array to copy the values from.
-* The starting index in the array to copy the values from.
-* The number of values to set.
-
-Returns: void.
-
-```
-unsigned char[] values = new unsigned char[2];
-values[0] = 20;
-values[1] = 21;
-std::ds::Buffer buffer;
-buffer.setSize(2);
-buffer.setU8s(0, values, 0, 2);
-unsigned char value = buffer.getU8(0); /*20*/
-value = buffer.getU8(1); /*21*/
-```
-
-## "setU16BE" member function:
-
-Sets an unsigned short value to the buffer, as a 
-big endian (2 unsigned chars stored left to right).
-
-Parameters:
-* The index to set the value in the buffer.
-* The unsigned short value to set.
-
-Returns: void.
-
-An example was already given at the 
-"getU16BE" member function.
-
-## "setU16LE" member function:
-
-Sets an unsigned short value to the buffer, 
-as a little endian (2 unsigned chars stored 
-right to left).
-
-Parameters:
-* The index to set the value in the buffer.
-* The unsigned short value to set.
-
-Returns: void.
-
-An example was already given at the 
-"getU16LE" member function.
-
-## "setU32BE" member function:
-
-Sets an unsigned int value to the buffer, as a
-big endian (4 unsigned chars stored left to right).
-
-Parameters:
-* The index to set the value in the buffer.
-* The unsigned int value to set.
-
-Returns: void.
-
-An example was already given at the 
-"getU32BE" member function.
-
-## "setU32LE" member function:
-
-Sets an unsigned int value to the buffer, 
-as a little endian (4 unsigned chars stored 
-right to left).
-
-Parameters:
-* The index to set the value in the buffer.
-* The unsigned int value to set.
-
-Returns: void.
-
-An example was already given at the 
-"getU32LE" member function.
 
 # Software license
 
