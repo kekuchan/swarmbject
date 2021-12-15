@@ -74,10 +74,12 @@ class Keyword : std::css::Value {
 	Keyword(){
 		type = std::css::ValueTypes::keyword;
 	}
-	
+
+	/* Public member functions. */
+
 	std::css::Value* set(unsigned char value){
 		keyword = value;
-		return (std::css::Value*)this;
+		return this;
 	}
 
 }
