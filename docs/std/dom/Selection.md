@@ -21,7 +21,8 @@ class Main {
 			&input, std::html::InputTypes::button);
 		std::html::InputElement::setValue(
 			&input, "Click", 0, 5);
-		input.setOnMouseDown(onMouseDown);
+		std::dom::MouseEvent::setOnMouseDown(
+			&input, onMouseDown);
 		std::dom::Node node;
 		std::html::Document::getBody(&document, &node);
 		node.appendChild(&text);

@@ -1,181 +1,170 @@
-# "std::dom::Range" class:
+# "std::dom::ClipboardEvent" class:
 
-Used to point to a range of DOM nodes. 
-Multiple std::dom::Range objects can 
-point to the same range.
+Static functions to work with DOM clipboard events.
 
 ```
 class Main {
-	std::dom::Node text;
-	
 	void main(std::ApplicationInstance aexcl app){
 		std::bom::Window window;
 		app.getWindow(&window);
 		std::dom::Node document;
 		window.getDocumentNode(&document);
-		std::dom::Node* text = &app.main.text;
-		std::dom::Text::create(
-			&document, text, "2021", 0, 4);
 		std::dom::Node input;
 		std::html::InputElement::create(
 			&document, &input);
-		std::html::InputElement::setType(
-			&input, std::html::InputTypes::button);
-		std::html::InputElement::setValue(
-			&input, "Click", 0, 5);
-		std::dom::MouseEvent::setOnMouseDown(
-			&input, onMouseDown);
 		std::dom::Node node;
 		std::html::Document::getBody(&document, &node);
-		node.appendChild(text);
 		node.appendChild(&input);
-	}
-	
-	static void onMouseDown(std::dom::Event* e,
-		std::ApplicationInstance aexcl app){
-		e->preventDefault();
-		std::bom::Window window;
-		app.getWindow(&window);
-		std::dom::Selection selection;
-		window.getSelection(&selection);
-		std::dom::Range range;
-		selection.getRangeAt(&range, 0);
 	}
 }
 ```
 
-## "deleteContents" member function:
+## "getTextData" member function:
 
-Deletes the range's content.
+Copy the plain text data of the 
+clipboard to an array.
+		
+Parameters:
+* A pointer to the event as an std::dom::Event.
+* The unsigned char array to copy to.
+* The starting index of the array to copy to.
 
-Returns: void.
-
-```
-/*In Main::onMouseDown.*/
-range.deleteContents();
-/*Selecting "2021", and clicking on 
-	the button deletes it.*/
-```
-
-## "getCollapsed" member function:
-
-Checks if the range's start and end 
-is the same, as that indicates a 
-position, instead of a whole range.
-
-Returns: bool.
+Returns: the length of the text data.
 
 ```
-/*In Main::onMouseDown.*/
-bool collapsed = range.getCollapsed();
-/*Selecting "2021", and clicking on 
-	the button returns false.*/
+/*In Main.*/
+static void onPaste(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+	std::str::DString string;
+	string.shift(0, 
+		std::dom::ClipboardEvent::getTextData(
+			e, nullptr, 0));
+	std::dom::ClipboardEvent::getTextData(
+		e, string.data, 0);
+}
+/*In Main::main.*/
+std::dom::ClipboardEvent::setOnPaste(
+	&input, onPaste);
 ```
 
-## "getEndContainer" member function:
+## "getTextDataDString" member function:
 
-Gets the range's ending container.
+Inserts the plain text data of the 
+clipboard to an std::str::DString's end.
 
 Parameters:
-* A pointer to an std::dom::Node to set.
+* A pointer to the event as an std::dom::Event.
+* A pointer an std::str::DString.
 
 Returns: void.
 
 ```
-/*In Main::onMouseDown.*/
-std::dom::Node node;
-range.getEndContainer(&node);
-/*Selecting "2021", and clicking on the button 
-	sets the node to point to the text node.*/
+/*In Main.*/
+static void onPaste(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+	std::str::DString string;
+	std::dom::ClipboardEvent::getTextDataDString(
+		e, &string);
+}
+/*In Main::main.*/
+std::dom::ClipboardEvent::setOnPaste(
+	&input, onPaste);
 ```
 
-## "getEndOffset" member function:
+## "setTextData" member function:
 
-Gets the range's ending offset in the 
-ending container. For text nodes the 
-offset is in UTF-8 unsigned chars.
-
-Returns: unsigned int.
-
-```
-/*In Main::onMouseDown.*/
-unsigned int offset = range.getEndOffset();
-/*Selecting "2021", and clicking 
-	on the button returns 4.*/
-```
-
-## "getStartContainer" member function:
-
-Gets the range's starting container.
+Sets the plain text data of the 
+clipboard to be a copy of a substring.
 
 Parameters:
-* A pointer to an std::dom::Node to set.
+* A pointer to the event as an std::dom::Event.
+* The unsigned char array of the substring to copy.
+* The starting index of the substring to copy 
+in its array.
+* The length of the substring to copy.
 
 Returns: void.
 
 ```
-/*In Main::onMouseDown.*/
-std::dom::Node node;
-range.getStartContainer(&node);
-/*Selecting "2021", and clicking on the button 
-	sets the node to point to the text node.*/
+/*In Main.*/
+static void onCopy(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+	std::dom::ClipboardEvent::setTextData(
+		e, "2021", 0, 4);
+	/*The clipboard now contains "2021".*/
+}
+/*In Main::main.*/
+std::dom::ClipboardEvent::setOnCopy(
+	&input, onCopy);
 ```
 
-## "getStartOffset" member function:
+## "setOnCopy" static function:
 
-Gets the range's starting offset in the 
-starting container. For text nodes the 
-offset is in UTF-8 unsigned chars.
-
-Returns: unsigned int.
-
-```
-/*In Main::onMouseDown.*/
-unsigned int offset = range.getStartOffset();
-/*Selecting "2021", and clicking 
-	on the button returns 0.*/
-```
-
-## "setEnd" member function:
-
-Sets the range's ending container and 
-offset. For text nodes the offset is 
-in UTF-8 unsigned chars.
+Sets a function to be called each 
+time when content is copied.
 
 Parameters:
-* The ending container as 
-a pointer to an std::dom::Node.
-* The ending offset.
+* A pointer to the element, as an std::dom::Node.
+* Either nullptr to unset, or a 
+pointer to a "void(std::dom::Event*, 
+std::ApplicationInstance)" function to call.
 
 Returns: void.
 
 ```
-/*In Main::onMouseDown.*/
-std::dom::Node* text = &app.main.text;
-range.setStart(text, 0);
-range.setEnd(text, 4);
-/*Clicking on the button selects "2021".*/
+/*In Main.*/
+static void onCopy(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+}
+/*In Main::main.*/
+std::dom::ClipboardEvent::setOnCopy(
+	&input, onCopy);
 ```
 
-## "setStart" member function:
+## "setOnCut" static function:
 
-Sets the range's starting container and 
-offset. For text nodes the offset is 
-in UTF-8 unsigned chars.
+Sets a function to be called each 
+time when content is cut.
 
 Parameters:
-* The starting container as 
-a pointer to an std::dom::Node.
-* The starting offset.
+* A pointer to the element, as an std::dom::Node.
+* Either nullptr to unset, or a 
+pointer to a "void(std::dom::Event*, 
+std::ApplicationInstance)" function to call.
 
 Returns: void.
 
 ```
-/*In Main::onMouseDown.*/
-std::dom::Node* text = &app.main.text;
-range.setStart(text, 0);
-range.setEnd(text, 4);
-/*Clicking on the button selects "2021".*/
+/*In Main.*/
+static void onCut(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+}
+/*In Main::main.*/
+std::dom::ClipboardEvent::setOnCut(
+	&input, onCut);
+```
+
+## "setOnPaste" static function:
+
+Sets a function to be called each 
+time when content is pasted.
+
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* Either nullptr to unset, or a 
+pointer to a "void(std::dom::Event*, 
+std::ApplicationInstance)" function to call.
+
+Returns: void.
+
+```
+/*In Main.*/
+static void onPaste(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+}
+/*In Main::main.*/
+std::dom::ClipboardEvent::setOnPaste(
+	&input, onPaste);
 ```
 
 # Software license
