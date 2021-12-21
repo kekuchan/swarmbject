@@ -87,8 +87,8 @@ class Namespace {
 	}
 
 	static unsigned char cmpString(void* i, void* j){
-		return ((std::str::View*)i)->compareString(
-			&((Namespace*)j)->name);
+		return (Namespace*)i->name.compareView(
+			(std::str::View*)j);
 	}
 
 	void insertNamespace(Namespace* ns){

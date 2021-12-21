@@ -1960,8 +1960,10 @@ class Lexical {
 	}
 
 	static unsigned char cmpKeyword(void* i, void* j){
-		return (std::str::View*)i->compareCString(
-			(unsigned char[])j);
+		std::str::View* keyword = (std::str::View*)j;
+		return std::str::CString::compareRange(
+			(unsigned char[])i, 0, keyword->data, 
+			keyword->start, keyword->length);
 	}
 
 	static unsigned int getIdentifierToken(Main* main,
