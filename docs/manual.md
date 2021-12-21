@@ -1916,8 +1916,11 @@ of an operator, it can be parenthesized.
 ## DOM (dom) reference:
 
 * [/docs/std/dom/CharacterData.md](std/dom/CharacterData.md)
+* [/docs/std/dom/ClipboardEvent.md](std/dom/ClipboardEvent.md)
 * [/docs/std/dom/Element.md](std/dom/Element.md)
 * [/docs/std/dom/Event.md](std/dom/Event.md)
+* [/docs/std/dom/KeyboardEvent.md](std/dom/KeyboardEvent.md)
+* [/docs/std/dom/MouseEvent.md](std/dom/MouseEvent.md)
 * [/docs/std/dom/Node.md](std/dom/Node.md)
 * [/docs/std/dom/NodeTypes.md](std/dom/NodeTypes.md)
 * [/docs/std/dom/Range.md](std/dom/Range.md)
@@ -1941,7 +1944,7 @@ of an operator, it can be parenthesized.
 * [/docs/std/html/Document.md](std/html/Document.md)
 * [/docs/std/html/Element.md](std/html/Element.md)
 * [/docs/std/html/InputElement.md](std/html/InputElement.md)
-* [/docs/std/html/InputTypes.md](std/html/InputElement.md)
+* [/docs/std/html/InputTypes.md](std/html/InputTypes.md)
 * [/docs/std/html/PreElement.md](std/html/PreElement.md)
 
 ## String (str) reference:
