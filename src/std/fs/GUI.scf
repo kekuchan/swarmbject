@@ -146,9 +146,11 @@ class GUI {
 	
 		gui->browseContainer.getFirstChild(&element);
 		if ((gui->bools & menuChanged) != 0){
-			element.setOnClick(onClickCancel);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickCancel);
 			element.getNextSibling(&element);
-			element.setOnClick(onClickFolderPath);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickFolderPath);
 			gui->removeRows(&element);
 			if ((gui->bools & pathChanged) != 0){
 				element.getFirstChild(&element);
@@ -156,7 +158,8 @@ class GUI {
 					&element, gui->path.data, 0, gui->path.length);
 			}
 			gui->addRow(&document, &element, &textNode, "..", 2);
-			element.setOnClick(onClickBrowseBack);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickBrowseBack);
 		} else {
 			element.getNextSibling(&element);
 			if ((gui->bools & pathChanged) != 0){
@@ -199,7 +202,8 @@ class GUI {
 			if (folders) {name.addChar('/');}
 			gui->addRow(&document, &element,
 				&textNode, name.data, name.length);
-			element.setOnClick(onClickBrowseNode);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickBrowseNode);
 			folder->next();
 		}
 	}
@@ -248,7 +252,8 @@ class GUI {
 			std::dom::Node element;
 			gui->browseContainer.getFirstChild(&element);
 			element.getNextSibling(&element);
-			element.setOnClick(onClickCancelFolder);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickCancelFolder);
 			gui->removeRows(&element);
 
 			std::bom::Window appWindow;
@@ -259,24 +264,32 @@ class GUI {
 			
 			if (!gui->fileSelection){
 				gui->addRow(&document, &element, &textNode, "Select", 6);
-				element.setOnClick(onClickSelect);
+				std::dom::MouseEvent::setOnClick(
+					&element, onClickSelect);
 			}
 			gui->addRow(&document, &element, &textNode, "New folder", 10);
-			element.setOnClick(onClickNewFolder);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickNewFolder);
 			gui->addRow(&document, &element, &textNode, "New file", 8);
-			element.setOnClick(onClickNewFile);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickNewFile);
 			gui->addRow(&document, &element, &textNode, "Upload file", 11);
-			element.setOnClick(onClickUploadFile);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickUploadFile);
 			if (gui->path.length > 1){
 				gui->addRow(&document, &element, &textNode, "Delete", 6);
-				element.setOnClick(onClickDelete);
+				std::dom::MouseEvent::setOnClick(
+					&element, onClickDelete);
 				gui->addRow(&document, &element, &textNode, "Move", 4);
-				element.setOnClick(onClickMove);
+				std::dom::MouseEvent::setOnClick(
+					&element, onClickMove);
 			}
 			gui->addRow(&document, &element, &textNode, "Download", 8);
-			element.setOnClick(onClickDownloadFolder);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickDownloadFolder);
 			gui->addRow(&document, &element, &textNode, "Upload", 6);
-			element.setOnClick(onClickUploadFolder);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickUploadFolder);
 		}
 	}
 	
@@ -315,7 +328,8 @@ class GUI {
 				&document, &node);
 			element.appendChild(&node);
 			gui->addRow(&document, &element, &node, "Create", 6);
-			element.setOnClick(onClickCreateFolder);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickCreateFolder);
 		}
 	}
 
@@ -366,7 +380,8 @@ class GUI {
 				&document, &node);
 			element.appendChild(&node);
 			gui->addRow(&document, &element, &node, "Create", 6);
-			element.setOnClick(onClickCreateFile);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickCreateFile);
 		}
 	}
 
@@ -426,7 +441,8 @@ class GUI {
 			} else {
 				gui->browseContainer.getFirstChild(&node);
 				node.getNextSibling(&node);
-				node.setOnClick(onClickCancelFile);
+				std::dom::MouseEvent::setOnClick(
+					&node, onClickCancelFile);
 				gui->removeRows(&node);
 				node.getFirstChild(&node);
 				std::dom::CharacterData::setData(
@@ -440,14 +456,18 @@ class GUI {
 
 				if (gui->fileSelection){
 					gui->addRow(&document, &node, &textNode, "Select", 6);
-					node.setOnClick(onClickSelect);
+					std::dom::MouseEvent::setOnClick(
+						&node, onClickSelect);
 				}
 				gui->addRow(&document, &node, &textNode, "Move", 4);
-				node.setOnClick(onClickMove);
+				std::dom::MouseEvent::setOnClick(
+					&node, onClickMove);
 				gui->addRow(&document, &node, &textNode, "Download", 8);
-				node.setOnClick(onClickDownloadFile);
+				std::dom::MouseEvent::setOnClick(
+					&node, onClickDownloadFile);
 				gui->addRow(&document, &node, &textNode, "Delete", 6);
-				node.setOnClick(onClickDelete);
+				std::dom::MouseEvent::setOnClick(
+					&node, onClickDelete);
 			}
 		}
 	}
@@ -476,7 +496,8 @@ class GUI {
 			gui->addRow(&document, &element, &node, string,
 				std::str::CString::length(string, 0));
 			gui->addRow(&document, &element, &node, "Yes", 3);
-			element.setOnClick(onClickYesDelete);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickYesDelete);
 		}
 	}
 	
@@ -533,7 +554,8 @@ class GUI {
 				&node, gui->path.data, 0, gui->path.length);
 			element.appendChild(&node);
 			gui->addRow(&document, &element, &node, "Move", 4);
-			element.setOnClick(onClickDoMove);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickDoMove);
 		}
 	}
 	
@@ -580,9 +602,11 @@ class GUI {
 		if ((gui->bools & operationPending) == 0){
 			std::dom::Node element;
 			gui->browseContainer.getFirstChild(&element);
-			element.setOnClick(onClickCancelDownload);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickCancelDownload);
 			element.getNextSibling(&element);
-			element.setOnClick(onClickCancelDownload);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickCancelDownload);
 			gui->removeRows(&element);
 			std::bom::Window appWindow;
 			app.getWindow(&appWindow);
@@ -621,7 +645,7 @@ class GUI {
 				gui->folderContent.addU8(0);
 				if (length > 1){
 					start = std::arr::Uchar::findLast(
-						'/', data, 0, length - 1);
+						data, 0, length - 1, '/');
 					path->trim(length - 1);
 					path->add(".saf", 0, 4);
 					std::html::AElement::setDownload(&element,
@@ -640,7 +664,7 @@ class GUI {
 					onDownloadFolderOpened, false);
 			} else {
 				start = std::arr::Uchar::findLast(
-					'/', data, 0, length - 1);
+					data, 0, length - 1, '/');
 				std::html::AElement::setDownload(&element,
 					data, start, length - start);
 				app.fileSystem.openFile(data,
@@ -666,7 +690,7 @@ class GUI {
 		if (len > folderPath->length){
 			unsigned int nameStart = 
 				std::arr::Uchar::findLast(
-					'/', path->data, 0, len - 1);
+					path->data, 0, len - 1, '/');
 			while (true){
 				type = folder->getType();
 				if (type == std::fs::EntryTypes::none) {break;}
@@ -695,7 +719,7 @@ class GUI {
 				path->data[len - 1] = 0;
 				unsigned int start =
 					std::arr::Uchar::findLast(
-						'/', path->data, 0, len - 1);
+						path->data, 0, len - 1, '/');
 				unsigned int pathChar = path->data[start];
 				path->data[start] = 0;
 				app.fileSystem.openFolder(path->data,
@@ -733,7 +757,7 @@ class GUI {
 		std::str::DString* path = &gui->path;
 		unsigned int start =
 			std::arr::Uchar::findLast(
-				'/', path->data, 0, path->length - 1);
+				path->data, 0, path->length - 1, '/');
 		unsigned int pathChar = path->data[start];
 		path->data[start] = 0;
 		app.fileSystem.openFolder(path->data,
@@ -798,9 +822,11 @@ class GUI {
 			std::html::InputElement::setType(
 				&node, std::html::InputTypes::file);
 			if (isFolder){
-				node.setOnChange(onChangeFolderUpload);
+				std::dom::Event::setOnChange(
+					&node, onChangeFolderUpload);
 			} else {
-				node.setOnChange(onChangeFileUpload);
+				std::dom::Event::setOnChange(
+					&node, onChangeFileUpload);
 			}
 			element.appendChild(&node);
 		}
@@ -890,7 +916,7 @@ class GUI {
 		unsigned int len = path->length;
 		unsigned int start =
 			std::arr::Uchar::findLast(
-				'/', path->data, 0, len - 1);
+				path->data, 0, len - 1, '/');
 		path->erase(start, len - start);
 	}
 	
@@ -979,7 +1005,7 @@ class GUI {
 		unsigned int len = path.length;
 		unsigned int nameStart =
 			std::arr::Uchar::findLast(
-				'/', path.data, 0, len);
+				path.data, 0, len, '/');
 		path.erase(nameStart, len - nameStart);
 		app.fileSystem.openFolder(path.data, list, false);
 	}

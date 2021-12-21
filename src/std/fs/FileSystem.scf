@@ -626,12 +626,12 @@ class FileSystem {
 
 	void setMoveDst(std::str::String* path){
 		substringEnd = std::arr::Uchar::findLast(
-			0, path->data, 0, substringEnd) - 1;
+			path->data, 0, substringEnd, 0) - 1;
 		if (isFolderPath(path->data, path->length)){
 			substringEnd = substringEnd - 1;
 		}
 		substringStart = std::arr::Uchar::findLast(
-			'/', path->data, 0, substringEnd);
+			path->data, 0, substringEnd, '/');
 		cursorId = moveIntoFolderId;
 	}
 
