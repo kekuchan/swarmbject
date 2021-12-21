@@ -132,19 +132,19 @@ class Specifiers : data::Type {
 
 	static unsigned char cmp(void* i, void* j){
 		return cmpUchar(
-			&(data::Specifiers*)i->specifiers, j);
+			i, &(data::Specifiers*)j->specifiers);
 	}
 
 	static unsigned char cmpUchar(void* i, void* j){
 		unsigned char compared =
 			std::arr::Uchar::compareValue(
-				data::Types::specifiersT,
-				((data::Type*)j)->type);
+				(data::Type*)i->type,
+				data::Types::specifiersT);
 		if (compared == std::Compare::equal){
 			compared =
 				std::arr::Uchar::compareValue(
-					*(unsigned char*)i,
-					(data::Specifiers*)j->specifiers);
+					(data::Specifiers*)i->specifiers,
+					*(unsigned char*)j);
 		}
 		return compared;
 	}
