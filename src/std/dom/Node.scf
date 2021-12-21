@@ -70,33 +70,6 @@ SUCH DAMAGE.
 class Node {
 	
 	std::js::Object jsObject;
-
-	static void* getJsCallback(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (callback == nullptr){
-			constwrite "		return null;\n";
-		} else {
-			constwrite
-				"		var f = _getFunctionById(callback);\n"
-				"		return function(e){\n\t\t\t";
-							constwrite std::dom::Node::eventCallCallback;
-							constwrite "(f, e);\n"
-				"		};\n";
-		}
-	}
-	
-	static void eventCallCallback(void* callback,
-		void* eventObject){
-		std::dom::Event event;
-		event.jsObject.setJsObject(eventObject);
-		std::dom::Event* eventPtr = &event;
-		std::ApplicationInstance aexcl app;
-		constwrite
-			"		var callStart = _objectsToCallStart;\n"
-			"		app = _appObject;\n"
-			"		callback(eventPtr, app);\n"
-			"		if (callStart === 0) _callObjects();\n";
-	}
 	
 	void debug(bool recursive){
 		std::str::DString text;
@@ -199,13 +172,6 @@ class Node {
 		unsigned int len;
 		constwrite "	len = nodeObject.childNodes.length;\n";
 		return len;
-	}
-	
-	void setContentEditable(bool editable){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		constwrite
-			"	nodeObject.contentEditable = editable;\n";
 	}
 	
 	void getFirstChild(std::dom::Node* node){
@@ -320,68 +286,6 @@ class Node {
 			src = nullptr;
 		}
 		jsObject.copyFromObject(src);
-	}
-	
-	void scrollIntoView(){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		constwrite "	nodeObject.scrollIntoView();\n";
-	}
-
-	void setOnChange(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.onchange = jsCallback;\n";
-	}
-
-	void setOnClick(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.onclick = jsCallback;\n";
-	}
-
-	void setOnCopy(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.oncopy = jsCallback;\n";
-	}
-
-	void setOnCut(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.oncut = jsCallback;\n";
-	}
-
-	void setOnKeyDown(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.onkeydown = jsCallback;\n";
-	}
-
-	void setOnMouseDown(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.onmousedown = jsCallback;\n";
-	}
-
-	void setOnPaste(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (isNull()) {return;}
-		void* nodeObject = jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.onpaste = jsCallback;\n";
 	}
 	
 }

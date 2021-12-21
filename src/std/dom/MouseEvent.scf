@@ -67,74 +67,28 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Event {
-
-	std::js::Object jsObject;
-
-	static void* getJsCallback(void(std::dom::Event*,
-		std::ApplicationInstance) callback){
-		if (callback == nullptr){
-			constwrite "		return null;\n";
-		} else {
-			constwrite
-				"		var f = _getFunctionById(callback);\n"
-				"		return function(e){\n\t\t\t";
-							constwrite std::dom::Event::eventCallCallback;
-							constwrite "(f, e);\n"
-				"		};\n";
-		}
-	}
+class MouseEvent {
 	
-	static void eventCallCallback(void* callback,
-		void* eventObject){
-		std::dom::Event event;
-		event.jsObject.setJsObject(eventObject);
-		std::dom::Event* eventPtr = &event;
-		std::ApplicationInstance aexcl app;
-		constwrite
-			"		var callStart = _objectsToCallStart;\n"
-			"		app = _appObject;\n"
-			"		callback(eventPtr, app);\n"
-			"		if (callStart === 0) _callObjects();\n";
-	}
-
 	/* Public member functions. */
-
-	void getCurrentTarget(std::dom::Node* node){
-		if (jsObject.isNull()) {return;}
-		void* eventObject = jsObject.getJsObject();
-		void* getObject;
-		constwrite "	getObject = eventObject.currentTarget;\n";
-		node->jsObject.setJsObject(getObject);
-	}
-
-	void getTarget(std::dom::Node* node){
-		if (jsObject.isNull()) {return;}
-		void* eventObject = jsObject.getJsObject();
-		void* getObject;
-		constwrite "	getObject = eventObject.target;\n";
-		node->jsObject.setJsObject(getObject);
-	}
-
-	void preventDefault(){
-		if (jsObject.isNull()) {return;}
-		void* eventObject = jsObject.getJsObject();
-		constwrite "	eventObject.preventDefault();\n";
-	}
 	
-	static void setOnChange(
+	static void setOnClick(
 		std::dom::Node* node, void(std::dom::Event*,
 			std::ApplicationInstance) callback){
 		if (node->isNull()) {return;}
 		void* nodeObject = node->jsObject.getJsObject();
-		void* jsCallback = getJsCallback(callback);
-		constwrite "	nodeObject.onchange = jsCallback;\n";
+		void* jsCallback = 
+			std::dom::Event::getJsCallback(callback);
+		constwrite "	nodeObject.onclick = jsCallback;\n";
 	}
 
-	void stopPropagation(){
-		if (jsObject.isNull()) {return;}
-		void* eventObject = jsObject.getJsObject();
-		constwrite "	eventObject.stopPropagation();\n";
+	static void setOnMouseDown(
+		std::dom::Node* node, void(std::dom::Event*,
+			std::ApplicationInstance) callback){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* jsCallback = 
+			std::dom::Event::getJsCallback(callback);
+		constwrite "	nodeObject.onmousedown = jsCallback;\n";
 	}
 
 }

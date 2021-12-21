@@ -67,121 +67,70 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Element {
-
+class ClipboardEvent {
+	
 	/* Public member functions. */
 
-	static unsigned int getClientHeight(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int clientHeight;
-		constwrite "	clientHeight = nodeObject.clientHeight;\n";
-		return clientHeight;
-	}
-
-	static unsigned int getClientLeft(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int clientLeft;
-		constwrite "	clientLeft = nodeObject.clientLeft;\n";
-		return clientLeft;
-	}
-
-	static unsigned int getClientTop(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int clientTop;
-		constwrite "	clientTop = nodeObject.clientTop;\n";
-		return clientTop;
-	}
-
-	static unsigned int getClientWidth(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int clientWidth;
-		constwrite "	clientWidth = nodeObject.clientWidth;\n";
-		return clientWidth;
-	}
-
-	static unsigned int getScrollHeight(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int scrollHeight;
-		constwrite "	scrollHeight = nodeObject.scrollHeight;\n";
-		return scrollHeight;
-	}
-
-	static unsigned int getScrollLeft(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int scrollLeft;
-		constwrite "	scrollLeft = nodeObject.scrollLeft;\n";
-		return scrollLeft;
-	}
-
-	static unsigned int getScrollTop(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int scrollTop;
-		constwrite "	scrollTop = nodeObject.scrollTop;\n";
-		return scrollTop;
-	}
-
-	static unsigned int getScrollWidth(
-		std::dom::Node* node){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		unsigned int scrollWidth;
-		constwrite "	scrollWidth = nodeObject.scrollWidth;\n";
-		return scrollWidth;
-	}
-
-	static unsigned int getTagName(
-		std::dom::Node* node, unsigned char[] text, 
-		unsigned int start){
-		if (node->isNull()) {return 0;}
-		void* nodeObject = node->jsObject.getJsObject();
-		void* nameObject;
-		constwrite "	nameObject = nodeObject.tagName;\n";
+	static unsigned int getTextData(
+		std::dom::Event* event,
+		unsigned char[] text, unsigned int start){
+		if (event->jsObject.isNull()) {return 0;}
+		void* eventObject = event->jsObject.getJsObject();
+		void* dataObject;
+		constwrite "	dataObject = "
+			"eventObject.clipboardData.getData('text');\n";
 		return std::js::String::encode(
-			nameObject, text, start);
+			dataObject, text, start);
 	}
 
-	static void getTagNameDString(
-		std::dom::Node* node, 
+	static void getTextDataDString(
+		std::dom::Event* event,
 		std::str::DString* string){
 		unsigned int start = string->length;
-		string->shift(start, getTagName(
-			node, nullptr, 0));
-		getTagName(node, string->data, start);
+		string->shift(start, 
+			getTextData(event, nullptr, 0));
+		getTextData(event, string->data, start);
+	}
+
+	static void setTextData(
+		std::dom::Event* event, unsigned char[] text,
+		unsigned int start, unsigned int len){
+		if (event->jsObject.isNull()) {return;}
+		void* eventObject = event->jsObject.getJsObject();
+		void* textObject = std::js::String::decode(&text[start],
+			len);
+		constwrite "	eventObject.clipboardData.setData(\n"
+			"		'text/plain', textObject);\n";
+	}
+
+	static void setOnCopy(
+		std::dom::Node* node, void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* jsCallback = 
+			std::dom::Event::getJsCallback(callback);
+		constwrite "	nodeObject.oncopy = jsCallback;\n";
+	}
+
+	static void setOnCut(
+		std::dom::Node* node, void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* jsCallback = 
+			std::dom::Event::getJsCallback(callback);
+		constwrite "	nodeObject.oncut = jsCallback;\n";
+	}
+
+	static void setOnPaste(
+		std::dom::Node* node, void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* jsCallback = 
+			std::dom::Event::getJsCallback(callback);
+		constwrite "	nodeObject.onpaste = jsCallback;\n";
 	}
 	
-	static void scrollIntoView(
-		std::dom::Node* node){
-		if (node->isNull()) {return;}
-		void* nodeObject = node->jsObject.getJsObject();
-		constwrite "	nodeObject.scrollIntoView();\n";
-	}
-
-	static void setScrollLeft(std::dom::Node* node,
-		unsigned int scrollLeft){
-		if (node->isNull()) {return;}
-		void* nodeObject = node->jsObject.getJsObject();
-		constwrite "	nodeObject.scrollLeft = scrollLeft;\n";
-	}
-
-	static void setScrollTop(std::dom::Node* node,
-		unsigned int scrollTop){
-		if (node->isNull()) {return;}
-		void* nodeObject = node->jsObject.getJsObject();
-		constwrite "	nodeObject.scrollTop = scrollTop;\n";
-	}
-
 }
