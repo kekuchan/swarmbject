@@ -97,9 +97,9 @@ class String {
 		unsigned int newLength = previousLength + len;
 		unsigned char[] newData = new unsigned char[
 			 newLength + 1];
-		std::arr::Uchar::copy(previousData, 0, newData, 0, start);
-		std::arr::Uchar::copy(previousData, start,
-			newData, start + len, previousLength - start);
+		std::arr::Uchar::copy(newData, 0, previousData, 0, start);
+		std::arr::Uchar::copy(newData, start + len,
+			previousData, start, previousLength - start);
 		newData[newLength] = 0;
 		delete[] previousData;
 		data = newData;
@@ -147,7 +147,7 @@ class String {
 	
 	unsigned char compareView(std::str::View* str){
 		return std::arr::Uchar::compareRange(data, 0,
-			length, str->data, 0, str->length);
+			length, str->data, str->start, str->length);
 	}
 
 	void copy(unsigned int start, unsigned char[] str,
@@ -157,8 +157,8 @@ class String {
 			if (start >= dataLen) {return;}
 			len = dataLen - start;
 		}
-		std::arr::Uchar::copy(str, i, data, 
-			start, len);
+		std::arr::Uchar::copy(data, start,
+			str, i, len);
 	}
 
 	void erase(unsigned int start, unsigned int len){
@@ -172,9 +172,9 @@ class String {
 		if (newLength > 0){
 			unsigned char[] newData = new unsigned char[
 				 newLength + 1];
-			std::arr::Uchar::copy(previousData, 0, newData, 0, start);
-			std::arr::Uchar::copy(previousData, start + len,
-				newData, start, previousLength - start - len);
+			std::arr::Uchar::copy(newData, 0, previousData, 0, start);
+			std::arr::Uchar::copy(newData, start,
+				previousData, start + len, previousLength - start - len);
 			newData[newLength] = 0;
 			delete[] previousData;
 			data = newData;
@@ -189,7 +189,7 @@ class String {
 		unsigned int len = length;
 		if (start >= len) {return 0;}
 		return std::arr::Uchar::find(
-			c, data, start, len - start);
+			data, start, len - start, c);
 	}
 
 	unsigned int findLast(
@@ -197,7 +197,7 @@ class String {
 		unsigned int len = length;
 		if (start > len) {start = len;}
 		return std::arr::Uchar::findLast(
-			c, data, 0, start);
+			data, 0, start, c);
 	}
 
 	unsigned int findLastRange(
@@ -205,8 +205,9 @@ class String {
 		unsigned int len, unsigned int start){
 		unsigned int max = length;
 		if (start > max) {start = max;}
-		return std::arr::Uchar::findLastRange(str, i, len,
-			data, 0, start);
+		return std::arr::Uchar::findLastRange(
+			data, 0, start,
+			str, i, len);
 	}
 	
 	unsigned int findRange(
@@ -214,8 +215,9 @@ class String {
 		unsigned int len, unsigned int start){
 		unsigned int max = length;
 		if (start >= max) {return 0;}
-		return std::arr::Uchar::findRange(str, i, len,
-			data, start, max - start);
+		return std::arr::Uchar::findRange(
+			data, start, max - start,
+			str, i, len);
 	}
 
 	void insert(
@@ -223,7 +225,7 @@ class String {
 		unsigned int len, unsigned int start){
 		unsigned char[] newData = insertLength(len, start);
 		if (newData != nullptr){
-			std::arr::Uchar::copy(src, i, newData, start, len);
+			std::arr::Uchar::copy(newData, start, src, i, len);
 		}
 	}
 
@@ -259,7 +261,7 @@ class String {
 			unsigned char[] previousData = data;
 			if (len > 0){
 				unsigned char[] newData = new unsigned char[len + 1];
-				std::arr::Uchar::copy(str, start, newData, 0, len);
+				std::arr::Uchar::copy(newData, 0, str, start, len);
 				newData[len] = 0;
 				data = newData;
 			} else {
@@ -268,7 +270,7 @@ class String {
 			delete[] previousData;
 			length = len;
 		} else {
-			std::arr::Uchar::copy(str, start, data, 0, len);
+			std::arr::Uchar::copy(data, 0, str, start, len);
 		}
 	}
 
@@ -294,7 +296,7 @@ class String {
 				newData = new unsigned char[len + 1];
 				newData[len] = 0;
 				if (len < copySize) {copySize = len;}
-				std::arr::Uchar::copy(previousData, 0, newData, 0, copySize);
+				std::arr::Uchar::copy(newData, 0, previousData, 0, copySize);
 			} else {
 				newData = nullptr;
 			}

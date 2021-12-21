@@ -118,7 +118,7 @@ class View {
 	
 	unsigned char compareView(std::str::View* str){
 		return std::arr::Uchar::compareRange(data, start,
-			length, str->data, 0, str->length);
+			length, str->data, str->start, str->length);
 	}
 
 	void set(unsigned char[] str,
