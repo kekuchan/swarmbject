@@ -97,8 +97,8 @@ class PtrDArray {
 				void*[] previousData = data;
 				newData = new void*[newCapacity];
 				if (copy){
-					std::arr::Ptr::copy(previousData, 0,
-						newData, 0, previousSize);
+					std::arr::Ptr::copy(newData, 0,
+						previousData, 0, previousSize);
 				}
 				if (del) {delete[] previousData;}
 			}
@@ -115,11 +115,11 @@ class PtrDArray {
 		if (start > previousSize) {return nullptr;}
 		void*[] previousData = data;
 		void*[] newData = addSize(len, false, false);
-		std::arr::Ptr::copy(previousData, start,
-			newData, start + len, previousSize - start);
+		std::arr::Ptr::copy(newData, start + len,
+			previousData, start, previousSize - start);
 		if (newData != previousData){
-			std::arr::Ptr::copy(previousData, 0,
-				newData, 0, start);
+			std::arr::Ptr::copy(newData, 0,
+				previousData, 0, start);
 			delete[] previousData;
 		}
 		return newData;
@@ -127,14 +127,14 @@ class PtrDArray {
 
 	/* Public member functions. */
 
-	void add(void*[] array,
+	void addRange(void*[] array,
 		unsigned int start, unsigned int len){
 		if (len == 0) {return;}
 		void*[] previousData = data;
 		unsigned int previousSize = size;
 		void*[] newData = addSize(len, true, false);
-		std::arr::Ptr::copy(
-			array, start, newData, previousSize, len);
+		std::arr::Ptr::copy(newData, previousSize,
+			array, start, len);
 		if (newData != previousData){
 			delete[] previousData;
 		}
@@ -152,15 +152,15 @@ class PtrDArray {
 			dst, i, dstLen, compare);
 	}
 
-	void copy(unsigned int start, void*[] src, 
+	void copyRange(unsigned int start, void*[] src, 
 		unsigned int i, unsigned int len){
 		unsigned int dataLen = size;
 		if (start >= dataLen) {return;}
 		if (start + len > dataLen){
 			len = dataLen - start;
 		}
-		std::arr::Void::copy(src, i, data, 
-			start, len);
+		std::arr::Void::copy(data, start,
+			src, i, len);
 	}
 	
 	void erase(unsigned int start, unsigned int len){
@@ -169,8 +169,8 @@ class PtrDArray {
 			unsigned char[] newData = data;
 			if (start + len < newSize){
 				newSize = newSize - len;
-				std::arr::Ptr::copy(newData, start + len,
-					newData, start, newSize - start);
+				std::arr::Ptr::copy(newData, start,
+					newData, start + len, newSize - start);
 				size = newSize;
 			} else {
 				size = start;
@@ -184,8 +184,8 @@ class PtrDArray {
 		unsigned int len = size;
 		if (start >= len) {return 0;}
 		return std::arr::Ptr::find(
-			element, data, start, 
-			len - start, compareElements);
+			data, start, 
+			len - start, element, compareElements);
 	}
 
 	unsigned int findLast(void* element,
@@ -194,7 +194,7 @@ class PtrDArray {
 		unsigned int len = size;
 		if (start > len) {start = len;}
 		return std::arr::Ptr::findLast(
-			element, data, 0, start, compareElements);
+			data, 0, start, element, compareElements);
 	}
 
 	unsigned int findLastRange(void*[] src, 
@@ -203,8 +203,8 @@ class PtrDArray {
 		unsigned int start){
 		unsigned int max = size;
 		if (start > max) {start = max;}
-		return std::arr::Ptr::findLastRange(src, i, len,
-			data, 0, start, compareElements);
+		return std::arr::Ptr::findLastRange(data, 0, start,
+			src, i, len, compareElements);
 	}
 	
 	unsigned int findRange(void*[] src, 
@@ -213,14 +213,14 @@ class PtrDArray {
 		unsigned int start){
 		unsigned int max = size;
 		if (start >= max) {return 0;}
-		return std::arr::Ptr::findRange(src, i, len,
-			data, start, max - start, compareElements);
+		return std::arr::Ptr::findRange(data, start, max - start,
+			src, i, len, compareElements);
 	}
 	
 	unsigned int findSorted(void* element,
 		unsigned char(void*,void*) compareElements){
 		return std::arr::Ptr::findSorted(
-			element, data, 0, size, compareElements);
+			data, 0, size, element, compareElements);
 	}
 
 	void* getBack(){
@@ -249,8 +249,8 @@ class PtrDArray {
 		unsigned int i, unsigned int len){
 		void*[] newData = insertSize(len, start);
 		if (newData != nullptr){
-			std::arr::Ptr::copy(src, i,
-				newData, start, len);
+			std::arr::Ptr::copy(newData, start,
+				src, i, len);
 		}
 	}
 
@@ -264,20 +264,20 @@ class PtrDArray {
 			void*[] arrayData = data;
 			while (true){
 				mid = (end + start) >> 1;
-				switch (compare(element, arrayData[mid - 1])){
+				switch (compare(arrayData[mid - 1], element)){
 					case std::Compare::less:
-						end = mid - 1;
-						if (start > end) {break;}
-						continue;
-					case std::Compare::equal:
-						end = mid - 1;
-						break;
-					case std::Compare::greater:
 						if (start == end){
 							end = mid;
 							break;
 						}
 						start = mid + 1;
+						continue;
+					case std::Compare::equal:
+						end = mid - 1;
+						break;
+					case std::Compare::greater:
+						end = mid - 1;
+						if (start > end) {break;}
 						continue;
 				}
 				break;
@@ -317,8 +317,8 @@ class PtrDArray {
 			void*[] previousData = data;
 			void*[] newData = new void*[newCapacity];
 			if (previousData != nullptr){
-				std::arr::Ptr::copy(previousData, 0,
-					newData, 0, size);
+				std::arr::Ptr::copy(newData, 0,
+					previousData, 0, size);
 				delete[] previousData;
 			}
 			data = newData;
@@ -333,7 +333,7 @@ class PtrDArray {
 	
 	/* Should work even if the regions overlap, as then 
 		its length can not be greater than its container. */
-	void set(void*[] src, 
+	void setRange(void*[] src, 
 		unsigned int start, unsigned int len){
 		unsigned char[] newData;
 		unsigned int previousSize = size;
@@ -344,7 +344,7 @@ class PtrDArray {
 			newData = data;
 			length = len;
 		}
-		std::arr::Ptr::copy(src, start, newData, 0, len);
+		std::arr::Ptr::copy(newData, 0, src, start, len);
 	}
 
 	void shift(

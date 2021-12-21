@@ -89,9 +89,9 @@ class PtrArray {
 		if (len == 0) {return previousData;}
 		unsigned int newSize = previousSize + len;
 		void*[] newData = new void*[newSize];
-		std::arr::Ptr::copy(previousData, 0, newData, 0, start);
-		std::arr::Ptr::copy(previousData, start,
-			newData, start + len, previousSize - start);
+		std::arr::Ptr::copy(newData, 0, previousData, 0, start);
+		std::arr::Ptr::copy(newData, start + len,
+			previousData, start, previousSize - start);
 		delete[] previousData;
 		data = newData;
 		size = newSize;
@@ -114,15 +114,30 @@ class PtrArray {
 			dst, i, dstLen, compare);
 	}
 
-	void copy(unsigned int start, void*[] src, 
+	void copyRange(unsigned int start, void*[] src, 
 		unsigned int i, unsigned int len){
 		unsigned int dataLen = size;
 		if (start + len > dataLen){
 			if (start >= dataLen) {return;}
 			len = dataLen - start;
 		}
-		std::arr::Void::copy(src, i, data, 
-			start, len);
+		std::arr::Ptr::copy(data, start,
+			src, i, len);
+	}
+	
+	void*[] create(unsigned int len){
+		void*[] newData = data;
+		if (size != len){
+			delete[] newData;
+			if (len > 0){
+				newData = new void*[len];
+			} else {
+				newData = nullptr;
+			}
+			data = newData;
+			size = len;
+		}
+		return newData;
 	}
 
 	void erase(unsigned int start, unsigned int len){
@@ -135,9 +150,9 @@ class PtrArray {
 		unsigned int newSize = previousSize - len;
 		if (newSize > 0){
 			void*[] newData = new void*[newSize];
-			std::arr::Ptr::copy(previousData, 0, newData, 0, start);
-			std::arr::Ptr::copy(previousData, start + len,
-				newData, start, previousSize - start - len);
+			std::arr::Ptr::copy(newData, 0, previousData, 0, start);
+			std::arr::Ptr::copy(newData, start,
+				previousData, start + len, previousSize - start - len);
 			delete[] previousData;
 			data = newData;
 		} else {
@@ -151,9 +166,8 @@ class PtrArray {
 		unsigned int start){
 		unsigned int len = size;
 		if (start >= len) {return 0;}
-		return std::arr::Ptr::find(
-			element, data, start, 
-			len - start, compareElements);
+		return std::arr::Ptr::find(data, start, 
+			len - start, element, compareElements);
 	}
 
 	unsigned int findLast(void* element,
@@ -162,7 +176,7 @@ class PtrArray {
 		unsigned int len = size;
 		if (start > len) {start = len;}
 		return std::arr::Ptr::findLast(
-			element, data, 0, start, compareElements);
+			data, 0, start, element, compareElements);
 	}
 
 	unsigned int findLastRange(void*[] src, 
@@ -171,8 +185,8 @@ class PtrArray {
 		unsigned int start){
 		unsigned int max = size;
 		if (start > max) {start = max;}
-		return std::arr::Ptr::findLastRange(src, i, len,
-			data, 0, start, compareElements);
+		return std::arr::Ptr::findLastRange(data, 0, start,
+			src, i, len, compareElements);
 	}
 	
 	unsigned int findRange(void*[] src, 
@@ -181,14 +195,14 @@ class PtrArray {
 		unsigned int start){
 		unsigned int max = size;
 		if (start >= max) {return 0;}
-		return std::arr::Ptr::findRange(src, i, len,
-			data, start, max - start, compareElements);
+		return std::arr::Ptr::findRange(data, start, max - start,
+			src, i, len, compareElements);
 	}
 	
 	unsigned int findSorted(void* element,
 		unsigned char(void*,void*) compareElements){
 		return std::arr::Ptr::findSorted(
-			element, data, 0, size, compareElements);
+			data, 0, size, element, compareElements);
 	}
 	
 	void insert(unsigned int start,
@@ -208,8 +222,8 @@ class PtrArray {
 		unsigned int i, unsigned int len){
 		void*[] newData = insertSize(len, start);
 		if (newData != nullptr){
-			std::arr::Ptr::copy(src, i,
-				newData, start, len);
+			std::arr::Ptr::copy(newData, start,
+				src, i, len);
 		}
 	}
 	
@@ -222,20 +236,20 @@ class PtrArray {
 			unsigned int mid;
 			while (true){
 				mid = (end + start) >> 1;
-				switch (compare(element, data[mid - 1])){
+				switch (compare(data[mid - 1], element)){
 					case std::Compare::less:
-						end = mid - 1;
-						if (start > end) {break;}
-						continue;
-					case std::Compare::equal:
-						end = mid - 1;
-						break;
-					case std::Compare::greater:
 						if (start == end){
 							end = mid;
 							break;
 						}
 						start = mid + 1;
+						continue;
+					case std::Compare::equal:
+						end = mid - 1;
+						break;
+					case std::Compare::greater:
+						end = mid - 1;
+						if (start > end) {break;}
 						continue;
 				}
 				break;
@@ -258,13 +272,13 @@ class PtrArray {
 			data, 0, size);
 	}
 
-	void set(void*[] src, 
+	void setRange(void*[] src, 
 		unsigned int i, unsigned int len){
 		if (len != length){
 			void*[] previousData = data;
 			if (len > 0){
 				void*[] newData = new void*[len];
-				std::arr::Ptr::copy(src, i, newData, 0, len);
+				std::arr::Ptr::copy(newData, 0, src, i, len);
 				data = newData;
 			} else {
 				data = nullptr;
@@ -272,31 +286,10 @@ class PtrArray {
 			delete[] previousData;
 			length = len;
 		} else {
-			std::arr::Ptr::copy(src, i, data, 0, len);
+			std::arr::Ptr::copy(data, 0, src, i, len);
 		}
 	}
 	
-	void setSize(unsigned int len){
-		unsigned int copySize = size;
-		if (copySize == len) {return;}
-		if (copySize == 0){
-			data = new void*[len];
-		} else {
-			void*[] previousData = data;
-			if (len > 0){
-				void*[] newData = new void*[len];
-				if (len < copySize) {copySize = len;}
-				std::arr::Ptr::copy(
-					previousData, 0, newData, 0, copySize);
-				data = newData;
-			} else {
-				data = nullptr;
-			}
-			delete[] previousData;
-		}
-		size = len;
-	}
-
 	void shift(
 		unsigned int start, unsigned int len){
 		insertSize(len, start);

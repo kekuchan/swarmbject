@@ -114,7 +114,7 @@ class Buffer {
 	void getU8s(unsigned int start,
 		unsigned char[] chars, unsigned int i,
 		unsigned int len){
-		std::arr::Uchar::copy(data, start, chars, i, len);
+		std::arr::Uchar::copy(chars, i, data, start, len);
 	}
 
 	unsigned short getU16BE(unsigned int start){
@@ -152,7 +152,8 @@ class Buffer {
 			if (len > 0){
 				unsigned char[] newData = new unsigned char[len];
 				if (len < copySize) {copySize = len;}
-				std::arr::Uchar::copy(previousData, 0, newData, 0, copySize);
+				std::arr::Uchar::copy(
+					newData, 0, previousData, 0, copySize);
 				data = newData;
 			} else {
 				data = nullptr;
@@ -170,7 +171,7 @@ class Buffer {
 	void setU8s(unsigned int start,
 		unsigned char[] chars, unsigned int i,
 		unsigned int len){
-		std::arr::Uchar::copy(chars, i, data, start, len);
+		std::arr::Uchar::copy(data, start, chars, i, len);
 	}
 
 	void setU16BE(unsigned int start,
