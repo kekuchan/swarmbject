@@ -368,7 +368,8 @@ class Main {
 
 	static void onKeyDownOnPre(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
-		unsigned int keyCode = e->getKeyCode();
+		unsigned int keyCode = 
+			std::dom::KeyboardEvent::getKeyCode(e);
 		Main* main = &app.main;
 		/* Ignore cursor keys. */
 		if (keyCode < 37 || keyCode > 40){
@@ -376,7 +377,8 @@ class Main {
 		}
 		if (keyCode == '\t'){
 			e->preventDefault();
-			onTabKey(main, e->getShiftKey());
+			onTabKey(main, 
+				std::dom::KeyboardEvent::getShiftKey(e));
 		} else if (keyCode == 13){/* enter */
 			e->preventDefault();
 			std::dom::Selection selection;
@@ -531,7 +533,8 @@ class Main {
 		std::str::DString string;
 		getRangeToString(main, &range, &string);
 		range.deleteContents();
-		e->setTextClipboardData(string.data, 0, string.length);
+		std::dom::ClipboardEvent::setTextData(
+			e, string.data, 0, string.length);
 	}
 
 	static void onCopyOnPre(std::dom::Event* e,
@@ -541,7 +544,8 @@ class Main {
 		std::dom::Range range;
 		std::str::DString string;
 		getRangeToString(main, &range, &string);
-		e->setTextClipboardData(string.data, 0, string.length);
+		std::dom::ClipboardEvent::setTextData(
+			e, string.data, 0, string.length);
 	}
 	
 	static void stringToRange(std::str::DString* string,
@@ -578,7 +582,8 @@ class Main {
 		e->preventDefault();
 		Main* main = &app.main;
 		std::str::DString string;
-		e->getTextClipboardDataDString(&string);
+		std::dom::ClipboardEvent::getTextDataDString(
+			e, &string);
 		main->doPaste(&string);
 	}
 
@@ -632,12 +637,19 @@ class Main {
 		std::ApplicationInstance aexcl app,
 		std::fs::File* file){
 		Main* main = &app.main;
+		std::dom::Node* elementWithText = 
+			&main->elementWithText;
 		if (main->currentClassPath.length == 0){
-			main->elementWithText.setOnKeyDown(onKeyDownOnPre);
-			main->elementWithText.setOnCut(onCutOnPre);
-			main->elementWithText.setOnCopy(onCopyOnPre);
-			main->elementWithText.setOnPaste(onPasteOnPre);
-			main->elementWithText.setContentEditable(true);
+			std::dom::KeyboardEvent::setOnKeyDown(
+				elementWithText, onKeyDownOnPre);
+			std::dom::ClipboardEvent::setOnCut(
+				elementWithText, onCutOnPre);
+			std::dom::ClipboardEvent::setOnCopy(
+				elementWithText, onCopyOnPre);
+			std::dom::ClipboardEvent::setOnPaste(
+				elementWithText, onPasteOnPre);
+			std::html::Element::setContentEditable(
+				elementWithText, true);
 		}
 		main->currentClassPath.set(
 			file->path.data, 0, file->path.length);
@@ -650,7 +662,7 @@ class Main {
 		selection.getRangeAt(&range, 0);
 		selection.removeAllRanges();
 		std::html::Element::removeChildren(
-			&main->elementWithText);
+			elementWithText);
 		stringToEditor(main, data, len);
 		delete[] data;
 		main->fileSaved = true;
@@ -801,8 +813,8 @@ class Main {
 						find.length, offset + 1);
 				} else if (offset > 0){
 					i = std::arr::Uchar::findLastRange(
-						find.data, 0, find.length,
-						string.data, 0, offset);
+						string.data, 0, offset,
+						find.data, 0, find.length);
 				} else {i = 0;}
 			} else {
 				elementWithText.getFirstChild(&node);
@@ -815,7 +827,7 @@ class Main {
 				range.setStart(&node, offset);
 				range.setEnd(&node, offset + find.length);
 				node.getPreviousSibling(&node);
-				node.scrollIntoView();
+				std::dom::Element::scrollIntoView(&node);
 				break;
 			}
 			if (next){
@@ -833,8 +845,8 @@ class Main {
 						find.length, 0);
 				} else {
 					i = std::arr::Uchar::findLastRange(
-						find.data, 0, find.length,
-						string.data, 0, string.length);
+						string.data, 0, string.length,
+						find.data, 0, find.length);
 				}
 			}
 		}
@@ -890,7 +902,8 @@ class Main {
 		std::html::InputElement::setValue(
 			element, text, 0,
 			std::str::CString::length(text, 0));
-		element->setOnMouseDown(onMouseDown);
+		std::dom::MouseEvent::setOnMouseDown(
+			element, onMouseDown);
 		container->appendChild(element);
 	}
 
@@ -1151,7 +1164,8 @@ class Main {
 			1, std::css::Units::px));
 		style.setBorderTopStyle(keyword.set(
 			std::css::BorderStyles::solid));
-		div.setOnClick(onClickOnSaveSettings);
+		std::dom::MouseEvent::setOnClick(
+			&div, onClickOnSaveSettings);
 
 		addCheckbox(document, &div, &textNode,
 			"Bottom bar: ", &container,
@@ -1269,7 +1283,8 @@ class Main {
 				1, std::css::Units::px));
 			style.setBorderBottomStyle(keyword.set(
 				std::css::BorderStyles::solid));
-			editorBar.setOnClick(onClickOnTitle);
+			std::dom::MouseEvent::setOnClick(
+				&editorBar, onClickOnTitle);
 		}
 		editorContainer.appendChild(&editorBar);
 	}
@@ -1410,23 +1425,28 @@ class Main {
 			1, std::css::Units::px));
 		style.setBorderTopStyle(keyword.set(
 			std::css::BorderStyles::solid));
-		div.setOnClick(onClickCancel);
+		std::dom::MouseEvent::setOnClick(
+			&div, onClickCancel);
 		
 		addRow(&document, &div, &textNode,
 			"Browse", &menuContainer);
-		div.setOnClick(onClickOnBrowse);
+		std::dom::MouseEvent::setOnClick(
+			&div, onClickOnBrowse);
 		
 		addRow(&document, &div, &textNode,
 			"Save opened file", &menuContainer);
-		div.setOnClick(onClickOnSaveClass);
+		std::dom::MouseEvent::setOnClick(
+			&div, onClickOnSaveClass);
 
 		addRow(&document, &div, &textNode,
 			"Settings", &menuContainer);
-		div.setOnClick(onClickOnSettings);
+		std::dom::MouseEvent::setOnClick(
+			&div, onClickOnSettings);
 		
 		addRow(&document, &div, &textNode,
 			"Compile", &menuContainer);
-		div.setOnClick(onClickOnCompile);
+		std::dom::MouseEvent::setOnClick(
+			&div, onClickOnCompile);
 		
 		std::html::DivElement::create(
 			&document, &compileContainer);
@@ -1441,17 +1461,20 @@ class Main {
 			1, std::css::Units::px));
 		style.setBorderTopStyle(keyword.set(
 			std::css::BorderStyles::solid));
-		div.setOnClick(onClickOnCancelCompile);
+		std::dom::MouseEvent::setOnClick(
+			&div, onClickOnCancelCompile);
 		
 		addRow(&document, &div, &textNode,
 			"/", &compileContainer);
 		rootPath = 1;
 		classOrMemberPath.set("/", 0, 1);
-		div.setOnClick(onClickOnCompilePath);
+		std::dom::MouseEvent::setOnClick(
+			&div, onClickOnCompilePath);
 		
 		addRow(&document, &div, &textNode,
 			"Compile", &compileContainer);
-		div.setOnClick(Parse::onClickOnDoCompile);
+		std::dom::MouseEvent::setOnClick(
+			&div, Parse::onClickOnDoCompile);
 
 		std::html::DivElement::create(
 			&document, &div);
@@ -1480,7 +1503,8 @@ class Main {
 		
 		addRow(&document, &div, &textNode,
 			"Run", &compileContainer);
-		div.setOnClick(onClickOnRun);
+		std::dom::MouseEvent::setOnClick(
+			&div, onClickOnRun);
 
 		std::html::Document::getBody(&document, &body);
 		std::html::Element::getStyle(&body, &style);

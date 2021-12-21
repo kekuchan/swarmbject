@@ -136,8 +136,8 @@ class DString {
 				unsigned char[] previousData = data;
 				newData = new unsigned char[newCapacity];
 				if (copy){
-					std::arr::Uchar::copy(previousData, 0,
-						newData, 0, previousLength);
+					std::arr::Uchar::copy(newData, 0,
+						previousData, 0, previousLength);
 				}
 				if (del) {delete[] previousData;}
 			}
@@ -166,11 +166,11 @@ class DString {
 		if (start > previousLength) {return nullptr;}
 		unsigned char[] previousData = data;
 		unsigned char[] newData = addLength(len, false, false);
-		std::arr::Uchar::copy(previousData, start,
-			newData, start + len, previousLength - start);
+		std::arr::Uchar::copy(newData, start + len,
+			previousData, start, previousLength - start);
 		if (newData != previousData){
-			std::arr::Uchar::copy(previousData, 0,
-				newData, 0, start);
+			std::arr::Uchar::copy(newData, 0,
+				previousData, 0, start);
 			delete[] previousData;
 		}
 		newData[previousLength + len] = 0;
@@ -209,7 +209,7 @@ class DString {
 		unsigned char[] newData =
 			addLength(len, true, false);
 		std::arr::Uchar::copy(
-			str, start, newData, previousLength, len);
+			newData, previousLength, str, start, len);
 		if (newData != previousData){
 			delete[] previousData;
 		}
@@ -275,7 +275,7 @@ class DString {
 			addLength(len, true, true);
 		unsigned int newLength = length;
 		std::str::CString::setUintEnd(
-			i, newData, newLength - 1, base);
+			newData, newLength - 1, i, base);
 		newData[newLength] = 0;
 	}
 	
@@ -316,7 +316,7 @@ class DString {
 	
 	unsigned char compareView(std::str::View* str){
 		return std::arr::Uchar::compareRange(data, 0,
-			length, str->data, 0, str->length);
+			length, str->data, str->start, str->length);
 	}
 
 	void copy(unsigned int start, unsigned char[] str,
@@ -326,8 +326,8 @@ class DString {
 			if (start >= dataLen) {return;}
 			len = dataLen - start;
 		}
-		std::arr::Uchar::copy(str, i, data, 
-			start, len);
+		std::arr::Uchar::copy(data, start,
+			str, i, len);
 	}
 	
 	void erase(unsigned int start, unsigned int len){
@@ -336,8 +336,8 @@ class DString {
 			unsigned char[] newData = data;
 			if (start + len < newLength){
 				newLength = newLength - len;
-				std::arr::Uchar::copy(newData, start + len,
-					newData, start, newLength - start);
+				std::arr::Uchar::copy(newData, start,
+					newData, start + len, newLength - start);
 			} else {
 				newLength = start;
 			}
@@ -351,7 +351,7 @@ class DString {
 		unsigned int len = length;
 		if (start >= len) {return 0;}
 		return std::arr::Uchar::find(
-			c, data, start, len - start);
+			data, start, len - start, c);
 	}
 
 	unsigned int findLast(
@@ -359,7 +359,7 @@ class DString {
 		unsigned int len = length;
 		if (start > len) {start = len;}
 		return std::arr::Uchar::findLast(
-			c, data, 0, start);
+			data, 0, start, c);
 	}
 
 	unsigned int findLastRange(
@@ -367,8 +367,9 @@ class DString {
 		unsigned int len, unsigned int start){
 		unsigned int max = length;
 		if (start > max) {start = max;}
-		return std::arr::Uchar::findLastRange(str, i, len,
-			data, 0, start);
+		return std::arr::Uchar::findLastRange(
+			data, 0, start,
+			str, i, len);
 	}
 	
 	unsigned int findRange(
@@ -376,8 +377,9 @@ class DString {
 		unsigned int len, unsigned int start){
 		unsigned int max = length;
 		if (start >= max) {return 0;}
-		return std::arr::Uchar::findRange(str, i, len,
-			data, start, max - start);
+		return std::arr::Uchar::findRange(
+			data, start, max - start,
+			str, i, len);
 	}
 
 	void insert(unsigned int start,
@@ -386,8 +388,8 @@ class DString {
 		unsigned char[] newData =
 			insertLength(len, start);
 		if (newData != nullptr){
-			std::arr::Uchar::copy(src, i,
-				newData, start, len);
+			std::arr::Uchar::copy(newData, start,
+				src, i, len);
 		}
 	}
 	
@@ -421,8 +423,8 @@ class DString {
 			unsigned char[] newData = 
 				new unsigned char[newCapacity];
 			if (previousData != nullptr){
-				std::arr::Uchar::copy(previousData, 0,
-					newData, 0, length + 1);
+				std::arr::Uchar::copy(newData, 0,
+					previousData, 0, length + 1);
 				delete[] previousData;
 			}
 			data = newData;
@@ -442,7 +444,7 @@ class DString {
 		unsigned char[] newData =
 			setLength(len);
 		if (newData != nullptr){
-			std::arr::Uchar::copy(str, start, data, 0, len);
+			std::arr::Uchar::copy(data, 0, str, start, len);
 			newData[len] = 0;
 		}
 	}

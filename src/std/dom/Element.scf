@@ -162,6 +162,13 @@ class Element {
 			node, nullptr, 0));
 		getTagName(node, string->data, start);
 	}
+	
+	static void scrollIntoView(
+		std::dom::Node* node){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		constwrite "	nodeObject.scrollIntoView();\n";
+	}
 
 	static void setScrollLeft(std::dom::Node* node,
 		unsigned int scrollLeft){

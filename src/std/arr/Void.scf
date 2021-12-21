@@ -75,12 +75,12 @@ class Void {
 	static unsigned char compare(
 		void* src, unsigned int i,
 		void* dst, unsigned int j, unsigned int len,
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements){
+		unsigned char(void*, unsigned int,
+			void*, unsigned int) compareElements){
 		len = i + len;
 		while (i < len){
 			unsigned char cmp = compareElements(
-				getElement(src, i), getElement(dst, j));
+				src, i, dst, j);
 			if (cmp != std::Compare::equal) {return cmp;}
 			i = i + 1;
 			j = j + 1;
@@ -92,8 +92,8 @@ class Void {
 		void* src, unsigned int i,
 		unsigned int srcLen, void* dst,
 		unsigned int j, unsigned int dstLen,
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements){
+		unsigned char(void*, unsigned int,
+			void*, unsigned int) compareElements){
 		unsigned int len;
 		if (srcLen > dstLen){
 			len = dstLen;
@@ -101,7 +101,7 @@ class Void {
 			len = srcLen;
 		}
 		unsigned char cmp = compare(src, i, dst, j, 
-			len, getElement, compareElements);
+			len, compareElements);
 		if (cmp == std::Compare::equal && 
 			dstLen != srcLen){
 			if (srcLen > dstLen) 
@@ -112,63 +112,59 @@ class Void {
 	}
 	
 	/* Works even if overlapping. */
-	static void copy(void* src, unsigned int i,
-		void* dst, unsigned int j, unsigned int len,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement){
+	static void copy(void* dst, unsigned int j,
+		void* src, unsigned int i, unsigned int len,
+		void(void*, unsigned int,
+			void*, unsigned int) setElement){
 		if (i > j){
 			len = i + len;
 			while (i < len){
-				setElement(getElement(dst, j),
-					getElement(src, i));
+				setElement(dst, j, src, i);
 				i = i + 1;
 				j = j + 1;
 			}
 		} else {
 			while (len > 0){
 				len = len - 1;
-				setElement(getElement(dst, j + len),
-					getElement(src, i + len));
+				setElement(dst, j + len, src, i + len);
 			}
 		}
 	}
 
 	static unsigned int find(
-		void* element, void* src,
-		unsigned int start, unsigned int max,
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements){
+		void* src, unsigned int start, 
+		unsigned int max, void* element,
+		unsigned char(void*, unsigned int,
+			void*) compareElements){
 		max = max + start;
 		while (start < max){
-			if (compareElements(element, getElement(
-				src, start)) == std::Compare::equal) 
-					{return start + 1;}
+			if (compareElements(src, start, element) == 
+				std::Compare::equal) {return start + 1;}
 			start = start + 1;
 		}
 		return 0;
 	}
 
 	static unsigned int findLast(
-		void* element, void* src,
-		unsigned int end, unsigned int max,
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements){
+		void* src, unsigned int end, 
+		unsigned int max, void* element,
+		unsigned char(void*, unsigned int,
+			void*) compareElements){
 		max = max + end;
 		while (max > end){
 			max = max - 1;
-			if (compareElements(element, getElement(
-				src, max)) == std::Compare::equal) 
-					{return max + 1;}
+			if (compareElements(src, max, element) == 
+				std::Compare::equal) {return max + 1;}
 		}
 		return 0;
 	}
 	
 	static unsigned int findLastRange(
-		void* src, unsigned int i,
-		unsigned int len, void* dst,
-		unsigned int end, unsigned int max,
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements){
+		void* dst, unsigned int end, 
+		unsigned int max, void* src, 
+		unsigned int i, unsigned int len,
+		unsigned char(void*, unsigned int,
+			void*, unsigned int) compareElements){
 		if (len <= max){
 			max = end + max - len + 1;
 			unsigned int j;
@@ -177,9 +173,8 @@ class Void {
 				j = 0;
 				while (j < len){
 					if (compareElements(
-							getElement(src, i + j),
-							getElement(dst, max + j)) != 
-						std::Compare::equal) {break;}
+						dst, max + j, src, i + j) != 
+							std::Compare::equal) {break;}
 					j = j + 1;
 				}
 				if (j == len) {return max + 1;}
@@ -189,11 +184,11 @@ class Void {
 	}
 
 	static unsigned int findRange(
-		void* src, unsigned int i,
-		unsigned int len, void* dst,
-		unsigned int start, unsigned int max,
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements){
+		void* dst, unsigned int start, 
+		unsigned int max, void* src, 
+		unsigned int i, unsigned int len,
+		unsigned char(void*, unsigned int,
+			void*, unsigned int) compareElements){
 		if (len <= max){
 			max = start + max - len;
 			unsigned int j;
@@ -201,9 +196,8 @@ class Void {
 				j = 0;
 				while (j < len){
 					if (compareElements(
-							getElement(src, i + j),
-							getElement(dst, start + j)) != 
-						std::Compare::equal) {break;}
+						dst, start + j, src, i + j) != 
+							std::Compare::equal) {break;}
 					j = j + 1;
 				}
 				start = start + 1;
@@ -214,25 +208,26 @@ class Void {
 	}
 	
 	static unsigned int findSorted(
-		void* element, void* src,
-		unsigned int start, unsigned int max,
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements){
+		void* src, unsigned int start, 
+		unsigned int max, void* element,
+		unsigned char(void*, unsigned int,
+			void*) compareElements){
 		max = max + start;
-		/* Trick using offset by 1 to keep variables as unsigned. */
+		/* Trick using offset by 1 to 
+			keep variables as unsigned. */
 		start = start + 1;
 		unsigned int mid;
 		while (max >= start){
 			mid = (max + start) >> 1;
-			switch (compareElements(element,
-				getElement(src, mid - 1)){
+			switch (compareElements(src, 
+				mid - 1, element)){
 				case std::Compare::less:
-					end = mid - 1;
+					start = mid + 1;
 					break;
 				case std::Compare::equal:
 					return mid;
 				case std::Compare::greater:
-					start = mid + 1;
+					max = mid - 1;
 					break;
 			}
 		}
@@ -246,16 +241,16 @@ class Void {
 		unsigned int arrayLen, void* src,
 		unsigned int srcStart, unsigned int srcLen,
 		unsigned int dstLen,
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements){
+		unsigned char(void*, unsigned int,
+			void*, unsigned int) compareElements){
 		unsigned int addLen = 0;
 		if (srcLen == 0) {return arrayLen;}
 		arrayLen = arrayLen + arrayStart;
 		while (arrayStart < arrayLen){
 			if (arrayLen - arrayStart >= srcLen){
 				if (compare(array, arrayStart, src, 
-					srcStart, srcLen, getElement, 
-					compareElements) == std::Compare::equal){
+					srcStart, srcLen, compareElements) == 
+					std::Compare::equal){
 					addLen = addLen + dstLen;
 					arrayStart = arrayStart + srcLen;
 					continue;
@@ -269,22 +264,30 @@ class Void {
 	
 	static void reverse(void* src,
 		unsigned int start, unsigned int len,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
-		void* tmp){
+		void(void*, unsigned int,
+			unsigned int) switchElements){
 		if (len <= 1) {return;}
 		len = len + start - 1;
 		while (len > start){
-			switchValue(getElement(src, start), 
-				getElement(src, len), setElement, tmp);
+			switchElements(src, start, len);
 			start = start + 1;
 			len = len - 1;
 		}
 	}
 	
+	static void set(void* dst, unsigned int i, 
+		unsigned int len, void* src,
+		void(void*, unsigned int, void*) setElement){
+		while (len > 0){
+			len = len - 1;
+			setElement(dst, i + len, src);
+		}
+	}
+	
 	/* Sets a subarray to the data but 
 		all occurences of src is replaced with dst.
-		Currently does not support if cStr is a substring of data. */
+		Currently does not support if the subarray 
+		is a subarray of data. */
 	static void setReplace(
 		void* data, unsigned int dataStart,
 		void* array, unsigned int arrayStart,
@@ -292,35 +295,30 @@ class Void {
 		unsigned int srcStart, unsigned int srcLen,
 		void* dst, unsigned int dstStart,
 		unsigned int dstLen,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
-		unsigned char(void*,void*) compareElements){
+		void(void*, unsigned int,
+			void*, unsigned int) copyElement,
+		void(void*, unsigned int,
+			void*, unsigned int) setElement,
+		unsigned char(void*, unsigned int,
+			void*, unsigned int) compareElements){
 		arrayLen = arrayLen + arrayStart;
 		while (arrayStart < arrayLen){
 			if (arrayLen - arrayStart >= srcLen){
 				if (compare(array, arrayStart, src, 
-					srcStart, srcLen, getElement, 
-					compareElements) == std::Compare::equal){
+					srcStart, srcLen, compareElements) == 
+					std::Compare::equal){
 					copy(dst, dstStart, data, dataStart, 
-						dstLen, getElement, setElement);
+						dstLen, copyElement);
 					dataStart = dataStart + dstLen;
 					arrayStart = arrayStart + srcLen;
 					continue;
 				}
 			}
-			setElement(getElement(data, dataStart),
-				getElement(array, arrayStart));
+			setElement(data, dataStart,
+				array, arrayStart);
 			dataStart = dataStart + 1;
 			arrayStart = arrayStart + 1;
 		}
-	}
-	
-	static void switchValue(void* src, void* dst,
-		void(void*, void*) setElement,
-		void* tmp){
-		setElement(tmp, src);
-		setElement(src, dst);
-		setElement(dst, tmp);
 	}
 
 }

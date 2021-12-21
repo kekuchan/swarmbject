@@ -71,6 +71,33 @@ class Event {
 
 	std::js::Object jsObject;
 
+	static void* getJsCallback(void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (callback == nullptr){
+			constwrite "		return null;\n";
+		} else {
+			constwrite
+				"		var f = _getFunctionById(callback);\n"
+				"		return function(e){\n\t\t\t";
+							constwrite std::dom::Event::eventCallCallback;
+							constwrite "(f, e);\n"
+				"		};\n";
+		}
+	}
+	
+	static void eventCallCallback(void* callback,
+		void* eventObject){
+		std::dom::Event event;
+		event.jsObject.setJsObject(eventObject);
+		std::dom::Event* eventPtr = &event;
+		std::ApplicationInstance aexcl app;
+		constwrite
+			"		var callStart = _objectsToCallStart;\n"
+			"		app = _appObject;\n"
+			"		callback(eventPtr, app);\n"
+			"		if (callStart === 0) _callObjects();\n";
+	}
+
 	/* Public member functions. */
 
 	void getCurrentTarget(std::dom::Node* node){
@@ -81,22 +108,6 @@ class Event {
 		node->jsObject.setJsObject(getObject);
 	}
 
-	unsigned int getKeyCode(){
-		if (jsObject.isNull()) {return 0;}
-		void* eventObject = jsObject.getJsObject();
-		unsigned int code;
-		constwrite "	code = eventObject.keyCode;\n";
-		return code;
-	}
-
-	bool getShiftKey(){
-		if (jsObject.isNull()) {return false;}
-		void* eventObject = jsObject.getJsObject();
-		bool shiftKey;
-		constwrite "	shiftKey = eventObject.shiftKey;\n";
-		return shiftKey;
-	}
-
 	void getTarget(std::dom::Node* node){
 		if (jsObject.isNull()) {return;}
 		void* eventObject = jsObject.getJsObject();
@@ -105,39 +116,19 @@ class Event {
 		node->jsObject.setJsObject(getObject);
 	}
 
-	unsigned int getTextClipboardData(
-		unsigned char[] text, unsigned int start){
-		if (jsObject.isNull()) {return 0;}
-		void* eventObject = jsObject.getJsObject();
-		void* dataObject;
-		constwrite "	dataObject = "
-			"eventObject.clipboardData.getData('text');\n";
-		return std::js::String::encode(
-			dataObject, text, start);
-	}
-
-	void getTextClipboardDataDString(
-		std::str::DString* string){
-		unsigned int start = string->length;
-		string->shift(start, 
-			getTextClipboardData(nullptr, 0));
-		getTextClipboardData(string->data, start);
-	}
-
 	void preventDefault(){
 		if (jsObject.isNull()) {return;}
 		void* eventObject = jsObject.getJsObject();
 		constwrite "	eventObject.preventDefault();\n";
 	}
-
-	void setTextClipboardData(unsigned char[] text,
-		unsigned int start, unsigned int len){
-		if (jsObject.isNull()) {return;}
-		void* eventObject = jsObject.getJsObject();
-		void* textObject = std::js::String::decode(&text[start],
-			len);
-		constwrite "	eventObject.clipboardData.setData(\n"
-			"		'text/plain', textObject);\n";
+	
+	static void setOnChange(
+		std::dom::Node* node, void(std::dom::Event*,
+			std::ApplicationInstance) callback){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* jsCallback = getJsCallback(callback);
+		constwrite "	nodeObject.onchange = jsCallback;\n";
 	}
 
 	void stopPropagation(){

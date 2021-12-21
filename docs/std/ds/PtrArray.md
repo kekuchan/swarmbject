@@ -12,8 +12,7 @@ actual pointer type, thus it has to be converted.
 	
 ```
 std::ds::PtrArray array;
-array.setSize(2);
-int*[] years = (int*[])(array.data);
+int*[] years = (int*[])(array.create(2));
 years[0] = new int;
 *years[0] = 2020;
 years[1] = new int;
@@ -43,7 +42,7 @@ Returns: void.
 
 ```
 std::ds::PtrArray array;
-array.setSize(1);
+array.create(1);
 array.clear();
 unsigned int size = array.size; /*0*/
 ```
@@ -73,7 +72,7 @@ static unsigned char compare(
 
 /*In some function:*/
 std::ds::PtrArray array;
-array.setSize(2);
+array.create(2);
 int*[] years = new int*[2];
 int* year = new int;
 *year = 2020;
@@ -88,7 +87,7 @@ array.compare(years, 0, 2, compare);
 	2021,2020 > 2020,2021.*/
 ```
 
-## "copy" member function:
+## "copyRange" member function:
 
 Copy a subarray to the array, by 
 replacing the values.
@@ -104,7 +103,7 @@ Returns: void.
 
 ```
 std::ds::PtrArray array;
-array.setSize(2);
+array.create(2);
 int*[] years = new int*[2];
 int* year = new int;
 *year = 2020;
@@ -114,8 +113,28 @@ year = new int;
 *year = 2021;
 array.data[0] = year;
 years[1] = year;
-array.copy(0, years, 0, 2);
+array.copyRange(0, years, 0, 2);
 /*&2020,&2021*/
+```
+
+## "create" member function:
+
+Sets the array with empty space to set 
+manually. This might require creating a 
+new array, making the usage of the 
+previous data member not valid.
+
+Parameters:
+* The size of the array to create.
+
+Returns: the array data as void*[].
+
+```
+std::ds::PtrArray array;
+array.create(1);
+unsigned int size = array.size; /*1*/
+array.create(2);
+size = array.size; /*2*/
 ```
 
 ## "erase" member function:
@@ -134,8 +153,7 @@ Returns: void.
 
 ```
 std::ds::PtrArray array;
-array.setSize(2);
-int*[] years = (int*[])(array.data);
+int*[] years = (int*[])(array.create(2));
 years[0] = new int;
 *years[0] = 2020;
 years[1] = new int;
@@ -153,10 +171,10 @@ Finds the first occurence of an element.
 Parameters:
 * A pointer to an element to find.
 * Either nullptr for pointer comparison, or 
-a pointer to an "unsigned char(void*,void*)"  
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
+a pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the array 
+elements with the given element to find 
+and returns std::Compare::equal 
 if equal, or something else otherwise.
 * The starting index to search from in the array.
 
@@ -165,16 +183,15 @@ index + 1 position of the element.
 
 ```
 static unsigned char compare(
-	void* find, void* element){
-	if (*(int*)find == *(int*)element)
+	void* element, void* find){
+	if (*(int*)element == *(int*)find)
 		{return std::Compare::equal;}
 	return std::Compare::unset;
 }
 
 /*In some function:*/
 std::ds::PtrArray array;
-array.setSize(2);
-int*[] years = (int*[])(array.data);
+int*[] years = (int*[])(array.create(2));
 years[0] = new int;
 *years[0] = 2021;
 years[1] = new int;
@@ -192,10 +209,10 @@ but starting backwards in the array.
 Parameters:
 * A pointer to an element to find.
 * Either nullptr for pointer comparison, or 
-a pointer to an "unsigned char(void*,void*)"  
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
+a pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the array 
+elements with the given element to find 
+and returns std::Compare::equal 
 if equal, or something else otherwise.
 * The index + 1 position to 
 search from in the array.
@@ -205,16 +222,15 @@ index + 1 position of the element.
 
 ```
 static unsigned char compare(
-	void* find, void* element){
-	if (*(int*)find == *(int*)element)
+	void* element, void* find){
+	if (*(int*)element == *(int*)find)
 		{return std::Compare::equal;}
 	return std::Compare::unset;
 }
 
 /*In some function:*/
 std::ds::PtrArray array;
-array.setSize(2);
-int*[] years = (int*[])(array.data);
+int*[] years = (int*[])(array.create(2));
 years[0] = new int;
 *years[0] = 2021;
 years[1] = new int;
@@ -235,10 +251,10 @@ Parameters:
 in its array.
 * The size of the subarray to find.
 * Either nullptr for pointer comparison, or 
-a pointer to an "unsigned char(void*,void*)"  
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
+a pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the array 
+elements with the given element to find 
+and returns std::Compare::equal 
 if equal, or something else otherwise.
 * The index + 1 position to 
 search from in the array.
@@ -248,16 +264,15 @@ index + 1 position of the starting element.
 
 ```
 static unsigned char compare(
-	void* find, void* element){
-	if (*(int*)find == *(int*)element)
+	void* element, void* find){
+	if (*(int*)element == *(int*)find)
 		{return std::Compare::equal;}
 	return std::Compare::unset;
 }
 
 /*In some function:*/
 std::ds::PtrArray array;
-array.setSize(2);
-int*[] years = (int*[])(array.data);
+int*[] years = (int*[])(array.create(2));
 years[0] = new int;
 *years[0] = 2020;
 years[1] = new int;
@@ -277,10 +292,10 @@ Parameters:
 in its array.
 * The size of the subarray to find.
 * Either nullptr for pointer comparison, or 
-a pointer to an "unsigned char(void*,void*)"  
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
+a pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the array 
+elements with the given element to find 
+and returns std::Compare::equal 
 if equal, or something else otherwise.
 * The starting index to search from in the array.
 
@@ -289,16 +304,15 @@ index + 1 position of the starting element.
 
 ```
 static unsigned char compare(
-	void* find, void* element){
-	if (*(int*)find == *(int*)element)
+	void* element, void* find){
+	if (*(int*)element == *(int*)find)
 		{return std::Compare::equal;}
 	return std::Compare::unset;
 }
 
 /*In some function:*/
 std::ds::PtrArray array;
-array.setSize(2);
-int*[] years = (int*[])(array.data);
+int*[] years = (int*[])(array.create(2));
 years[0] = new int;
 *years[0] = 2020;
 years[1] = new int;
@@ -314,24 +328,23 @@ Finds an element, if the array is sorted.
 Parameters:
 * A pointer to an element to find.
 * A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to find with any of the array 
-elements and returns an std::Compare value.
+function that can compare any of the array 
+elements with the given element to find 
+and returns an std::Compare value.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the element.
 
 ```
 static unsigned char compare(
-	void* find, void* element){
+	void* element, void* find){
 	return std::arr::Int::compareValue(
-		*(int*)find, *(int*)element);
+		*(int*)element, *(int*)find);
 }
 
 /*In some function:*/
 std::ds::PtrArray array;
-array.setSize(2);
-int*[] years = (int*[])(array.data);
+int*[] years = (int*[])(array.create(2));
 years[0] = new int;
 *years[0] = 2020;
 years[1] = new int;
@@ -401,17 +414,17 @@ data member is not valid.
 Parameters:
 * A pointer to insert.
 * A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to insert with any of the array 
-elements and returns an std::Compare value.
+function that can compare any of the array 
+elements with the given element to insert 
+and returns an std::Compare value.
 
 Returns: void.
 
 ```
 static unsigned char compare(
-	void* insert, void* element){
+	 void* element, void* insert){
 	return std::arr::Int::compareValue(
-		*(int*)insert, *(int*)element);
+		*(int*)element, *(int*)insert);
 }
 		
 /*In some function:*/
@@ -459,8 +472,7 @@ Returns: void.
 
 ```
 std::ds::PtrArray array;
-array.setSize(2);
-int*[] years = (int*[])(array.data);
+int*[] years = (int*[])(array.create(2));
 years[0] = new int;
 *years[0] = 2020;
 years[1] = new int;
@@ -469,7 +481,7 @@ array.reverse();
 /*&2021,&2020*/
 ```
 
-## "set" member function:
+## "setRange" member function:
 
 Sets the array to be a copy of a subarray.
 As it might require creating a new array, 
@@ -490,27 +502,8 @@ years[0] = new int;
 *years[0] = 2020;
 years[1] = new int;
 *years[1] = 2021;
-array.set(years, 0, 2);
+array.setRange(years, 0, 2);
 /*&2020,&2021*/
-```
-
-## "setSize" member function:
-
-Changes the size of the array. As it creates 
-a new array and copy all the elements, usage of 
-the previous data member is not valid.
-
-Parameters:
-* The new size the array.
-
-Returns: void.
-
-```
-std::ds::PtrArray array;
-array.setSize(1);
-unsigned int size = array.size; /*1*/
-array.setSize(2);
-size = array.size; /*2*/
 ```
 
 ## "shift" member function:

@@ -82,8 +82,8 @@ class StringLiteral : lexical::Type {
 	}
 
 	static unsigned char cmpString(void* i, void* j){
-		return ((std::str::String*)i)->compareString(
-			&((lexical::StringLiteral*)j)->string);
+		return (lexical::StringLiteral*)i->
+			string.compareString((std::str::String*)j);
 	}
 
 }

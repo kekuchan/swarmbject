@@ -14,23 +14,14 @@ class Main {
 		std::dom::Node input;
 		std::html::InputElement::create(
 			&document, &input);
-		input.setOnKeyDown(onKeyDown);
-		input.setOnCopy(onCopy);
-		input.setOnPaste(onPaste);
+		std::dom::KeyboardEvent::setOnKeyDown(
+			&input, onKeyDown);
 		std::dom::Node node;
 		std::html::Document::getBody(&document, &node);
 		node.appendChild(&input);
 	}
 	
 	static void onKeyDown(std::dom::Event* e,
-		std::ApplicationInstance aexcl app){
-	}
-	
-	static void onCopy(std::dom::Event* e,
-		std::ApplicationInstance aexcl app){
-	}
-	
-	static void onPaste(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 	}
 }
@@ -53,30 +44,6 @@ e->getCurrentTarget(&node);
 /*"node" now references the input element. */
 ```
 
-## "getKeyCode" member function:
-
-Gets the pressed key.
-
-Returns: unsigned int.
-
-```
-/*In Main::onKeyDown.*/
-unsigned int keyCode = e->getKeyCode();
-```
-
-## "getShiftKey" member function:
-
-Checks if the shift key was 
-pressed during the event.
-	
-Returns: true, if the shift key was 
-pressed during the event, false otherwise.
-
-```
-/*In Main::onKeyDown.*/
-bool shift = e->getShiftKey();
-```
-
 ## "getTarget" member function:
 
 Gets the target of the event.
@@ -94,41 +61,6 @@ e->getTarget(&node);
 /*"node" now references the input element. */
 ```
 
-## "getTextClipboardData" member function:
-
-Copy the plain text data of the 
-clipboard to an array.
-		
-Parameters:
-* The unsigned char array to copy to.
-* The starting index of the array to copy to.
-
-Returns: the length of the text data.
-
-```
-/*In Main::onPaste.*/
-std::str::DString string;
-string.shift(0, 
-	e->getTextClipboardData(nullptr, 0));
-e->getTextClipboardData(string.data, 0);
-```
-
-## "getTextClipboardDataDString" member function:
-
-Inserts the plain text data of the 
-clipboard to an std::str::DString's end.
-
-Parameters:
-* A pointer an std::str::DString.
-
-Returns: void.
-
-```
-/*In Main::onPaste.*/
-std::str::DString string;
-e->getTextClipboardDataDString(&string);
-```
-
 ## "preventDefault" member function:
 
 Prevent the default action 
@@ -142,23 +74,27 @@ e->preventDefault();
 /*The clipboard data is not inserted..*/
 ```
 
-## "setTextClipboardData" member function:
+## "setOnChange" static function:
 
-Sets the plain text data of the 
-clipboard to be a copy of a substring.
+Sets a function to be called each 
+time the content is changed.
 
 Parameters:
-* The unsigned char array of the substring to copy.
-* The starting index of the substring to copy 
-in its array.
-* The length of the substring to copy.
+* A pointer to the element, as an std::dom::Node.
+* Either nullptr to unset, or a 
+pointer to a "void(std::dom::Event*, 
+std::ApplicationInstance)" function to call.
 
 Returns: void.
 
 ```
-/*In Main::onCopy.*/
-e->setTextClipboardData("2021", 0, 4);
-/*The clipboard now contains "2021".*/
+/*In Main.*/
+static void onChange(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+}
+/*In Main::main.*/
+std::dom::Event::setOnChange(
+	&input, onChange);
 ```
 
 ## "stopPropagation" member function:

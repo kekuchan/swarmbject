@@ -1,181 +1,89 @@
-# "std::dom::Range" class:
+# "std::dom::KeyboardEvent" class:
 
-Used to point to a range of DOM nodes. 
-Multiple std::dom::Range objects can 
-point to the same range.
+Static functions to work with DOM keyboard events.
 
 ```
 class Main {
-	std::dom::Node text;
-	
 	void main(std::ApplicationInstance aexcl app){
 		std::bom::Window window;
 		app.getWindow(&window);
 		std::dom::Node document;
 		window.getDocumentNode(&document);
-		std::dom::Node* text = &app.main.text;
-		std::dom::Text::create(
-			&document, text, "2021", 0, 4);
 		std::dom::Node input;
 		std::html::InputElement::create(
 			&document, &input);
-		std::html::InputElement::setType(
-			&input, std::html::InputTypes::button);
-		std::html::InputElement::setValue(
-			&input, "Click", 0, 5);
-		std::dom::MouseEvent::setOnMouseDown(
-			&input, onMouseDown);
 		std::dom::Node node;
 		std::html::Document::getBody(&document, &node);
-		node.appendChild(text);
 		node.appendChild(&input);
-	}
-	
-	static void onMouseDown(std::dom::Event* e,
-		std::ApplicationInstance aexcl app){
-		e->preventDefault();
-		std::bom::Window window;
-		app.getWindow(&window);
-		std::dom::Selection selection;
-		window.getSelection(&selection);
-		std::dom::Range range;
-		selection.getRangeAt(&range, 0);
 	}
 }
 ```
 
-## "deleteContents" member function:
+## "getKeyCode" static function:
 
-Deletes the range's content.
-
-Returns: void.
-
-```
-/*In Main::onMouseDown.*/
-range.deleteContents();
-/*Selecting "2021", and clicking on 
-	the button deletes it.*/
-```
-
-## "getCollapsed" member function:
-
-Checks if the range's start and end 
-is the same, as that indicates a 
-position, instead of a whole range.
-
-Returns: bool.
-
-```
-/*In Main::onMouseDown.*/
-bool collapsed = range.getCollapsed();
-/*Selecting "2021", and clicking on 
-	the button returns false.*/
-```
-
-## "getEndContainer" member function:
-
-Gets the range's ending container.
+Gets the pressed key.
 
 Parameters:
-* A pointer to an std::dom::Node to set.
-
-Returns: void.
-
-```
-/*In Main::onMouseDown.*/
-std::dom::Node node;
-range.getEndContainer(&node);
-/*Selecting "2021", and clicking on the button 
-	sets the node to point to the text node.*/
-```
-
-## "getEndOffset" member function:
-
-Gets the range's ending offset in the 
-ending container. For text nodes the 
-offset is in UTF-8 unsigned chars.
+* A pointer to the event as an std::dom::Event.
 
 Returns: unsigned int.
 
 ```
-/*In Main::onMouseDown.*/
-unsigned int offset = range.getEndOffset();
-/*Selecting "2021", and clicking 
-	on the button returns 4.*/
+/*In Main.*/
+static void onKeyDown(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+	unsigned int keyCode = 
+		std::dom::KeyboardEvent::getKeyCode(e);
+}
+/*In Main::main.*/
+std::dom::KeyboardEvent::setOnKeyDown(
+	&input, onKeyDown);
 ```
 
-## "getStartContainer" member function:
+## "getShiftKey" static function:
 
-Gets the range's starting container.
+Checks if the shift key was 
+pressed during the event.
 
 Parameters:
-* A pointer to an std::dom::Node to set.
+* A pointer to the event as an std::dom::Event.
+
+Returns: true, if the shift key was 
+pressed during the event, false otherwise.
+
+```
+/*In Main.*/
+static void onKeyDown(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+	unsigned int keyCode = 
+		std::dom::KeyboardEvent::getShiftKey(e);
+}
+/*In Main::main.*/
+std::dom::KeyboardEvent::setOnKeyDown(
+	&input, onKeyDown);
+```
+
+## "setOnKeyDown" static function:
+
+Sets a function to be called each 
+time a key is pressed.
+
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* Either nullptr to unset, or a 
+pointer to a "void(std::dom::Event*, 
+std::ApplicationInstance)" function to call.
 
 Returns: void.
 
 ```
-/*In Main::onMouseDown.*/
-std::dom::Node node;
-range.getStartContainer(&node);
-/*Selecting "2021", and clicking on the button 
-	sets the node to point to the text node.*/
-```
-
-## "getStartOffset" member function:
-
-Gets the range's starting offset in the 
-starting container. For text nodes the 
-offset is in UTF-8 unsigned chars.
-
-Returns: unsigned int.
-
-```
-/*In Main::onMouseDown.*/
-unsigned int offset = range.getStartOffset();
-/*Selecting "2021", and clicking 
-	on the button returns 0.*/
-```
-
-## "setEnd" member function:
-
-Sets the range's ending container and 
-offset. For text nodes the offset is 
-in UTF-8 unsigned chars.
-
-Parameters:
-* The ending container as 
-a pointer to an std::dom::Node.
-* The ending offset.
-
-Returns: void.
-
-```
-/*In Main::onMouseDown.*/
-std::dom::Node* text = &app.main.text;
-range.setStart(text, 0);
-range.setEnd(text, 4);
-/*Clicking on the button selects "2021".*/
-```
-
-## "setStart" member function:
-
-Sets the range's starting container and 
-offset. For text nodes the offset is 
-in UTF-8 unsigned chars.
-
-Parameters:
-* The starting container as 
-a pointer to an std::dom::Node.
-* The starting offset.
-
-Returns: void.
-
-```
-/*In Main::onMouseDown.*/
-std::dom::Node* text = &app.main.text;
-range.setStart(text, 0);
-range.setEnd(text, 4);
-/*Clicking on the button selects "2021".*/
+/*In Main.*/
+static void onKeyDown(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+}
+/*In Main::main.*/
+std::dom::KeyboardEvent::setOnKeyDown(
+	&input, onKeyDown);
 ```
 
 # Software license

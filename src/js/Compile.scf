@@ -518,7 +518,7 @@ class Compile {
 		std::str::DString* code = &main->compiledCode;
 		code->addLength(len, true, true);
 		std::str::CString::setUintEnd(
-			i, code->data, code->length - 1,
+			code->data, code->length - 1, i,
 			std::NumberBases::decimal);
 	}
 	

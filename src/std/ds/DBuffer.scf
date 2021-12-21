@@ -99,8 +99,8 @@ class DBuffer {
 				unsigned char[] previousData = data;
 				newData = new unsigned char[newCapacity];
 				if (copy){
-					std::arr::Uchar::copy(previousData, 0,
-						newData, 0, previousSize);
+					std::arr::Uchar::copy(newData, 0,
+						previousData, 0, previousSize);
 				}
 				if (del) {delete[] previousData;}
 			}
@@ -130,8 +130,8 @@ class DBuffer {
 		unsigned int previousSize = size;
 		unsigned char[] newData = 
 			addSize(len, true, false);
-		std::arr::Uchar::copy(
-			array, start, newData, previousSize, len);
+		std::arr::Uchar::copy(newData, previousSize,
+			array, start, len);
 		if (newData != previousData){
 			delete[] previousData;
 		}
@@ -176,7 +176,7 @@ class DBuffer {
 	void getU8s(unsigned int start,
 		unsigned char[] chars, unsigned int i,
 		unsigned int len){
-		std::arr::Uchar::copy(data, start, chars, i, len);
+		std::arr::Uchar::copy(chars, i, data, start, len);
 	}
 
 	unsigned short getU16BE(unsigned int start){
@@ -211,8 +211,8 @@ class DBuffer {
 			unsigned char[] previousData = data;
 			unsigned char[] newData = new void*[newCapacity];
 			if (previousData != nullptr){
-				std::arr::Uchar::copy(previousData, 0,
-					newData, 0, size);
+				std::arr::Uchar::copy(newData, 0,
+					previousData, 0, size);
 				delete[] previousData;
 			}
 			data = newData;

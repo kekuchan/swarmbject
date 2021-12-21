@@ -160,8 +160,8 @@ class ClassType : data::Type {
 	}
 
 	static unsigned char cmpString(void* i, void* j){
-		return ((std::str::View*)i)->compareString(
-			&((data::ClassType*)j)->name);
+		return (data::ClassType*)i->
+			name.compareView((std::str::View*)j);
 	}
 	
 	void insertDataMember(

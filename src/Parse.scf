@@ -75,18 +75,22 @@ class Parse {
 		main->compileError = false;
 		std::dom::Node div;
 		main->compileContainer.getFirstChild(&div);
-		div.setOnClick(nullptr);
+		std::dom::MouseEvent::setOnClick(
+			&div, nullptr);
 		div.getNextSibling(&div);
-		div.setOnClick(nullptr);
+		std::dom::MouseEvent::setOnClick(
+			&div, nullptr);
 		div.getNextSibling(&div);
-		div.setOnClick(nullptr);
+		std::dom::MouseEvent::setOnClick(
+			&div, nullptr);
 		div.getNextSibling(&div);
 		std::dom::Node text;
 		div.getFirstChild(&text);
 		std::html::Element::removeChildren(&div);
 		div.appendChild(&text);
 		div.getNextSibling(&div);
-		div.setOnClick(nullptr);
+		std::dom::MouseEvent::setOnClick(
+			&div, nullptr);
 
 		if (main->nullptrLiteral == nullptr){
 			main->nullptrLiteral = lexical::Type::create(
@@ -132,9 +136,9 @@ class Parse {
 				data::Types::doubleT);
 
 			std::ds::PtrArray* keywords = &main->keywords;
-			keywords->setSize(KeywordTypes::size);
 			unsigned char[][] data =
-				(unsigned char[][])(keywords->data);
+				(unsigned char[][])(keywords->
+					create(KeywordTypes::size));
 			data[KeywordTypes::aexclT] = "aexcl";
 			data[KeywordTypes::alockT] = "alock";
 			data[KeywordTypes::aptrT] = "aptr";
@@ -1932,17 +1936,21 @@ class Parse {
 	static void scrollLog(Main* main){
 		std::dom::Node div;
 		main->compileContainer.getFirstChild(&div);
-		div.setOnClick(Main::onClickOnCancelCompile);
+		std::dom::MouseEvent::setOnClick(
+			&div, Main::onClickOnCancelCompile);
 		div.getNextSibling(&div);
-		div.setOnClick(Main::onClickOnCompilePath);
+		std::dom::MouseEvent::setOnClick(
+			&div, Main::onClickOnCompilePath);
 		div.getNextSibling(&div);
-		div.setOnClick(onClickOnDoCompile);
+		std::dom::MouseEvent::setOnClick(
+			&div, onClickOnDoCompile);
 		div.getNextSibling(&div);
 		std::dom::Element::setScrollTop(
 			&div, std::dom::Element::
 				getScrollHeight(&div));
 		div.getNextSibling(&div);
-		div.setOnClick(Main::onClickOnRun);
+		std::dom::MouseEvent::setOnClick(
+			&div, Main::onClickOnRun);
 	}
 
 }

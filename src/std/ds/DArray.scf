@@ -79,11 +79,8 @@ class DArray {
 		data = nullptr;
 	}
 
-	void* addSize(unsigned int len, bool copy, bool del,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
-		void*(unsigned int) newArray,
-		void(void*) deleteArray){
+	void* addSize(unsigned int len,
+		void*(unsigned int) newArray){
 		unsigned int previousSize = size;
 		unsigned int newSize = previousSize + len;
 		unsigned int newCapacity = capacity;
@@ -94,15 +91,9 @@ class DArray {
 				newData = newArray(len);
 			} else {
 				newCapacity = newCapacity * 2;
-				if (newCapacity < newSize) {newCapacity = newSize;}
-				void* previousData = data;
+				if (newCapacity < newSize)
+					{newCapacity = newSize;}
 				newData = newArray(newCapacity);
-				if (copy){
-					std::arr::Void::copy(previousData, 0,
-						newData, 0, previousSize,
-						getElement, setElement);
-				}
-				if (del) {deleteArray(previousData);}
 			}
 			data = newData;
 			capacity = newCapacity;
@@ -113,22 +104,20 @@ class DArray {
 	
 	void* insertSize(unsigned int len,
 		unsigned int start,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
+		void(void*, unsigned int, 
+			void*, unsigned int) setArray,
 		void*(unsigned int) newArray,
 		void(void*) deleteArray){
 		unsigned int previousSize = size;
 		if (start > previousSize) {return nullptr;}
 		void* previousData = data;
-		void* newData = addSize(len, false, false,
-			getElement, setElement, newArray, deleteArray);
-		std::arr::Void::copy(previousData, start,
-			newData, start + len, previousSize - start,
-			getElement, setElement);
+		void* newData = addSize(len, newArray);
+		std::arr::Void::copy(newData, start + len,
+			previousData, start, previousSize - start,
+			setArray);
 		if (newData != previousData){
-			std::arr::Void::copy(previousData, 0,
-				newData, 0, start,
-				getElement, setElement);
+			std::arr::Void::copy(newData, 0,
+				previousData, 0, start, setArray);
 			deleteArray(previousData);
 		}
 		return newData;
@@ -136,23 +125,40 @@ class DArray {
 
 	/* Public member functions. */
 
-	void add(void* src,
-		unsigned int i, unsigned int len,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
+	void add(void* element, unsigned int len,
+		void(void*, unsigned int, 
+			void*, unsigned int) setArray,
 		void*(unsigned int) newArray,
-		void(void*) deleteArray){
-		if (len == 0) {return;}
+		void(void*) deleteArray,
+		void(void*, unsigned int, 
+			void*) setElement){
 		void* previousData = data;
 		unsigned int previousSize = size;
-		void* newData = addSize(len, true, false,
-			getElement, setElement, newArray, deleteArray);
-		std::arr::Void::copy(src, i,
-			newData, previousSize, len,
-			getElement, setElement);
+		void* newData = addSize(len, newArray);
+		std::arr::Void::set(newData,
+			previousSize, len, element, setElement);
 		if (newData != previousData){
+			std::arr::Void::copy(newData, 0,
+				previousData, 0, previousSize, setArray);
 			deleteArray(previousData);
 		}
+	}
+			
+	void addRange(void* src,
+		unsigned int i, unsigned int len,
+		void(void*, unsigned int, 
+			void*, unsigned int) setArray,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray,
+		void(void*, unsigned int, 
+			void*, unsigned int) setElements){
+		void* previousData = data;
+		unsigned int previousSize = size;
+		void* newData = grow(
+			len, setArray, newArray, deleteArray);
+		if (src == previousData) {src = newData;}
+		std::arr::Void::copy(newData, previousSize,
+			src, i, len, setElements);
 	}
 
 	void clear(){
@@ -161,37 +167,65 @@ class DArray {
 
 	unsigned char compare(void* dst,
 		unsigned int i, unsigned int dstLen,
-		unsigned char(void*,void*) compareElements,
-		void*(void*, unsigned int) getElement){
+		unsigned char(void*, unsigned int, 
+			void*, unsigned int) compareElements){
 		return std::arr::Void::compareRange(
 			data, 0, size, dst, i, 
-			dstLen, getElement, compareElements);
+			dstLen, compareElements);
 	}
 
-	void copy(unsigned int start, void* src, 
-		unsigned int i, unsigned int len,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement){
+	/* Does not support overlapping copy. */
+	void copy(unsigned int start, 
+		void* element, unsigned int len,
+		void(void*, unsigned int, 
+			void*) setElement){
 		unsigned int dataLen = size;
 		if (start + len > dataLen){
 			if (start >= dataLen) {return;}
 			len = dataLen - start;
 		}
-		std::arr::Void::copy(src, i, data, 
-			start, len, getElement, setElement);
+		std::arr::Void::set(data, 
+			start, len, element, setElement);
+	}
+			
+	void copyRange(unsigned int start, void* src, 
+		unsigned int i, unsigned int len,
+		void(void*, unsigned int, 
+			void*, unsigned int) setElements){
+		unsigned int dataLen = size;
+		if (start + len > dataLen){
+			if (start >= dataLen) {return;}
+			len = dataLen - start;
+		}
+		std::arr::Void::copy(data, start,
+			src, i, len, setElements);
+	}
+	
+	void* create(unsigned int len,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray){
+		void* newData;
+		unsigned int previousSize = size;
+		if (len > capacity){
+			deleteArray(data);
+			newData = addSize(len - size, newArray);
+		} else {
+			newData = data;
+			size = len;
+		}
+		return newData;
 	}
 	
 	void erase(unsigned int start, unsigned int len,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement){
+		void(void*, unsigned int, 
+			void*, unsigned int) setArray){
 		unsigned int newSize = size;
 		if (start < newSize){
 			void* newData = data;
 			if (start + len < newSize){
 				newSize = newSize - len;
-				std::arr::Void::copy(newData, start + len,
-					newData, start, newSize - start,
-					getElement, setElement);
+				std::arr::Void::copy(newData, start,
+					newData, start + len, newSize - start, setArray);
 				size = newSize;
 			} else {
 				size = start;
@@ -200,98 +234,120 @@ class DArray {
 	}
 
 	unsigned int find(void* element,
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements,
+		unsigned char(void*, 
+			unsigned int, void*) compareElements,
 		unsigned int start){
 		unsigned int len = size;
 		if (start >= len) {return 0;}
 		return std::arr::Void::find(
-			element, data, start, len - start, 
-			getElement, compareElements);
+			data, start, len - start, element,
+			compareElements);
 	}
 
 	unsigned int findLast(void* element,
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements,
+		unsigned char(void*, 
+			unsigned int, void*) compareElements,
 		unsigned int start){
 		unsigned int len = size;
 		if (start > len) {start = len;}
 		return std::arr::Void::findLast(
-			element, data, 0, start, 
-			getElement, compareElements);
+			data, 0, start, element,
+			compareElements);
 	}
 
 	unsigned int findLastRange(void* src, 
 		unsigned int i, unsigned int len, 
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements,
+		unsigned char(void*, unsigned int, 
+			void*, unsigned int) compareElements,
 		unsigned int start){
 		unsigned int max = size;
 		if (start > max) {start = max;}
 		return std::arr::Void::findLastRange(
-			src, i, len, data, 0, start, 
-			getElement, compareElements);
+			data, 0, start, src, i, len,
+			compareElements);
 	}
 	
 	unsigned int findRange(void* src, 
 		unsigned int i, unsigned int len, 
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements,
+		unsigned char(void*, unsigned int, 
+			void*, unsigned int) compareElements,
 		unsigned int start){
 		unsigned int max = size;
 		if (start >= max) {return 0;}
 		return std::arr::Void::findRange(
-			src, i, len, data, start, max - start, 
-			getElement, compareElements);
+			data, start, max - start, src, i, len,
+			compareElements);
 	}
 	
 	unsigned int findSorted(void* element,
-		void*(void*, unsigned int) getElement,
-		unsigned char(void*,void*) compareElements){
+		unsigned char(void*, 
+			unsigned int, void*) compareElements){
 		return std::arr::Void::findSorted(
-			element, data, 0, size, 
-			getElement, compareElements);
+			data, 0, size, element,
+			compareElements);
 	}
-
-	void insert(unsigned int start,
-		void* element, unsigned int len,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
+	
+	void* grow(unsigned int len,
+		void(void*, unsigned int, 
+			void*, unsigned int) setArray,
 		void*(unsigned int) newArray,
 		void(void*) deleteArray){
+		void* previousData = data;
+		unsigned int previousSize = size;
+		void* newData = addSize(len, newArray);
+		if (newData != previousData){
+			std::arr::Void::copy(newData, 0,
+				previousData, 0, previousSize, setArray);
+			deleteArray(previousData);
+		}
+		return newData;
+	}
+
+	/* Does not support overlapping copy. */
+	void insert(unsigned int start,
+		void* element, unsigned int len,
+		void(void*, unsigned int, 
+			void*, unsigned int) setArray,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray,
+		void(void*, unsigned int, 
+			void*) setElement){
 		void* newData = insertSize(len, start,
-			getElement, setElement, newArray, deleteArray);
+			setArray, newArray, deleteArray);
 		if (newData != nullptr){
-			while (len > 0){
-				len = len - 1;
-				setElement(getElement(
-					newData, start + len), element);
-			}
+			std::arr::Void::set(newData,
+				start, len, element, setElement);
 		}
 	}
 
+	/* Does not support overlapping copy. */
 	void insertRange(
 		unsigned int start, void* src, 
 		unsigned int i, unsigned int len,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
+		void(void*, unsigned int, 
+			void*, unsigned int) setArray,
 		void*(unsigned int) newArray,
-		void(void*) deleteArray){
+		void(void*) deleteArray,
+		void(void*, unsigned int, 
+			void*, unsigned int) setElements){
 		void* newData = insertSize(len, start,
-			getElement, setElement, newArray, deleteArray);
+			setArray, newArray, deleteArray);
 		if (newData != nullptr){
-			std::arr::Void::copy(src, i,
-				newData, start, len,
-				getElement, setElement);
+			std::arr::Void::copy(newData, start,
+				src, i, len, setElements);
 		}
 	}
 
+	/* Does not support overlapping copy. */
 	void insertSorted(void* element,
-		unsigned char(void*,void*) compare,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
+		unsigned char(void*, unsigned int, 
+			void*) compareElements,
+		void(void*, unsigned int, 
+			void*, unsigned int) setArray,
 		void*(unsigned int) newArray,
-		void(void*) deleteArray){
+		void(void*) deleteArray,
+		void(void*, unsigned int, 
+			void*) setElement){
 		unsigned int end = size;
 		if (end > 0){
 			/* Trick using offset by 1 to keep variables as unsigned. */
@@ -300,28 +356,29 @@ class DArray {
 			void* arrayData = data;
 			while (true){
 				mid = (end + start) >> 1;
-				switch (compare(element,
-					getElement(arrayData, mid - 1))){
+				switch (compareElements(arrayData, 
+					mid - 1, element)){
 					case std::Compare::less:
-						end = mid - 1;
-						if (start > end) {break;}
-						continue;
-					case std::Compare::equal:
-						end = mid - 1;
-						break;
-					case std::Compare::greater:
 						if (start == end){
 							end = mid;
 							break;
 						}
 						start = mid + 1;
 						continue;
+					case std::Compare::equal:
+						end = mid - 1;
+						break;
+					case std::Compare::greater:
+						end = mid - 1;
+						if (start > end) {break;}
+						continue;
 				}
 				break;
 			}
 		}
-		insert(end, element, 1, getElement,
-			setElement, newArray, deleteArray);
+		void* newData = insertSize(1, end,
+			setArray, newArray, deleteArray);
+		setElement(newData, end, element);
 	}
 
 	void move(std::ds::DArray* src,
@@ -329,55 +386,56 @@ class DArray {
 		if (src == this) {return;}
 		size = src->size;
 		capacity = src->capacity;
-		if (deleteArray != nullptr){
-			deleteArray(data);
-		} else {delete[] data;}
+		deleteArray(data);
 		data = src->data;
 		src->size = 0;
 		src->capacity = 0;
 		src->data = nullptr;
 	}
 	
-	void pop(void* element,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement){
+	void pop(void* element, void(void*, 
+		unsigned int, void*) getElement){
 		unsigned int previousSize = size;
 		if (previousSize > 0){
 			if (element != nullptr){
-				setElement(element,
-					getElement(data, previousSize - 1));
+				getElement(data, 
+					previousSize - 1, element);
 			}
 			size = previousSize - 1;
 		} else if (element != nullptr){
-			setElement(element, nullptr);
+			getElement(nullptr, 0, element);
 		}
 	}
 
 	void push(void* element,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
+		void(void*, unsigned int, 
+			void*, unsigned int) setArray,
 		void*(unsigned int) newArray,
-		void(void*) deleteArray){
-		void* newData = addSize(1, true, true,
-			getElement, setElement, newArray, deleteArray);
-		if (element != nullptr){
-			setElement(getElement(
-				data, size - 1), element);
+		void(void*) deleteArray,
+		void(void*, unsigned int, 
+			void*) setElement){
+		void* previousData = data;
+		unsigned int previousSize = size;
+		void* newData = addSize(1, newArray);
+		setElement(newData, previousSize, element);
+		if (newData != previousData){
+			std::arr::Void::copy(newData, 0,
+				previousData, 0, previousSize, setArray);
+			deleteArray(previousData);
 		}
 	}
 
 	void reserve(unsigned int newCapacity,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
+		void(void*, unsigned int, 
+			void*, unsigned int) setArray,
 		void*(unsigned int) newArray,
 		void(void*) deleteArray){
 		if (newCapacity > capacity){
 			void* previousData = data;
 			void* newData = newArray(newCapacity);
 			if (previousData != nullptr){
-				std::arr::Void::copy(previousData, 0,
-					newData, 0, size,
-					getElement, setElement);
+				std::arr::Void::copy(newData, 0,
+					previousData, 0, size, setArray);
 				deleteArray(previousData);
 			}
 			data = newData;
@@ -386,44 +444,46 @@ class DArray {
 	}
 	
 	void reverse(
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
-		void* tmp){
+		void(void*, unsigned int,
+			unsigned int) switchElements){
 		std::arr::Void::reverse(
-			data, 0, size,
-			getElement, setElement, tmp);
+			data, 0, size, switchElements);
+	}
+	
+	/* Does not support overlapping copy. */
+	void set(void* element, unsigned int len,
+		void*(unsigned int) newArray,
+		void(void*) deleteArray,
+		void(void*, unsigned int, 
+			void*) setElement){
+		void* newData = create(
+			len, newArray, deleteArray);
+		std::arr::Void::set(newData,
+			0, len, element, setElement);
 	}
 	
 	/* Should work even if the regions overlap, as then 
 		its size can not be greater than its container. */
-	void set(void* src, 
+	void setRange(void* src,
 		unsigned int start, unsigned int len,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
 		void*(unsigned int) newArray,
-		void(void*) deleteArray){
-		void* newData;
-		unsigned int previousSize = size;
-		if (len > previousSize){
-			newData = addSize(len - previousSize, 
-				false, true, getElement, setElement, 
-				newArray, deleteArray);
-		} else {
-			newData = data;
-			size = len;
-		}
-		std::arr::Void::copy(src, start, newData,
-			0, len, getElement, setElement);
+		void(void*) deleteArray,
+		void(void*, unsigned int, 
+			void*, unsigned int) setElements){
+		void* newData = create(
+			len, newArray, deleteArray);
+		std::arr::Void::copy(newData, 0,
+			src, start, len, setElements);
 	}
 
-	void shift(
+	void* shift(
 		unsigned int start, unsigned int len,
-		void*(void*, unsigned int) getElement,
-		void(void*, void*) setElement,
+		void(void*, unsigned int, 
+			void*, unsigned int) setArray,
 		void*(unsigned int) newArray,
 		void(void*) deleteArray){
-		insertSize(len, start, getElement, 
-			setElement, newArray, deleteArray);
+		return insertSize(len, start,
+			setArray, newArray, deleteArray);
 	}
 	
 	void trim(unsigned int len){

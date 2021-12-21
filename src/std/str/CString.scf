@@ -96,6 +96,14 @@ class CString {
 		}
 	}
 	
+	static unsigned char compareRange(
+		unsigned char[] src, unsigned int i,
+		unsigned char[] dst, unsigned int j,
+		unsigned int len){
+		return std::Compare::greater - 
+			compareSubstring(dst, j, len, src, i);
+	}
+	
 	/* Compares a substring, to a CString.
 		src is the substring, dst is a CString. */
 	static unsigned char compareSubstring(
@@ -213,16 +221,16 @@ class CString {
 	
 	/* Without ending 0, returns length. */
 	static unsigned int setUint(
-		unsigned int i, unsigned char[] dst,
-		unsigned int start, unsigned char base){
-		return setUintEnd(i,
-			dst, start + uintLength(i, base) - 1, base);
+		unsigned char[] dst, unsigned int start, 
+		unsigned int i, unsigned char base){
+		return setUintEnd(
+			dst, start + uintLength(i, base) - 1, i, base);
 	}
 
 	/* Without ending 0, returns length. */
 	static unsigned int setUintEnd(
-		unsigned int i, unsigned char[] dst,
-		unsigned int end, unsigned char base){
+		unsigned char[] dst, unsigned int end, 
+		unsigned int i, unsigned char base){
 		unsigned char divider =
 			numberBaseToUint(base);
 		unsigned int start = end;

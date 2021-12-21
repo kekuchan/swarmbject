@@ -23,7 +23,27 @@ unsigned char compare = std::str::CString::compare(
 	first, 0, second, 0);
 /*std::Compare::less, as 'f' < 's'.*/
 ```
-		
+
+## "compareRange" static function:
+
+Compares a string, to a substring.
+
+Parameters:
+* The unsigned char array of the string.
+* The starting index of the string in the array.
+* The unsigned char array of the substring.
+* The starting index of the substring in the array.
+* The length of the substring.
+Returns: an std::Compare value.
+
+```
+unsigned char const[] string = "string";
+unsigned char compare = 
+	std::str::CString::compareRange(
+		string, 0, string, 1, 1);
+/*std::Compare::less, as 's' < 't'.*/
+```
+
 ## "compareSubstring" static function:
 
 Compares a substring, to a string.
@@ -109,9 +129,9 @@ unsigned int base =
 Sets an unsigned int to a string.
 
 Parameters:
-* The unsigned int to set.
 * The unsigned char array of the string.
 * The starting index to write in the array.
+* The unsigned int to set.
 * The number's base to write, as in std::NumberBases.
 
 Returns: the number of characters used while 
@@ -122,7 +142,7 @@ unsigned char[] string = new unsigned char[5];
 /*4 characters and the ending 0.*/
 string[4] = 0;
 unsigned int chars = 
-	std::str::CString::setUint(2021, string, 0, 
+	std::str::CString::setUint(string, 0, 2021,
 		std::NumberBases::decimal);
 /*chars=4, string="2021"*/
 ```
@@ -134,9 +154,9 @@ index. This is faster than "setUint", as it can
 start processing the number backwards immediately.
 
 Parameters:
-* The unsigned int to set.
 * The unsigned char array of the string.
 * The ending index to write in the array.
+* The unsigned int to set.
 * The number's base to write, as in std::NumberBases.
 
 Returns: the number of characters used while 
@@ -147,7 +167,7 @@ unsigned char[] string = new unsigned char[5];
 /*4 characters and the ending 0.*/
 string[4] = 0;
 unsigned int chars = 
-	std::str::CString::setUintEnd(2021, string, 3, 
+	std::str::CString::setUintEnd(string, 3, 2021,
 		std::NumberBases::decimal);
 /*chars=4, string="2021"*/
 ```

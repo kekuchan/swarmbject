@@ -69,19 +69,18 @@ designed to work through a wide variety of devices.
 Documentation shall be provided for every user facing 
 feature of the language and its API in a simple and
 understandable way, and also with such an example.
-Note: This is a future goal, as currently only a
-tutorial is presented.
 
 # Learning
 
-Read the SWARMBJECT manual at [/docs/manual.md](manual.md), 
-to learn about creating SWARMBJECT applications. 
-It includes an architectural overview, a tutorial, 
-the language and the API reference.
+Read the SWARMBJECT manual at 
+[/docs/manual.md](manual.md) to learn 
+about creating SWARMBJECT applications. 
+It includes an architectural overview, a 
+tutorial, the language and the API reference.
 
 # Contribute
 
-Read [docs/CONTRIBUTE.md](CONTRIBUTE.md).
+Read [/docs/CONTRIBUTE.md](CONTRIBUTE.md).
 
 # Software license
 

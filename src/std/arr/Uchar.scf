@@ -118,8 +118,8 @@ class Uchar {
 	}
 
 	/* Works even if overlapping. */
-	static void copy(unsigned char[] src, unsigned int i,
-		unsigned char[] dst, unsigned int j, unsigned int len){
+	static void copy(unsigned char[] dst, unsigned int j,
+		unsigned char[] src, unsigned int i, unsigned int len){
 		if (i > j){
 			len = i + len;
 			while (i < len){
@@ -136,8 +136,8 @@ class Uchar {
 	}
 	
 	static unsigned int find(
-		unsigned char c, unsigned char[] src,
-		unsigned int start, unsigned int max){
+		unsigned char[] src, unsigned int start, 
+		unsigned int max, unsigned char c){
 		max = max + start;
 		while (start < max){
 			if (c == src[start]) {return start + 1;}
@@ -147,8 +147,8 @@ class Uchar {
 	}
 	
 	static unsigned int findLast(
-		unsigned char c, unsigned char[] src,
-		unsigned int end, unsigned int max){
+		unsigned char[] src, unsigned int end, 
+		unsigned int max, unsigned char c){
 		max = max + end;
 		while (max > end){
 			max = max - 1;
@@ -158,9 +158,9 @@ class Uchar {
 	}
 	
 	static unsigned int findLastRange(
-		unsigned char[] src, unsigned int i,
-		unsigned int len, unsigned char[] dst,
-		unsigned int end, unsigned int max){
+		unsigned char[] dst, unsigned int end, 
+		unsigned int max, unsigned char[] src, 
+		unsigned int i, unsigned int len){
 		if (len <= max){
 			max = end + max - len + 1;
 			unsigned int j;
@@ -178,9 +178,9 @@ class Uchar {
 	}
 	
 	static unsigned int findRange(
-		unsigned char[] src, unsigned int i,
-		unsigned int len, unsigned char[] dst,
-		unsigned int start, unsigned int max){
+		unsigned char[] dst, unsigned int start, 
+		unsigned int max, unsigned char[] src, 
+		unsigned int i, unsigned int len){
 		if (len <= max){
 			max = start + max - len;
 			unsigned int j;
@@ -198,8 +198,8 @@ class Uchar {
 	}
 	
 	static unsigned int findSorted(
-		unsigned char c, unsigned char[] src,
-		unsigned int start, unsigned int max){
+		unsigned char[] src, unsigned int start, 
+		unsigned int max, unsigned char c){
 		max = max + start;
 		/* Trick using offset by 1 to keep variables as unsigned. */
 		start = start + 1;
@@ -274,6 +274,15 @@ class Uchar {
 			switchValue(&src[start], &src[len]);
 			start = start + 1;
 			len = len - 1;
+		}
+	}
+	
+	static void set(
+		unsigned char[] dst, unsigned int i, 
+		unsigned int len, unsigned char src){
+		while (len > 0){
+			len = len - 1;
+			dst[i + len] = src;
 		}
 	}
 	

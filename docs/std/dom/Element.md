@@ -188,6 +188,20 @@ std::dom::Element::getTagNameDString(
 /*"DIV"*/
 ```
 
+## "scrollIntoView" static function:
+
+Scrolls the element into view.
+
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::dom::Element::scrollIntoView(&div);
+```
+
 ## "setScrollLeft" static function:
 
 Sets the element's vertical scrolling position.

@@ -67,99 +67,70 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class Namespace {
-	std::str::String name;
-	std::ds::PtrDArray namespaces;
-	std::ds::PtrDArray classes;
-	Namespace* parentNamespace;
+class ClipboardEvent {
 	
-	static Namespace* create(
-		std::str::View* string, Namespace* parent){
-		Namespace* namespace = new Namespace;
-		namespace->name.setView(string);
-		namespace->parentNamespace = parent;
-		return namespace;
+	/* Public member functions. */
+
+	static unsigned int getTextData(
+		std::dom::Event* event,
+		unsigned char[] text, unsigned int start){
+		if (event->jsObject.isNull()) {return 0;}
+		void* eventObject = event->jsObject.getJsObject();
+		void* dataObject;
+		constwrite "	dataObject = "
+			"eventObject.clipboardData.getData('text');\n";
+		return std::js::String::encode(
+			dataObject, text, start);
 	}
 
-	static unsigned char cmpName(void* i, void* j){
-		return ((Namespace*)i)->name.compareString(
-			&((Namespace*)j)->name);
+	static void getTextDataDString(
+		std::dom::Event* event,
+		std::str::DString* string){
+		unsigned int start = string->length;
+		string->shift(start, 
+			getTextData(event, nullptr, 0));
+		getTextData(event, string->data, start);
 	}
 
-	static unsigned char cmpString(void* i, void* j){
-		return (Namespace*)i->name.compareView(
-			(std::str::View*)j);
+	static void setTextData(
+		std::dom::Event* event, unsigned char[] text,
+		unsigned int start, unsigned int len){
+		if (event->jsObject.isNull()) {return;}
+		void* eventObject = event->jsObject.getJsObject();
+		void* textObject = std::js::String::decode(&text[start],
+			len);
+		constwrite "	eventObject.clipboardData.setData(\n"
+			"		'text/plain', textObject);\n";
 	}
 
-	void insertNamespace(Namespace* ns){
-		namespaces.insertSorted(ns, cmpName);
+	static void setOnCopy(
+		std::dom::Node* node, void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* jsCallback = 
+			std::dom::Event::getJsCallback(callback);
+		constwrite "	nodeObject.oncopy = jsCallback;\n";
 	}
-	
-	Namespace* getNamespace(
-		std::str::View* name){
-		unsigned int i = namespaces.findSorted(
-			name, cmpString);
-		if (i == 0) {return nullptr;}
-		return (Namespace*)(namespaces.data[i - 1]);
+
+	static void setOnCut(
+		std::dom::Node* node, void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* jsCallback = 
+			std::dom::Event::getJsCallback(callback);
+		constwrite "	nodeObject.oncut = jsCallback;\n";
 	}
-	
-	void insertClass(data::ClassType* classType){
-		classes.insertSorted(
-			classType, data::ClassType::cmpName);
-	}
-	
-	data::ClassType* getClass(
-		std::str::View* name){
-		unsigned int i = classes.findSorted(
-			name, data::ClassType::cmpString);
-		if (i == 0) {return nullptr;}
-		return (data::ClassType*)(classes.data[i - 1]);
-	}
-	
-	void getPath(std::str::DString* string){
-		Namespace* ns = parentNamespace;
-		if (ns != nullptr){
-			ns->getPath(string);
-		}
-		string->addString(&name);
-		string->addChar('/');
-	}
-	
-	void debug(std::str::DString* string, bool recurse){
-		string->addString(&name);
-		string->add(" (", 0, 2);
-		Namespace*[] compileNamespaces = (Namespace*[])
-			(namespaces.data);
-		unsigned int len = namespaces.size;
-		unsigned int i;
-		if (len > 0){
-			i = 0;
-			string->add("namespaces (", 0, 12);
-			while (i < len){
-				if (recurse){
-					compileNamespaces[i]->debug(string, recurse);
-				} else {
-					string->addString(&(compileNamespaces[i]->name));
-				}
-				string->add(", ", 0, 2);
-				i = i + 1;
-			}
-			string->add(") ", 0, 2);
-		}
-		data::ClassType*[] compileClasses = (data::ClassType*[])
-			(classes.data);
-		len = classes.size;
-		if (len > 0){
-			string->add("classes (", 0, 9);
-			i = 0;
-			while (i < len){
-				compileClasses[i]->debug(string, recurse);
-				string->add(", ", 0, 2);
-				i = i + 1;
-			}
-			string->addChar(')');
-		}
-		string->addChar(')');
+
+	static void setOnPaste(
+		std::dom::Node* node, void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* jsCallback = 
+			std::dom::Event::getJsCallback(callback);
+		constwrite "	nodeObject.onpaste = jsCallback;\n";
 	}
 	
 }
