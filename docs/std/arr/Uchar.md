@@ -66,17 +66,17 @@ Copy unsigned chars from an array to another.
 Works even between the same array.
 	
 Parameters:
-* The unsigned char array to copy from.
-* The starting index of the array to copy from.
 * The unsigned char array to copy to.
 * The starting index of the array to copy to.
+* The unsigned char array to copy from.
+* The starting index of the array to copy from.
 * The number of unsigned chars to copy.
 
 Returns: void.
 
 ```
 unsigned char[] values = new unsigned char[4];
-std::arr::Uchar::copy("2021", 0, values, 0, 4);
+std::arr::Uchar::copy(values, 0, "2021", 0, 4);
 /*values='2','0','2','1'.*/
 ```
 	
@@ -86,10 +86,10 @@ Finds the first occurence of an unsigned char
 in an unsigned char array.
 
 Parameters:
-* The unsigned char value to find.
 * The unsigned char array to search in.
 * The starting index to search from in the array.
 * The size from the starting index to search in.
+* The unsigned char value to find.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the unsigned char.
@@ -97,7 +97,7 @@ index + 1 position of the unsigned char.
 ```
 unsigned int position = 
 	std::arr::Uchar::find(
-		'2', "2020", 0, 4); /*1*/
+		"2020", 0, 4, '2'); /*1*/
 ```
 
 ## "findLast" static function:
@@ -106,10 +106,10 @@ Finds the first occurence of an unsigned char,
 but starting backwards in the unsigned char array.
 
 Parameters:
-* The unsigned char value to find.
 * The unsigned char array to search in.
 * The ending index to search until in the array.
 * The size from the ending index to search in.
+* The unsigned char value to find.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the unsigned char.
@@ -117,7 +117,7 @@ index + 1 position of the unsigned char.
 ```
 unsigned int position = 
 	std::arr::Uchar::findLast(
-		'2', "2020", 0, 4); /*3*/
+		"2020", 0, 4, '2'); /*3*/
 ```
 
 ## "findLastRange" static function:
@@ -126,13 +126,13 @@ Finds the first occurence of a subarray, but
 starting backwards in the unsigned char array.
 
 Parameters:
+* The unsigned char array to search in.
+* The ending index to search until in the array.
+* The size from the ending index to search in.
 * The unsigned char array of the subarray to find.
 * The starting index of the subarray to find 
 in its array.
 * The size of the subarray to find.
-* The unsigned char array to search in.
-* The ending index to search until in the array.
-* The size from the ending index to search in.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the starting unsigned char.
@@ -140,7 +140,7 @@ index + 1 position of the starting unsigned char.
 ```
 unsigned int position = 
 	std::arr::Uchar::findLastRange(
-		"20", 0, 2, "2020", 0, 4); /*3*/
+		"2020", 0, 4, "20", 0, 2); /*3*/
 ```
 	
 ## "findRange" static function:
@@ -149,13 +149,13 @@ Finds the first occurence of a subarray
 in an unsigned char array.
 
 Parameters:
+* The unsigned char array to search in.
+* The starting index to search from in the array.
+* The size from the starting index to search in.
 * The unsigned char array of the subarray to find.
 * The starting index of the subarray to find 
 in its array.
 * The size of the subarray to find.
-* The unsigned char array to search in.
-* The starting index to search from in the array.
-* The size from the starting index to search in.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the starting unsigned char.
@@ -163,7 +163,7 @@ index + 1 position of the starting unsigned char.
 ```
 unsigned int position = 
 	std::arr::Uchar::findRange(
-		"20", 0, 2, "2020", 0, 4); /*1*/
+		"2020", 0, 4, "20", 0, 2); /*1*/
 ```
 
 ## "findSorted" member function:
@@ -172,10 +172,10 @@ Finds an unsigned char in an unsigned
 char array, if the array is sorted.
 
 Parameters:
-* The unsigned char value to find.
 * The unsigned char array to search in.
 * The starting index to search from in the array.
 * The size from the starting index to search in.
+* The unsigned char value to find.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the element.
@@ -183,7 +183,7 @@ index + 1 position of the element.
 ```
 unsigned int position = 
 	std::arr::Uchar::findSorted(
-		'2', "012", 0, 3); /*3*/
+		"012", 0, 3, '2'); /*3*/
 ```
 
 ## "getU16BE" static function:
@@ -306,10 +306,26 @@ values[1] = '1';
 std::arr::Uchar::reverse(values, 0, 2);
 /*'1','2'*/
 ```
+
+## "set" static function:
+
+Copy an unsigned char to an unsigned char array.
+
+Parameters:
+* The unsigned char array to copy to.
+* The starting index of the array to copy to.
+* The number of times to copy the unsigned char.
+* An unsigned char to copy.
+
+```
+unsigned char[] years = new unsigned char[2];
+std::arr::Uchar::set(years, 0, 2, 21);
+/*21,21.*/
+```
 	
 ## "setReplace" static function:
 
-Copy a subarray to an unsigned char array, with
+Copy a subarray to an unsigned char array, with 
 all occurences of another given substring replaced.
 	
 Parameters:

@@ -7,30 +7,56 @@ class Year {
 	int value;
 	
 	static unsigned char compare(
-		void* year, void* element){
+		void* first, unsigned int i,
+		void* second, unsigned int j){
 		return std::arr::Int::compareValue(
-			(Year*)year->value, (Year*)element->value);
+			(Year[])first[i].value,
+			(Year[])second[j].value);
+	}
+	
+	static unsigned char compareElement(
+		void* years, unsigned int i, void* year){
+		return std::arr::Int::compareValue(
+			(Year[])years[i].value, *(int*)year);
+	}
+	
+	static void set(
+		void* first, unsigned int i,
+		void* second, unsigned int j){
+		Year[] years = (Year[])first;
+		years[i].value = 
+			(Year[])second[j].value;
+	}
+	
+	static void setElement(
+		void* array, unsigned int i, void* year){
+		int[] years = (int[])array;
+		years[i] = *(int*)year;
 	}
 	
 	static unsigned char equal(
-		void* year, void* element){
-		if ((Year*)year->value == 
-			(Year*)element->value)
+		void* first, unsigned int i,
+		void* second, unsigned int j){
+		if ((Year[])first[i].value == 
+			(Year[])second[j].value)
 			{return std::Compare::equal;}
 		return std::Compare::unset;
 	}
 	
-	static void* getElement(
-		void* array, unsigned int i){
-		Year[] years = (Year[])array;
-		return &years[i];
+	static unsigned char equalElement(
+		void* years, unsigned int i, void* year){
+		if ((Year[])years[i].value == *(int*)year)
+			{return std::Compare::equal;}
+		return std::Compare::unset;
 	}
 	
-	static void setElement(
-		void* set, void* element){
-		int* value = (int*)set;
-		Year* year = (Year*)set;
-		year->value = (Year*)element->value;
+	static void switchElements(
+		void* array, unsigned int i,
+		unsigned int j){
+		Year[] years = (Year[])array;
+		int year = years[i].value;
+		years[i].value = years[j].value;
+		years[j].value = year;
 	}
 }
 ```
@@ -45,13 +71,11 @@ Parameters:
 * The array of the second subarray.
 * The starting index of the second subarray in the array.
 * The size of the subarrays.
-* A pointer to a "void*(void*, unsigned int)" 
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given first subarray 
-element with any of the second subarray 
-elements and returns an std::Compare value.
+* A pointer to an "unsigned char(void*, unsigned int, 
+void*, unsigned int)" function that can compare 
+any element of the given first subarray at the given 
+index, with any element of the given second subarray 
+at the given index, and returns an std::Compare value.
 
 Returns: an std::Compare value.
 
@@ -61,7 +85,7 @@ years[0].value = 2020;
 years[1].value = 2021;
 unsigned char compare = std::arr::Void::compare(
 	(void*)years, 1, (void*)years, 0, 1, 
-	Year::getElement, Year::compare);
+	Year::compare);
 /*std::Compare::greater as 2021 > 2020.*/
 ```
 	
@@ -76,13 +100,11 @@ Parameters:
 * The array of the second subarray.
 * The starting index of the second subarray in the array.
 * The size of the second subarray.
-* A pointer to a "void*(void*, unsigned int)" 
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given first subarray 
-element with any of the second subarray 
-elements and returns an std::Compare value.
+* A pointer to an "unsigned char(void*, unsigned int, 
+void*, unsigned int)" function that can compare 
+any element of the given first subarray at the given 
+index, with any element of the given second subarray 
+at the given index, and returns an std::Compare value.
 
 Returns: an std::Compare value.
 
@@ -93,7 +115,7 @@ years[1].value = 2021;
 unsigned char compare = 
 	std::arr::Void::compareRange(
 		(void*)years, 1, 1, (void*)years, 0, 1, 
-		Year::getElement, Year::compare);
+		Year::compare);
 /*std::Compare::greater as 2021 > 2020.*/
 ```
 	
@@ -103,17 +125,16 @@ Copy from an array to another.
 Works even between the same array.
 	
 Parameters:
-* The array to copy from.
-* The starting index of the array to copy from.
 * The array to copy to.
 * The starting index of the array to copy to.
+* The array to copy from.
+* The starting index of the array to copy from.
 * The number of pointers to copy.
-* A pointer to a "void*(void*, unsigned int)" 
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to a "void(void*, void*)"
-function that sets to the given pointed 
-element another pointed element.
+* A pointer to an "void(void*, unsigned int, 
+void*, unsigned int)" function that can set 
+any element of the given first subarray at the 
+given index, to be a copy of an element of the 
+given second subarray at the given index.
 
 Returns: void.
 
@@ -123,8 +144,8 @@ years[0].value = 2020;
 years[1].value = 2021;
 Year[] values = new Year[2];
 std::arr::Void::copy(
-	(void*)years, 0, (void*)values, 0, 2, 
-	Year::getElement, Year::setElement);
+	(void*)values, 0, (void*)years, 0, 2, 
+	Year::set);
 /*values=2020,2021.*/
 ```
 
@@ -133,18 +154,16 @@ std::arr::Void::copy(
 Finds the first occurence of an element.
 
 Parameters:
-* A pointer to an element to find.
 * The array to search in.
 * The starting index to search from in the array.
 * The size from the starting index to search in.
-* A pointer to a "void*(void*, unsigned int)" 
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
-if equal, or something else otherwise.
+* A pointer to an element to find.
+* A pointer to an "unsigned char(void*, 
+unsigned int, void*)" function that can compare 
+any element of the given subarray at the given 
+index, with the given element to find, and 
+returns std::Compare::equal if equal, or 
+something else otherwise.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the pointer.
@@ -156,8 +175,8 @@ years[1].value = 2021;
 int find = 2021;
 unsigned int position = 
 	std::arr::Void::find(
-		&find, (void*)years, 0, 2, 
-		Year::getElement, Year::equal); /*1*/
+		(void*)years, 0, 2, &find, 
+		Year::equalElement); /*1*/
 ```
 		
 ## "findLast" static function:
@@ -166,18 +185,16 @@ Finds the first occurence of an element,
 but starting backwards in the array.
 
 Parameters:
-* A pointer to an element to find.
 * The array to search in.
 * The ending index to search until in the array.
 * The size from the ending index to search in.
-* A pointer to a "void*(void*, unsigned int)" 
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
-if equal, or something else otherwise.
+* A pointer to an element to find.
+* A pointer to an "unsigned char(void*, 
+unsigned int, void*)" function that can compare 
+any element of the given subarray at the given 
+index, with the given element to find, and 
+returns std::Compare::equal if equal, or 
+something else otherwise.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the pointer.
@@ -189,8 +206,8 @@ years[1].value = 2021;
 int find = 2021;
 unsigned int position = 
 	std::arr::Void::findLast(
-		&find, (void*)years, 0, 2, 
-		Year::getElement, Year::equal); /*2*/
+		(void*)years, 0, 2, &find, 
+		Year::equalElement); /*2*/
 ```
 	
 ## "findLastRange" static function:
@@ -199,21 +216,20 @@ Finds the first occurence of a subarray, but
 starting backwards in the array.
 
 Parameters:
+* The array to search in.
+* The ending index to search until in the array.
+* The size from the ending index to search in.
 * The array of the subarray to find.
 * The starting index of the subarray to find 
 in its array.
 * The size of the subarray to find.
-* The array to search in.
-* The ending index to search until in the array.
-* The size from the ending index to search in.
-* A pointer to a "void*(void*, unsigned int)" 
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
-if equal, or something else otherwise.
+* A pointer to an "unsigned char(void*, unsigned int, 
+void*, unsigned int)" function that can compare 
+any element of the given first subarray at the 
+given index, with any element of the given 
+second subarray at the given index to find, and 
+returns std::Compare::equal if equal, or 
+something else otherwise.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the starting element.
@@ -224,9 +240,9 @@ years[0].value = 2021;
 years[1].value = 2021;
 unsigned int position = 
 	std::arr::Void::findLastRange(
-		(void*)years, 0, 1, 
 		(void*)years, 0, 2, 
-		Year::getElement, Year::equal); /*2*/
+		(void*)years, 0, 1, 
+		Year::equal); /*2*/
 ```
 
 ## "findRange" static function:
@@ -235,21 +251,20 @@ Finds the first occurence of a
 subarray in the array.
 
 Parameters:
+* The array to search in.
+* The starting index to search from in the array.
+* The size from the starting index to search in.
 * The array of the subarray to find.
 * The starting index of the subarray to find 
 in its array.
 * The size of the subarray to find.
-* The array to search in.
-* The starting index to search from in the array.
-* The size from the starting index to search in.
-* A pointer to a "void*(void*, unsigned int)" 
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
-if equal, or something else otherwise.
+* A pointer to an "unsigned char(void*, unsigned int, 
+void*, unsigned int)" function that can compare 
+any element of the given first subarray at the 
+given index, with any element of the given 
+second subarray at the given index to find, and 
+returns std::Compare::equal if equal, or 
+something else otherwise.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the starting element.
@@ -260,9 +275,9 @@ years[0].value = 2021;
 years[1].value = 2021;
 unsigned int position = 
 	std::arr::Void::findRange(
-		(void*)years, 0, 1, 
 		(void*)years, 0, 2, 
-		Year::getElement, Year::equal); /*1*/
+		(void*)years, 0, 1, 
+		Year::equal); /*1*/
 ```
 	
 ## "findSorted" static function:
@@ -271,18 +286,15 @@ Finds an element in the array,
 if the array is sorted.
 
 Parameters:
-* A pointer to an element to find.
 * The array to search in.
 * The starting index to search from in the array.
 * The size from the starting index to search in.
-* A pointer to a "void*(void*, unsigned int)" 
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
-if equal, or something else otherwise.
+* A pointer to an element to find.
+* A pointer to an "unsigned char(void*,
+unsigned int, void*)" function that can compare 
+any element of the given subarray at the given 
+index, with the given element to find, and 
+returns an std::Compare value.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the element.
@@ -294,8 +306,8 @@ years[1].value = 2021;
 int find = 2021;
 unsigned int position = 
 	std::arr::Void::findSorted(
-		&find, (void*)years, 0, 2, 
-		Year::getElement, Year::equal); /*2*/
+		(void*)years, 0, 2, &find, 
+		Year::compareElement); /*2*/
 ```
 
 ## "replacedSize" static function:
@@ -312,15 +324,12 @@ Parameters:
 in its array.
 * The size of the subarray to replace.
 * The size of the subarray to replace with.
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to a "void*(void*, unsigned int)" 
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
+* A pointer to an "unsigned char(void*, unsigned int, 
+void*, unsigned int)" function that can compare 
+any element of the given first subarray at the 
+given index to replace, with any element of the 
+given second subarray at the given index to 
+replace in and returns std::Compare::equal 
 if equal, or something else otherwise.
 
 Returns: unsigned int.
@@ -333,8 +342,8 @@ unsigned int size =
 	std::arr::Void::replacedSize(
 		(void*)years, 0, 2, 
 		(void*)years, 0, 1, 
-		2, Year::getElement, Year::equal);
-	/*2, as the length of &2020,&2020.*/
+		1, Year::equal);
+	/*2, as the length of for example 2020,2020.*/
 ```
 
 ## "reverse" static function:
@@ -345,13 +354,10 @@ Parameters:
 * The array to reverse in.
 * The starting index of the subarray to reverse.
 * The size of the subarray to reverse.
-* A pointer to a "void*(void*, unsigned int)" 
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to a "void(void*, void*)"
-function that sets to the given pointed 
-element another pointed element.
-* A pointer to a temporary element.
+* A pointer to a "void(void*, unsigned int, 
+unsigned int)" function that switch the value 
+of any element of the given subarray at the 
+given index, with another at a given index.
 
 Returns: void.
 
@@ -359,11 +365,32 @@ Returns: void.
 Year[] years = new Year[2];
 years[0].value = 2020;
 years[1].value = 2021;
-Year year;
 std::arr::Void::reverse(
-	(void*)years, 0, 2, Year::getElement, 
-	Year::setElement, &year);
+	(void*)years, 0, 2,  
+	Year::switchElements);
 /*2021,2020.*/
+```
+
+## "set" static function:
+
+Copy an element to the array.
+
+Parameters:
+* The array to copy to.
+* The starting index of the array to copy to.
+* The number of times to copy the element.
+* A pointer to the element to copy.
+* A pointer to an "void(void*, unsigned int, 
+void*)" function that can set any element of 
+the given subarray at the given index, 
+to be a copy of the given element.
+
+```
+Year[] years = new Year[2];
+int year = 2021;
+std::arr::Void::set(years, 
+	0, 2, &year, Year::setElement);
+/*2021,2021.*/
 ```
 
 ## "setReplace" static function:
@@ -385,17 +412,23 @@ in its array.
 * The starting index of the subarray to replace 
 with in its array.
 * The size of the subarray to replace with.
-* A pointer to a "void*(void*, unsigned int)" 
-function that returns a pointer to an element, 
-from the given array, at the given index.
-* A pointer to a "void(void*, void*)"
-function that sets to the given pointed 
-element another pointed element.
-* A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
-if equal, or something else otherwise.
+* A pointer to an "void(void*, unsigned int, 
+void*, unsigned int)" function that can set any 
+element of the given first subarray at the given 
+index to copy to, to be a copy of an element of the 
+given second subarray at the given index to copy.
+* A pointer to an "void(void*, unsigned int, 
+void*, unsigned int)" function that can set any 
+element of the given first subarray at the given 
+index to copy to, to be a copy of an element of the 
+given second subarray at the given index to replace with.
+* A pointer to an "unsigned char(void*, unsigned int, 
+void*, unsigned int)" function that can compare 
+any element of the given first subarray at the 
+given index to replace, with any element of the 
+given second subarray at the given index to copy, 
+and returns std::Compare::equal if equal, or 
+something else otherwise.
 
 Returns: void.
 
@@ -405,36 +438,15 @@ Year[] years = new Year[2];
 years[0].value = 2021;
 years[1].value = 2021;
 Year[] replace = new Year[1];
-replace[0] = 2020;
+replace[0].value = 2020;
 std::arr::Void::setReplace(
 	(void*)values, 0,
 	(void*)years, 0, 2, 
 	(void*)years, 0, 1, 
-	(void*)replace, 0, 1, Year::getElement, 
-	Year::setElement, Year::equal);
+	(void*)replace, 0, 1, Year::set, 
+	Year::set, Year::equal);
 /*2020,2020, as 2021, 
 	is replaced with 2020.*/
-```
-
-## "switchValue" static function:
-
-Switch the value of two constructs.
-	
-Parameters:
-* A pointer to the first construct.
-* A pointer to the second construct.
-
-Returns: void.
-
-```
-Year first;
-first.value = 2021;
-Year second;
-second.value = 2020;
-Year year;
-std::arr::Void::switchValue(&first, &second, 
-	Year::setElement, &year);
-/*2020,2021.*/
 ```
 
 # Software license

@@ -80,10 +80,10 @@ Copy pointers from an array to another.
 Works even between the same array.
 	
 Parameters:
-* The array to copy from.
-* The starting index of the array to copy from.
 * The array to copy to.
 * The starting index of the array to copy to.
+* The array to copy from.
+* The starting index of the array to copy from.
 * The number of pointers to copy.
 
 Returns: void.
@@ -95,7 +95,7 @@ years[0] = new int;
 years[1] = new int;
 *years[1] = 2021;
 int*[] values = new int*[2];
-std::arr::Ptr::copy(years, 0, values, 0, 2);
+std::arr::Ptr::copy(values, 0, years, 0, 2);
 /*values=&2020,&2021.*/
 ```
 	
@@ -105,15 +105,15 @@ Finds the first occurence of a pointer
 in a pointer array.
 
 Parameters:
-* The pointer value to find.
 * The pointer array to search in.
 * The starting index to search from in the array.
 * The size from the starting index to search in.
+* The pointer value to find.
 * Either nullptr for pointer comparison, or 
 a pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
+function that can compare any of the array 
+elements with the given element to find 
+and returns std::Compare::equal 
 if equal, or something else otherwise.
 
 Returns: 0, if not found, otherwise the 
@@ -121,8 +121,8 @@ index + 1 position of the pointer.
 
 ```
 static unsigned char compare(
-	void* find, void* element){
-	if (*(int*)find == *(int*)element)
+	void* element, void* find){
+	if (*(int*)element == *(int*)find)
 		{return std::Compare::equal;}
 	return std::Compare::unset;
 }
@@ -136,7 +136,7 @@ years[1] = new int;
 int find = 2021;
 unsigned int position = 
 	std::arr::Ptr::find(
-		&find, years, 0, 2, compare); /*1*/
+		years, 0, 2, &find, compare); /*1*/
 ```
 
 ## "findLast" static function:
@@ -145,15 +145,15 @@ Finds the first occurence of a pointer
 but starting backwards in the pointer array.
 
 Parameters:
-* The pointer value to find.
 * The pointer array to search in.
 * The ending index to search until in the array.
 * The size from the ending index to search in.
+* The pointer value to find.
 * Either nullptr for pointer comparison, or 
-a pointer to an "unsigned char(void*,void*)"  
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
+a pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the array 
+elements with the given element to find 
+and returns std::Compare::equal 
 if equal, or something else otherwise.
 
 Returns: 0, if not found, otherwise the 
@@ -161,8 +161,8 @@ index + 1 position of the pointer.
 
 ```
 static unsigned char compare(
-	void* find, void* element){
-	if (*(int*)find == *(int*)element)
+	void* element, void* find){
+	if (*(int*)element == *(int*)find)
 		{return std::Compare::equal;}
 	return std::Compare::unset;
 }
@@ -176,7 +176,7 @@ years[1] = new int;
 int find = 2021;
 unsigned int position = 
 	std::arr::Ptr::findLast(
-		&find, years, 0, 2, compare); /*2*/
+		years, 0, 2, &find, compare); /*2*/
 ```
 
 ## "findLastRange" static function:
@@ -185,18 +185,18 @@ Finds the first occurence of a subarray, but
 starting backwards in the pointer array.
 
 Parameters:
+* The pointer array to search in.
+* The ending index to search until in the array.
+* The size from the ending index to search in.
 * The pointer array of the subarray to find.
 * The starting index of the subarray to find 
 in its array.
 * The size of the subarray to find.
-* The pointer array to search in.
-* The ending index to search until in the array.
-* The size from the ending index to search in.
 * Either nullptr for pointer comparison, or 
-a pointer to an "unsigned char(void*,void*)"  
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
+a pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the array 
+elements with the given element to find 
+and returns std::Compare::equal 
 if equal, or something else otherwise.
 
 Returns: 0, if not found, otherwise the 
@@ -204,8 +204,8 @@ index + 1 position of the starting pointer.
 
 ```
 static unsigned char compare(
-	void* find, void* element){
-	if (*(int*)find == *(int*)element)
+	void* element, void* find){
+	if (*(int*)element == *(int*)find)
 		{return std::Compare::equal;}
 	return std::Compare::unset;
 }
@@ -218,7 +218,7 @@ years[1] = new int;
 *years[1] = 2021;
 unsigned int position = 
 	std::arr::Ptr::findLastRange(
-		years, 0, 1, years, 0, 2, compare); /*2*/
+		years, 0, 2, years, 0, 1, compare); /*2*/
 ```
 	
 ## "findRange" static function:
@@ -227,18 +227,18 @@ Finds the first occurence of a subarray
 in a pointer array.
 
 Parameters:
+* The pointer array to search in.
+* The starting index to search from in the array.
+* The size from the starting index to search in.
 * The pointer array of the subarray to find.
 * The starting index of the subarray to find 
 in its array.
 * The size of the subarray to find.
-* The pointer array to search in.
-* The starting index to search from in the array.
-* The size from the starting index to search in.
 * Either nullptr for pointer comparison, or 
 a pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to find with any of the array 
-elements and returns std::Compare::equal 
+function that can compare any of the array 
+elements with the given element to find 
+and returns std::Compare::equal 
 if equal, or something else otherwise.
 
 Returns: 0, if not found, otherwise the 
@@ -246,8 +246,8 @@ index + 1 position of the starting pointer.
 
 ```
 static unsigned char compare(
-	void* find, void* element){
-	if (*(int*)find == *(int*)element)
+	void* element, void* find){
+	if (*(int*)element == *(int*)find)
 		{return std::Compare::equal;}
 	return std::Compare::unset;
 }
@@ -260,7 +260,7 @@ years[1] = new int;
 *years[1] = 2021;
 unsigned int position = 
 	std::arr::Ptr::findRange(
-		years, 0, 1, years, 0, 2, compare); /*1*/
+		years, 0, 2, years, 0, 1, compare); /*1*/
 ```
 
 ## "findSorted" member function:
@@ -269,23 +269,23 @@ Finds a pointer in a pointer array,
 if the array is sorted.
 
 Parameters:
-* The pointer value to find.
 * The pointer array to search in.
 * The starting index to search from in the array.
 * The size from the starting index to search in.
+* The pointer value to find.
 * A pointer to an "unsigned char(void*,void*)" 
-function that can compare the given 
-element to find with any of the array 
-elements and returns an std::Compare value.
+function that can compare any of the array 
+elements with the given element to find 
+and returns an std::Compare value.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the element.
 
 ```
 static unsigned char compare(
-	void* value, void* element){
+	void* element, void* find){
 	return std::arr::Int::compareValue(
-		*(int*)value, *(int*)element);
+		 *(int*)element, *(int*)find);
 }
 
 int*[] years = new int*[2];
@@ -296,7 +296,7 @@ years[1] = new int;
 int find = 2021;
 unsigned int position = 
 	std::arr::Ptr::findSorted(
-		&find, years, 0, 2, compare); /*2*/
+		years, 0, 2, &find, compare); /*2*/
 ```
 
 ## "replacedSize" static function:
@@ -363,6 +363,24 @@ years[1] = new int;
 *years[1] = 2021;
 std::arr::Ptr::reverse(years, 0, 2);
 /*&2021,&2020.*/
+```
+
+## "set" static function:
+
+Copy a pointer to the array.
+
+Parameters:
+* The array to copy to.
+* The starting index of the array to copy to.
+* The number of times to copy the pointer.
+* A pointer to copy.
+
+```
+int*[] years = new int*[2];
+int* year = new int;
+*year = 2021;
+std::arr::Ptr::set(years, 0, 2, year);
+/*&2021,&2021.*/
 ```
 	
 ## "setReplace" static function:
