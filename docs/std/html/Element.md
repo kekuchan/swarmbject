@@ -33,7 +33,7 @@ Returns: unsigned int.
 ```
 /*In Main::main.*/
 unsigned int height = 
-	std::dom::Element::getOffsetHeight(&div);
+	std::html::Element::getOffsetHeight(&div);
 ```
 
 ## "getOffsetLeft" static function:
@@ -49,7 +49,7 @@ Returns: unsigned int.
 ```
 /*In Main::main.*/
 unsigned int left = 
-	std::dom::Element::getOffsetLeft(&div);
+	std::html::Element::getOffsetLeft(&div);
 ```
 
 ## "getOffsetTop" static function:
@@ -65,7 +65,7 @@ Returns: unsigned int.
 ```
 /*In Main::main.*/
 unsigned int top = 
-	std::dom::Element::getOffsetTop(&div);
+	std::html::Element::getOffsetTop(&div);
 ```
 
 ## "getOffsetWidth" static function:
@@ -82,7 +82,7 @@ Returns: unsigned int.
 ```
 /*In Main::main.*/
 unsigned int width = 
-	std::dom::Element::getOffsetWidth(&div);
+	std::html::Element::getOffsetWidth(&div);
 ```
 
 ## "getStyle" static function:
@@ -114,6 +114,22 @@ Returns: void.
 /*In Main::main.*/
 std::html::Element::removeChildren(&node);
 /*The node is now empty.*/
+```
+
+## "setContentEditable" static function:
+
+Sets element's content to be editable or not.
+
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* A bool value to set the content editable or not.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::html::Element::setContentEditable(
+	&div, true);
 ```
 
 # Software license
