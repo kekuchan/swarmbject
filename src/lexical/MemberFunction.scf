@@ -100,8 +100,8 @@ class MemberFunction : lexical::Type {
 	}
 
 	static unsigned char cmpString(void* i, void* j){
-		return ((std::str::View*)i)->compareString(
-			&((lexical::MemberFunction*)j)->name);
+		return (lexical::MemberFunction*)i->
+			name.compareView((std::str::View*)j);
 	}
 	
 	bool isStatic(){
@@ -147,7 +147,7 @@ class MemberFunction : lexical::Type {
 	lexical::FunctionParameter* getParameter(
 		std::str::View* name){
 		unsigned int i = parameters.find(name, 
-			lexical::DataMember::cmpString, 0);
+			lexical::Variable::cmpString, 0);
 		if (i == 0) {return nullptr;}
 		return (lexical::FunctionParameter*)
 			(parameters.data[i - 1]);

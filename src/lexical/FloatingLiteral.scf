@@ -86,8 +86,8 @@ class FloatingLiteral : lexical::Type {
 
 	static unsigned char cmpFloat(void* i, void* j){
 		return std::arr::Float::compareValue(
-			*((float*)i),
-			((lexical::FloatingLiteral*)j)->number);
+			(lexical::FloatingLiteral*)i->number,
+			*(float*)j);
 	}
 
 }

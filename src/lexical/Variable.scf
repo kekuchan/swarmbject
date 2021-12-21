@@ -78,8 +78,8 @@ class Variable : lexical::Type {
 	}
 
 	static unsigned char cmpString(void* i, void* j){
-		return ((std::str::View*)i)->compareString(
-			&((lexical::Variable*)j)->name);
+		return (lexical::Variable*)i->
+			name.compareView((std::str::View*)j);
 	}
 	
 	unsigned char getSpecifiers(){

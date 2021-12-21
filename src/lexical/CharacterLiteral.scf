@@ -87,7 +87,7 @@ class CharacterLiteral : lexical::Type {
 
 	static unsigned char cmpUchar(void* i, void* j){
 		return std::arr::Uchar::compareValue(
-			*((unsigned char*)i),
-			((lexical::CharacterLiteral*)j)->character);
+			(lexical::CharacterLiteral*)i->character,
+			*(unsigned char*)j);
 	}
 }

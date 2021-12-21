@@ -86,7 +86,7 @@ class IntegerLiteral : lexical::Type {
 
 	static unsigned char cmpInt(void* i, void* j){
 		return std::arr::Int::compareValue(
-			*((int*)i),
-			((lexical::IntegerLiteral*)j)->number);
+			(lexical::IntegerLiteral*)i->number,
+			*(int*)j);
 	}
 }
