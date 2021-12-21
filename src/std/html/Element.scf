@@ -120,5 +120,13 @@ class Element {
 		void* nodeObject = node->jsObject.getJsObject();
 		constwrite "	nodeObject.innerHTML = '';\n";
 	}
+	
+	static void setContentEditable(
+		std::dom::Node* node, bool editable){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		constwrite
+			"	nodeObject.contentEditable = editable;\n";
+	}
 
 }
