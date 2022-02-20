@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -244,7 +244,7 @@ class Lexical {
 			case data::Types::pointerT:
 				dataTypeToString((data::PointerType*)
 					dataType->dataType, string);
-				string->addChar('*');
+				string->push('*');
 				break;
 			case data::Types::arrayPointerT:
 				dataTypeToString((data::PointerType*)
@@ -265,7 +265,7 @@ class Lexical {
 					data::FunctionPointerType* pointerType =
 						(data::FunctionPointerType*)dataType;
 					dataTypeToString(pointerType->dataType, string);
-					string->addChar('(');
+					string->push('(');
 					unsigned int len = pointerType->parameters.size;
 					if (len > 0){
 						data::Type*[] parameters = (data::Type*[])
@@ -275,10 +275,10 @@ class Lexical {
 							dataTypeToString(parameters[i], string);
 							i = i + 1;
 							if (i == len) {break;}
-							string->addChar(',');
+							string->push(',');
 						}
 					}
-					string->addChar(')');
+					string->push(')');
 					break;
 				}
 			case data::Types::specifiersT:
@@ -329,7 +329,7 @@ class Lexical {
 					data::SpecifierTypes::isConstexpr)*/;
 			case lexical::Types::characterLiteral:
 				*lexicalExpression = expression;
-				return main->ucharType/*->getOrSetSpecifiers(
+				return main->uintType/*->getOrSetSpecifiers(
 						data::SpecifierTypes::isConstexpr)*/;
 			case lexical::Types::stringLiteral:
 				*lexicalExpression = expression;
@@ -731,7 +731,7 @@ class Lexical {
 		dataTypeToString(type1, &error);
 		error.addCString(", ");
 		dataTypeToString(type2, &error);
-		error.addChar('.');
+		error.push('.');
 		Parse::logError(main,
 			main->compileCursor, &error);
 		return false;
@@ -1663,40 +1663,40 @@ class Lexical {
 				string->addCString("!=");
 				break;
 			case TokenTypes::assignment:
-				string->addChar('=');
+				string->push('=');
 				break;
 			case TokenTypes::plus:
-				string->addChar('+');
+				string->push('+');
 				break;
 			case TokenTypes::minus:
-				string->addChar('-');
+				string->push('-');
 				break;
 			case TokenTypes::asterisk:
-				string->addChar('*');
+				string->push('*');
 				break;
 			case TokenTypes::division:
-				string->addChar('/');
+				string->push('/');
 				break;
 			case TokenTypes::modulus:
-				string->addChar('%');
+				string->push('%');
 				break;
 			case TokenTypes::bitwiseComplement:
-				string->addChar('~');
+				string->push('~');
 				break;
 			case TokenTypes::logicalAnd:
 				string->addCString("&&");
 				break;
 			case TokenTypes::andChar:
-				string->addChar('&');
+				string->push('&');
 				break;
 			case TokenTypes::bitwiseExclusiveOr:
-				string->addChar('^');
+				string->push('^');
 				break;
 			case TokenTypes::logicalOr:
 				string->addCString("||");
 				break;
 			case TokenTypes::bitwiseInclusiveOr:
-				string->addChar('|');
+				string->push('|');
 				break;
 			case TokenTypes::leftShift:
 				string->addCString("<<");
@@ -1705,7 +1705,7 @@ class Lexical {
 				string->addCString("<=");
 				break;
 			case TokenTypes::lessThan:
-				string->addChar('<');
+				string->push('<');
 				break;
 			case TokenTypes::rightShift:
 				string->addCString(">>");
@@ -1714,46 +1714,46 @@ class Lexical {
 				string->addCString(">=");
 				break;
 			case TokenTypes::greaterThan:
-				string->addChar('>');
+				string->push('>');
 				break;
 			case TokenTypes::notEqualTo:
 				string->addCString("!=");
 				break;
 			case TokenTypes::logicalNegation:
-				string->addChar('!');
+				string->push('!');
 				break;
 			case TokenTypes::comma:
-				string->addChar(',');
+				string->push(',');
 				break;
 			case TokenTypes::leftBrace:
-				string->addChar('{');
+				string->push('{');
 				break;
 			case TokenTypes::rightBrace:
-				string->addChar('}');
+				string->push('}');
 				break;
 			case TokenTypes::leftBracket:
-				string->addChar('[');
+				string->push('[');
 				break;
 			case TokenTypes::rightBracket:
-				string->addChar(']');
+				string->push(']');
 				break;
 			case TokenTypes::colon:
-				string->addChar(':');
+				string->push(':');
 				break;
 			case TokenTypes::leftParenthesis:
-				string->addChar(':');
+				string->push(':');
 				break;
 			case TokenTypes::rightParenthesis:
-				string->addChar(')');
+				string->push(')');
 				break;
 			case TokenTypes::semicolon:
-				string->addChar(';');
+				string->push(';');
 				break;
 			case TokenTypes::scopeResolution:
 				string->addCString("::");
 				break;
 			case TokenTypes::classMember:
-				string->addChar('.');
+				string->push('.');
 				break;
 			case TokenTypes::memberPointer:
 				string->addCString("->");
@@ -1963,7 +1963,7 @@ class Lexical {
 		std::str::View* keyword = (std::str::View*)j;
 		return std::str::CString::compareRange(
 			(unsigned char[])i, 0, keyword->data, 
-			keyword->start, keyword->length);
+			keyword->start, keyword->length, nullptr);
 	}
 
 	static unsigned int getIdentifierToken(Main* main,
@@ -2253,24 +2253,22 @@ class Lexical {
 		return f;
 	}
 
-	static unsigned char getEscapedChar(
-		unsigned char character){
-		unsigned char value;
+	static unsigned int getEscapedChar(
+		unsigned int character){
 		switch (character){
 			case 't':
-				value = 9;
+				character = 9;
 				break;
 			case 'n':
-				value = 10;
+				character = 10;
 				break;
 			case 'r':
-				value = 13;
+				character = 13;
 				break;
 			default:
-				value = character;
 				break;
 		}
-		return value;
+		return character;
 	}
 	
 	static unsigned int getCharacterToken(Main* main,
@@ -2278,33 +2276,35 @@ class Lexical {
 		unsigned int compileCursor){
 		unsigned int len = classType->code.length;
 		unsigned char[] data = classType->code.data;
-		unsigned char character = data[compileCursor];
-		unsigned char value;
-		/* No need for bound check as it was done beforehand. */
+		unsigned int character = 
+			std::str::CString::getChar(
+				data, &compileCursor, 
+				&compileCursor, compileCursor, len);
 		switch (character){
 			case '\'':
-				value = 0;
+				character = 0;
+				compileCursor = compileCursor - 1;
 				break;
 			case '\\':
-				value = getEscapedChar(data[compileCursor + 1]);
-				compileCursor = compileCursor + 2;
+				character = getEscapedChar(
+					std::str::CString::getChar(
+						data, &compileCursor, 
+						&compileCursor, compileCursor, len));
 				break;
 			default:
-				value = character;
-				compileCursor = compileCursor + 1;
 				break;
 		}
 		main->lexicalToken =
-			getCharacterLiteral(main, value);
-		return compileCursor + 1;
+			getCharacterLiteral(main, character);
+		return compileCursor;
 	}
 	
 	static lexical::CharacterLiteral* getCharacterLiteral(
-		Main* main, unsigned char c){
+		Main* main, unsigned int c){
 		std::ds::PtrDArray* literals = 
 			&main->characterLiterals;
 		unsigned int j = literals->findSorted(
-			&c, lexical::CharacterLiteral::cmpUchar);
+			&c, lexical::CharacterLiteral::cmpUint);
 		lexical::CharacterLiteral* literal;
 		if (j != 0){
 			literal = (lexical::CharacterLiteral*)
@@ -2360,8 +2360,7 @@ class Lexical {
 				break;
 			}
 			if (dst == nullptr && characters > 0){
-				string->setLength(characters);
-				dst = string->data;
+				dst = string->create(characters);
 				continue;
 			}
 			return i;

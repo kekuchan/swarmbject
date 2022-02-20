@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -231,8 +231,7 @@ class Parse {
 		}
 		unsigned int len = file->getSize();
 		std::str::String* code = &classType->code;
-		code->setLength(len);
-		file->read(code->data, 0, len);
+		file->read(code->create(len), 0, len);
 		parseClass(app, classType, onOpenFile);
 		return !main->compileError &&
 			main->currentParseClass !=
@@ -284,7 +283,8 @@ class Parse {
 		Main* main = &app.main;
 		std::str::DString info;
 		info.add("Parsing class: ", 0, 15);
-		info.addString(&classType->name);
+		std::str::String* name = &classType->name;
+		info.addString(name);
 		logInfoDString(main, &info, 1);
 		unsigned int compileCursor =
 			parseClassKeywords(main, classType, 0);
@@ -297,10 +297,13 @@ class Parse {
 				"and has to start with an english letter.");
 			return;
 		}
-		if (main->token.compareString(
-			&classType->name) != std::Compare::equal){
+		std::str::View* token = &main->token;
+		if (std::arr::Uchar::compareRange(
+				token->data, token->start, token->length,
+				name->data, 0, name->length) != 
+			std::Compare::equal){
 			info.setCString("The class name '");
-			info.addString(&classType->name);
+			info.addView(token);
 			info.addCString("' was given "
 				"that is different than the file name.");
 			logError(main, compileCursor, &info);
@@ -698,8 +701,11 @@ class Parse {
 		if (main->tokenType == TokenTypes::identifier){
 			compileCursor = Lexical::getNextToken(main,
 				classType, compileCursor);
-			if (previousToken.compareString(
-				&classType->name) == std::Compare::equal &&
+			if (std::arr::Uchar::compareRange(
+					previousToken.data, previousToken.start, 
+					previousToken.length, classType->name.data, 
+					0, classType->name.length) == 
+				std::Compare::equal &&
 				main->tokenType != TokenTypes::asterisk){
 				if (!destructor){
 					previousToken.setCString("_constructor");
@@ -1156,8 +1162,11 @@ class Parse {
 			return false;
 		}
 		if (main->tokenType != TokenTypes::identifier ||
-			main->token.compareString(
-				&parseFunction->name) != std::Compare::equal){
+			std::arr::Uchar::compareRange(
+				main->token.data, main->token.start, 
+				main->token.length, parseFunction->name.data, 
+				0, parseFunction->name.length) != 
+			std::Compare::equal){
 			logErrorCString(main, compileCursor,
 				"A function name has to be after its type.");
 			return false;

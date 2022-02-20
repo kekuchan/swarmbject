@@ -1,17 +1,17 @@
-# "std::ds::SLList" class:
+# "std::ds::DLList" class:
 
-Used for objects as part of a singly linked list.
+Used for objects as part of a doubly linked list.
 Each object in the list has a pointer to the next 
-element in the list.
+and the previous element in the list.
 
 ```
 /*In Year.scf*/
 class Year {
 	int value;
-	std::ds::SLList list;
+	std::ds::DLList list;
 	
 	/*Used by the member functions.*/
-	static std::ds::SLList* getList(void* year){
+	static std::ds::DLList* getList(void* year){
 		return &((Year*)year->list);
 	}
 }
@@ -19,22 +19,44 @@ class Year {
 
 ## "next" data member:
 
-Points to the next element in the list, as a void*.
+Points to the next element 
+in the list, as a void*.
 
 ```
 Year* front = nullptr;
 Year* back = nullptr;
 Year* year = new Year;
 year->value = 2020;
-std::ds::SLList::pushBack(year, &front,
+std::ds::DLList::pushBack(year, &front,
 	&back, Year::getList);
 /*front=2020,back=2020.*/
 year = new Year;
 year->value = 2021;
-std::ds::SLList::pushBack(year, &front,
+std::ds::DLList::pushBack(year, &front,
 	&back, Year::getList);
 /*front=2020,back=2021.*/
 year = (Year*)(front->list.next); /*2021*/
+```
+
+## "previous" data member:
+
+Points to the previous element 
+in the list, as a void*.
+
+```
+Year* front = nullptr;
+Year* back = nullptr;
+Year* year = new Year;
+year->value = 2020;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+/*front=2020,back=2020.*/
+year = new Year;
+year->value = 2021;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+/*front=2020,back=2021.*/
+year = (Year*)(back->list.previous); /*2020*/
 ```
 
 ## "getSize" member function:
@@ -45,8 +67,8 @@ element with the next pointer.
 
 Parameters:
 * A pointer to the front element.
-* A pointer to an "std::ds::SLList*(void*)" function 
-that returns a pointer to the std::ds::SLList data 
+* A pointer to an "std::ds::DLList*(void*)" function 
+that returns a pointer to the std::ds::DLList data 
 member of the given element.
 
 Returns: unsigned int.
@@ -56,15 +78,51 @@ Year* front = nullptr;
 Year* back = nullptr;
 Year* year = new Year;
 year->value = 2020;
-std::ds::SLList::pushBack(year, &front,
+std::ds::DLList::pushBack(year, &front,
 	&back, Year::getList);
 year = new Year;
 year->value = 2021;
-std::ds::SLList::pushBack(year, &front,
+std::ds::DLList::pushBack(year, &front,
 	&back, Year::getList);
 unsigned int size =
-	std::ds::SLList::getSize(front, Year::getList);
+	std::ds::DLList::getSize(front, Year::getList);
 /*2 as 2020,2021.*/
+```
+
+## "popBack" member function:
+
+Removes the last element from the list. The 
+element is not deleted automatically, as it 
+might be still used elsewhere.
+
+Parameters:
+* Either nullptr or a pointer to a 
+construct, that points to the front element.
+* A pointer to a construct, that points to 
+the back element.
+* A pointer to an "std::ds::DLList*(void*)" function 
+that returns a pointer to the std::ds::DLList data 
+member of the given element.
+
+Returns: void.
+
+```
+Year* front = nullptr;
+Year* back = nullptr;
+Year* year = new Year;
+year->value = 2020;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+year = new Year;
+year->value = 2021;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+/*front=2020,back=2021.*/
+/*When not needed anymore:*/
+std::ds::DLList::popBack(&front,
+	&back, Year::getList);
+delete year;
+/*front=2020,back=2020.*/
 ```
 
 ## "popFront" member function:
@@ -78,8 +136,8 @@ Parameters:
 the front element.
 * Either nullptr or a pointer to a 
 construct, that points to the back element.
-* A pointer to an "std::ds::SLList*(void*)" function 
-that returns a pointer to the std::ds::SLList data 
+* A pointer to an "std::ds::DLList*(void*)" function 
+that returns a pointer to the std::ds::DLList data 
 member of the given element.
 
 Returns: void.
@@ -89,16 +147,16 @@ Year* front = nullptr;
 Year* back = nullptr;
 Year* year = new Year;
 year->value = 2020;
-std::ds::SLList::pushBack(year, &front,
+std::ds::DLList::pushBack(year, &front,
 	&back, Year::getList);
 year = new Year;
 year->value = 2021;
-std::ds::SLList::pushBack(year, &front,
+std::ds::DLList::pushBack(year, &front,
 	&back, Year::getList);
 /*front=2020,back=2021.*/
 /*When not needed anymore:*/
 year = front;
-std::ds::SLList::popFront(&front,
+std::ds::DLList::popFront(&front,
 	&back, Year::getList);
 delete year;
 /*front=2021,back=2021.*/
@@ -118,8 +176,8 @@ construct, that points to the front element.
 * Either nullptr to iterate through the list from 
 the front element or a pointer to a construct, 
 that points directly to the back element.
-* A pointer to an "std::ds::SLList*(void*)" function 
-that returns a pointer to the std::ds::SLList data 
+* A pointer to an "std::ds::DLList*(void*)" function 
+that returns a pointer to the std::ds::DLList data 
 member of the given element.
 
 Returns: void.
@@ -129,12 +187,12 @@ Year* front = nullptr;
 Year* back = nullptr;
 Year* year = new Year;
 year->value = 2020;
-std::ds::SLList::pushBack(year, &front,
+std::ds::DLList::pushBack(year, &front,
 	&back, Year::getList);
 /*front=2020,back=2020.*/
 year = new Year;
 year->value = 2021;
-std::ds::SLList::pushBack(year, &front,
+std::ds::DLList::pushBack(year, &front,
 	&back, Year::getList);
 /*front=2020,back=2021.*/
 ```
@@ -148,12 +206,13 @@ removed before calling this function.
 
 Parameters:
 * A pointer to the element to insert.
-* A pointer to a construct, that points to 
-the front element.
+* Either nullptr to iterate through the list from 
+the back element or a pointer to a construct, 
+that points directly to the front element.
 * Either nullptr or a pointer to a construct, 
 that points to the back element.
-* A pointer to an "std::ds::SLList*(void*)" function 
-that returns a pointer to the std::ds::SLList data 
+* A pointer to an "std::ds::DLList*(void*)" function 
+that returns a pointer to the std::ds::DLList data 
 member of the given element.
 
 Returns: void.
@@ -163,19 +222,19 @@ Year* front = nullptr;
 Year* back = nullptr;
 Year* year = new Year;
 year->value = 2021;
-std::ds::SLList::pushFront(year, &front,
+std::ds::DLList::pushFront(year, &front,
 	&back, Year::getList);
 /*front=2021,back=2021.*/
 year = new Year;
 year->value = 2020;
-std::ds::SLList::pushFront(year, &front,
+std::ds::DLList::pushFront(year, &front,
 	&back, Year::getList);
 /*front=2020,back=2021.*/
 ```
 
 # Software license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -245,7 +304,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

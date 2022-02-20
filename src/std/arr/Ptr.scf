@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -296,8 +296,8 @@ class Ptr {
 				if (compare(array, arrayStart, src, 
 					srcStart, srcLen,
 					compareElements) == std::Compare::equal){
-					copy(dst, dstStart, data, dataStart, 
-						dstLen);
+					copy(data, dataStart, 
+						dst, dstStart, dstLen);
 					dataStart = dataStart + dstLen;
 					arrayStart = arrayStart + srcLen;
 					continue;

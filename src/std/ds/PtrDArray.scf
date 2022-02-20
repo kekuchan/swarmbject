@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -82,26 +82,16 @@ class PtrDArray {
 		delete[] data;
 	}
 
-	void*[] addSize(unsigned int len, bool copy, bool del){
+	void*[] addSize(unsigned int len){
 		unsigned int previousSize = size;
 		unsigned int newSize = previousSize + len;
 		unsigned int newCapacity = capacity;
 		void*[] newData;
 		if (newCapacity < newSize){
-			if (newCapacity == 0){
-				newCapacity = len;
-				newData = new void*[len];
-			} else {
-				newCapacity = newCapacity * 2;
-				if (newCapacity < newSize) {newCapacity = newSize;}
-				void*[] previousData = data;
-				newData = new void*[newCapacity];
-				if (copy){
-					std::arr::Ptr::copy(newData, 0,
-						previousData, 0, previousSize);
-				}
-				if (del) {delete[] previousData;}
-			}
+			newCapacity = newCapacity * 2;
+			if (newCapacity < newSize)
+				{newCapacity = newSize;}
+			newData = new void*[newCapacity];
 			data = newData;
 			capacity = newCapacity;
 		} else {newData = data;}
@@ -114,7 +104,7 @@ class PtrDArray {
 		unsigned int previousSize = size;
 		if (start > previousSize) {return nullptr;}
 		void*[] previousData = data;
-		void*[] newData = addSize(len, false, false);
+		void*[] newData = addSize(len);
 		std::arr::Ptr::copy(newData, start + len,
 			previousData, start, previousSize - start);
 		if (newData != previousData){
@@ -127,46 +117,76 @@ class PtrDArray {
 
 	/* Public member functions. */
 
-	void addRange(void*[] array,
-		unsigned int start, unsigned int len){
-		if (len == 0) {return;}
+	void add(void* element, unsigned int len){
+		unsigned int previousSize = size;
+		std::arr::Ptr::set(grow(len),
+			previousSize, len, element);
+	}
+			
+	void addRange(void*[] src,
+		unsigned int i, unsigned int len){
 		void*[] previousData = data;
 		unsigned int previousSize = size;
-		void*[] newData = addSize(len, true, false);
+		void*[] newData = addSize(len);
 		std::arr::Ptr::copy(newData, previousSize,
-			array, start, len);
+			src, i, len);
 		if (newData != previousData){
+			std::arr::Ptr::copy(newData, 0,
+				previousData, 0, previousSize);
 			delete[] previousData;
 		}
 	}
-	
+
 	void clear(){
 		size = 0;
 	}
 
-	unsigned char compare(void*[] dst, 
+	unsigned char compare(void*[] dst,
 		unsigned int i, unsigned int dstLen,
-		unsigned char(void*,void*) compare){
+		unsigned char(void*, void*) compareElements){
 		return std::arr::Ptr::compareRange(
-			data, 0, size,
-			dst, i, dstLen, compare);
+			data, 0, size, dst, i, 
+			dstLen, compareElements);
 	}
 
+	void copy(unsigned int start, 
+		void* element, unsigned int len){
+		unsigned int dataLen = size;
+		if (start + len > dataLen){
+			if (start >= dataLen) {return;}
+			len = dataLen - start;
+		}
+		std::arr::Ptr::set(data, 
+			start, len, element);
+	}
+			
 	void copyRange(unsigned int start, void*[] src, 
 		unsigned int i, unsigned int len){
 		unsigned int dataLen = size;
-		if (start >= dataLen) {return;}
 		if (start + len > dataLen){
+			if (start >= dataLen) {return;}
 			len = dataLen - start;
 		}
-		std::arr::Void::copy(data, start,
+		std::arr::Ptr::copy(data, start,
 			src, i, len);
+	}
+	
+	void*[] create(unsigned int len){
+		void*[] newData;
+		if (len > capacity){
+			delete[] data;
+			newData = addSize(len - size);
+		} else {
+			newData = data;
+			size = len;
+		}
+		return newData;
 	}
 	
 	void erase(unsigned int start, unsigned int len){
 		unsigned int newSize = size;
 		if (start < newSize){
-			unsigned char[] newData = data;
+			void*[] newData = data;
 			if (start + len < newSize){
 				newSize = newSize - len;
 				std::arr::Ptr::copy(newData, start,
@@ -179,48 +199,52 @@ class PtrDArray {
 	}
 
 	unsigned int find(void* element,
-		unsigned char(void*,void*) compareElements,
+		unsigned char(void*, void*) compareElements,
 		unsigned int start){
 		unsigned int len = size;
 		if (start >= len) {return 0;}
 		return std::arr::Ptr::find(
-			data, start, 
-			len - start, element, compareElements);
+			data, start, len - start, element,
+			compareElements);
 	}
 
 	unsigned int findLast(void* element,
-		unsigned char(void*,void*) compareElements,
+		unsigned char(void*, void*) compareElements,
 		unsigned int start){
 		unsigned int len = size;
 		if (start > len) {start = len;}
 		return std::arr::Ptr::findLast(
-			data, 0, start, element, compareElements);
+			data, 0, start, element,
+			compareElements);
 	}
 
 	unsigned int findLastRange(void*[] src, 
 		unsigned int i, unsigned int len, 
-		unsigned char(void*,void*) compareElements,
+		unsigned char(void*, void*) compareElements,
 		unsigned int start){
 		unsigned int max = size;
 		if (start > max) {start = max;}
-		return std::arr::Ptr::findLastRange(data, 0, start,
-			src, i, len, compareElements);
+		return std::arr::Ptr::findLastRange(
+			data, 0, start, src, i, len,
+			compareElements);
 	}
 	
 	unsigned int findRange(void*[] src, 
 		unsigned int i, unsigned int len, 
-		unsigned char(void*,void*) compareElements,
+		unsigned char(void*, void*) compareElements,
 		unsigned int start){
 		unsigned int max = size;
 		if (start >= max) {return 0;}
-		return std::arr::Ptr::findRange(data, start, max - start,
-			src, i, len, compareElements);
+		return std::arr::Ptr::findRange(
+			data, start, max - start, src, i, len,
+			compareElements);
 	}
 	
 	unsigned int findSorted(void* element,
-		unsigned char(void*,void*) compareElements){
+		unsigned char(void*, void*) compareElements){
 		return std::arr::Ptr::findSorted(
-			data, 0, size, element, compareElements);
+			data, 0, size, element,
+			compareElements);
 	}
 
 	void* getBack(){
@@ -232,18 +256,28 @@ class PtrDArray {
 		}
 	}
 	
+	void*[] grow(unsigned int len){
+		void*[] previousData = data;
+		unsigned int previousSize = size;
+		void*[] newData = addSize(len);
+		if (newData != previousData){
+			std::arr::Ptr::copy(newData, 0,
+				previousData, 0, previousSize);
+			delete[] previousData;
+		}
+		return newData;
+	}
+
 	void insert(unsigned int start,
 		void* element, unsigned int len){
 		void*[] newData = insertSize(len, start);
 		if (newData != nullptr){
-			len = start + len;
-			while (start < len){
-				newData[start] = element;
-				start = start + 1;
-			}
+			std::arr::Ptr::set(newData,
+				start, len, element);
 		}
 	}
 
+	/* Does not support overlapping copy. */
 	void insertRange(
 		unsigned int start, void*[] src, 
 		unsigned int i, unsigned int len){
@@ -254,8 +288,9 @@ class PtrDArray {
 		}
 	}
 
+	/* Does not support overlapping copy. */
 	void insertSorted(void* element,
-		unsigned char(void*,void*) compare){
+		unsigned char(void*, void*) compareElements){
 		unsigned int end = size;
 		if (end > 0){
 			/* Trick using offset by 1 to keep variables as unsigned. */
@@ -264,7 +299,8 @@ class PtrDArray {
 			void*[] arrayData = data;
 			while (true){
 				mid = (end + start) >> 1;
-				switch (compare(arrayData[mid - 1], element)){
+				switch (compareElements(
+					arrayData[mid - 1], element)){
 					case std::Compare::less:
 						if (start == end){
 							end = mid;
@@ -283,7 +319,8 @@ class PtrDArray {
 				break;
 			}
 		}
-		insert(end, element, 1);
+		void*[] newData = insertSize(1, end);
+		newData[end] = element;
 	}
 
 	void move(std::ds::PtrDArray* src){
@@ -296,20 +333,20 @@ class PtrDArray {
 		src->capacity = 0;
 		src->data = nullptr;
 	}
-
+	
 	void* pop(){
 		unsigned int previousSize = size;
 		if (previousSize > 0){
 			size = previousSize - 1;
 			return data[previousSize - 1];
-		} else {
-			return nullptr;
 		}
+		return nullptr;
 	}
 
 	void push(void* element){
-		void*[] newData = addSize(1, true, true);
-		newData[size - 1] = element;
+		unsigned int previousSize = size;
+		void*[] newData = grow(1);
+		newData[previousSize] = element;
 	}
 
 	void reserve(unsigned int newCapacity){
@@ -327,29 +364,47 @@ class PtrDArray {
 	}
 	
 	void reverse(){
-		std::arr::Ptr::reverse(
-			data, 0, size);
+		std::arr::Ptr::reverse(data, 0, size);
+	}
+	
+	void set(void* element, unsigned int len){
+		std::arr::Ptr::set(
+			create(len), 0, len, element);
 	}
 	
 	/* Should work even if the regions overlap, as then 
-		its length can not be greater than its container. */
-	void setRange(void*[] src, 
+		its size can not be greater than its container. */
+	void setRange(void*[] src,
 		unsigned int start, unsigned int len){
-		unsigned char[] newData;
-		unsigned int previousSize = size;
-		if (len > previousSize){
-			newData = addSize(
-				len - previousSize, false, true);
-		} else {
-			newData = data;
-			length = len;
-		}
-		std::arr::Ptr::copy(newData, 0, src, start, len);
+		std::arr::Ptr::copy(create(len), 0,
+			src, start, len);
 	}
 
-	void shift(
+	void*[] shift(
 		unsigned int start, unsigned int len){
-		insertSize(len, start);
+		return insertSize(len, start);
+	}
+
+	void shrink(unsigned int len){
+		if (len < capacity){
+			void*[] previousData = data;
+			if (len > 0){
+				unsigned int newSize = size;
+				if (newSize > len){
+					size = len;
+					newSize = len;
+				}
+				void*[] newData = new void*[len];
+				std::arr::Ptr::copy(newData, 0,
+					previousData, 0, newSize);
+				data = newData;
+			} else {
+				size = 0;
+				data = nullptr;
+			}
+			delete[] previousData;
+			capacity = len;
+		}
 	}
 	
 	void trim(unsigned int len){

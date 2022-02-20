@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -200,7 +200,7 @@ class Compile {
 					error.addString(&classes[i]->name);
 					i = i + 1;
 				}
-				error.addChar('.');
+				error.push('.');
 				Parse::logError(main, 0, &error);
 				return false;
 			}
@@ -466,7 +466,7 @@ class Compile {
 		main->charsInLine = main->charsInLine + i;
 		std::str::DString* code = &main->compiledCode;
 		while (i > 0){
-			code->addChar('\t');
+			code->push('\t');
 			i = i - 1;
 		}
 	}
@@ -504,9 +504,9 @@ class Compile {
 			main->charsInLine = lineLength;
 			return;
 		}
-		code->addChar('\n');
+		code->push('\n');
 		addTabs(main);
-		code->addChar('\t');
+		code->push('\t');
 		main->charsInLine = main->nestedBlocks + 1 + len;
 	}
 
@@ -516,9 +516,8 @@ class Compile {
 			i, std::NumberBases::decimal);
 		splitIfLongLine(main, len);
 		std::str::DString* code = &main->compiledCode;
-		code->addLength(len, true, true);
 		std::str::CString::setUintEnd(
-			code->data, code->length - 1, i,
+			code->grow(len), code->length - 1, i,
 			std::NumberBases::decimal);
 	}
 	
@@ -529,7 +528,7 @@ class Compile {
 	static void addChar(Main* main,
 		unsigned char c){
 		splitIfLongLine(main, 1);
-		main->compiledCode.addChar(c);
+		main->compiledCode.push(c);
 	}
 	
 	static unsigned int encodeString(Main* main,
@@ -1818,7 +1817,7 @@ class Compile {
 		if (ns != nullptr){
 			getNamespacePrefix(code, ns);
 			code->addString(&compileNamespace->name);
-			code->addChar('_');
+			code->push('_');
 		}
 	}
 
@@ -1856,14 +1855,14 @@ class Compile {
 	static void getDataMemberName(std::str::DString* code,
 		lexical::DataMember* dataMember){
 		getClassPrefix(code, dataMember->parentClass);
-		code->addChar('_');
+		code->push('_');
 		code->addString(&dataMember->name);
 	}
 
 	static void getFunctionName(std::str::DString* code,
 		lexical::MemberFunction* memberFunction){
 		getClassPrefix(code, memberFunction->parentClass);
-		code->addChar('_');
+		code->push('_');
 		code->addString(&memberFunction->name);
 	}
 
@@ -1973,7 +1972,7 @@ class Compile {
 						data::SpecifierTypes::isConstexpr)) == 0){
 					code->addCString("/*");
 					Lexical::dataTypeToString(dataMember->dataType, code);
-					code->addChar(' ');
+					code->push(' ');
 					code->addString(&dataMember->name);
 					code->addCString("; //@this+");
 					code->addUint(dataMember->offset,
@@ -2288,7 +2287,7 @@ class Compile {
 								code->addCString("		dataView.set");
 								unsigned int typeSize =
 									getDataType(code, dataType);
-								code->addChar('(');
+								code->push('(');
 								code->addUint(postSize,
 									std::NumberBases::decimal);
 								code->addCString(", ");
@@ -2364,7 +2363,7 @@ class Compile {
 									std::NumberBases::decimal);
 								code->addCString(", ");
 								code->addString(&parameter->name);
-								code->addChar(')');
+								code->push(')');
 							}
 							code->addCString(";\n\t");
 						}
@@ -2388,7 +2387,7 @@ class Compile {
 					compileFunction->dataType, code);
 				code->addCString("*/ ");
 				getFunctionName(code, compileFunction);
-				code->addChar('(');
+				code->push('(');
 				bool first = true;
 				if (!compileFunction->isStatic()){
 					code->addCString("\n\t");
@@ -2425,7 +2424,7 @@ class Compile {
 					code->addString(&parameter->name);
 					k = k + 1;
 				}
-				code->addChar(')');
+				code->push(')');
 				if (compileFunction->needStack()){
 					unsigned int size = sortVariables(
 						0, &main->sortedVariables);
@@ -2685,7 +2684,7 @@ class Compile {
 				break;
 			case lexical::Types::characterLiteral:
 				{
-					unsigned char c = ((lexical::CharacterLiteral*)
+					unsigned int c = ((lexical::CharacterLiteral*)
 						expression)->character;
 					addUint(main, c);
 					addCString(main, "/*");
@@ -2722,8 +2721,8 @@ class Compile {
 					splitIfLongLine(main, strLen);
 					std::str::DString* code = &main->compiledCode;
 					unsigned int len = code->length;
-					code->addLength(strLen, true, true);
-					std::arr::Uchar::setReplace(code->data, len,
+					std::arr::Uchar::setReplace(
+						code->grow(strLen), len,
 						string->data, 0, string->length,
 						"/", 0, 1, "\\/", 0, 2);
 					addCString(main, "*/");
@@ -3075,7 +3074,7 @@ class Compile {
 				break;
 			case lexical::Types::block:
 				blockToJs(main, (lexical::BlockStatement*)expression);
-				main->compiledCode.addChar('\n');
+				main->compiledCode.push('\n');
 				break;
 			case lexical::Types::variableDeclaration:
 				variableDeclarationToJs(main,
@@ -3149,7 +3148,7 @@ class Compile {
 						addCString(main, " else ");
 						compileExpression(main, statement->operand3);
 					} else {
-						main->compiledCode.addChar('\n');
+						main->compiledCode.push('\n');
 					}
 					break;
 				}
@@ -3456,7 +3455,7 @@ class Compile {
 			addCString(main, "*/");
 			if (dataType->type != data::Types::classT){
 				if (assignment){
-					code->addChar('\n');
+					code->push('\n');
 					main->charsInLine = 0;
 					addTabs(main);
 					bool memoryEnd =
@@ -3471,7 +3470,7 @@ class Compile {
 				data::ClassType* classType =
 					(data::ClassType*)dataType;
 				if (classType->needCallConstructors()){
-					code->addChar('\n');
+					code->push('\n');
 					main->charsInLine = 0;
 					addTabs(main);
 					addCall(main, classType,
@@ -3538,7 +3537,7 @@ class Compile {
 				case lexical::Types::block:
 					addTabs(main);
 					blockToJs(main, (lexical::BlockStatement*)statement);
-					code->addChar('\n');
+					code->push('\n');
 					break;
 				case lexical::Types::constwriteStatement:
 					compileExpression(main, statement);
@@ -3585,7 +3584,7 @@ class Compile {
 					/* No need to compile the rest of the block, so just return. */
 					*nestedBlocks = *nestedBlocks - 1;
 					addTabs(main);
-					code->addChar('}');
+					code->push('}');
 					expressionStack->pop();
 					return;
 				case lexical::Types::ifStatement:
@@ -3600,7 +3599,7 @@ class Compile {
 					addTabs(main);
 					*nestedBlocks = *nestedBlocks + 1;
 					compileExpression(main, statement);
-					code->addChar('\n');
+					code->push('\n');
 					break;
 				default:
 					addTabs(main);
@@ -3623,7 +3622,7 @@ class Compile {
 		}
 		*nestedBlocks = *nestedBlocks - 1;
 		addTabs(main);
-		code->addChar('}');
+		code->push('}');
 		expressionStack->pop();
 	}
 

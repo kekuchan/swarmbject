@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -913,7 +913,7 @@ class FileSystem {
 		operation->callStart = doMove;
 		/* Pack both path to the same string,
 			separated with the 0 character. */
-		operation->path.setLength(dstLen + 1 + srcLen);
+		operation->path.create(dstLen + 1 + srcLen);
 		operation->path.copy(0, dst, 0, dstLen + 1);
 		operation->path.copy(dstLen + 1, src, 0, srcLen);
 		operation->callback = (void())callback;
@@ -933,7 +933,7 @@ class FileSystem {
 		operation->callStart = doMove;
 		/* Pack both path to the same string,
 			separated with the 0 character. */
-		operation->path.setLength(dstLen + 1 + srcLen);
+		operation->path.create(dstLen + 1 + srcLen);
 		operation->path.copy(0, dst, 0, dstLen + 1);
 		operation->path.copy(dstLen + 1, src, 0, srcLen);
 		operation->callback = (void())callback;

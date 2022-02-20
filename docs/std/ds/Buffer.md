@@ -13,7 +13,7 @@ the get and set functions.
 
 ```
 std::ds::Buffer buffer;
-buffer.setSize(1);
+buffer.create(1);
 unsigned char[] data = buffer.data;
 data[0] = 21;
 ```
@@ -25,7 +25,7 @@ that the buffer stores.
 
 ```
 std::ds::Buffer buffer;
-buffer.setSize(1);
+buffer.create(1);
 unsigned int size = buffer.size; /*1*/
 ```
 
@@ -39,9 +39,29 @@ Returns: void.
 
 ```
 std::ds::Buffer buffer;
-buffer.setSize(1);
+buffer.create(1);
 buffer.clear();
 unsigned int size = buffer.size; /*0*/
+```
+
+## "create" member function:
+
+Sets the buffer with empty space to set 
+manually. This might require creating a 
+new array, making the usage of the 
+previous data member not valid.
+
+Parameters:
+* The size of the buffer to create.
+
+Returns: the buffer data as unsigned char[].
+
+```
+std::ds::Buffer buffer;
+buffer.create(1);
+unsigned int size = buffer.size; /*1*/
+buffer.create(2);
+size = buffer.size; /*2*/
 ```
 
 ## "getU8" member function:
@@ -55,7 +75,7 @@ Returns: unsigned char.
 
 ```
 std::ds::Buffer buffer;
-buffer.setSize(1);
+buffer.create(1);
 buffer.setU8(0, 21);
 unsigned char value = buffer.getU8(0); /*21*/
 ```
@@ -75,7 +95,7 @@ Returns: void.
 
 ```
 std::ds::Buffer buffer;
-buffer.setSize(2);
+buffer.create(2);
 buffer.setU8(0, 20);
 buffer.setU8(1, 21);
 unsigned char[] values = new unsigned char[2];
@@ -97,7 +117,7 @@ Returns: unsigned short.
 
 ```
 std::ds::Buffer buffer;
-buffer.setSize(2);
+buffer.create(2);
 buffer.setU16BE(0, 2021);
 unsigned short value = buffer.getU16BE(0); /*2021*/
 ```
@@ -115,7 +135,7 @@ Returns: unsigned short.
 
 ```
 std::ds::Buffer buffer;
-buffer.setSize(2);
+buffer.create(2);
 buffer.setU16LE(0, 2021);
 unsigned short value = buffer.getU16LE(0); /*2021*/
 ```
@@ -133,7 +153,7 @@ Returns: unsigned int.
 
 ```
 std::ds::Buffer buffer;
-buffer.setSize(4);
+buffer.create(4);
 buffer.setU32BE(0, 20212021);
 unsigned short value = buffer.getU32BE(0); /*20212021*/
 ```
@@ -151,7 +171,7 @@ Returns: unsigned int.
 
 ```
 std::ds::Buffer buffer;
-buffer.setSize(4);
+buffer.create(4);
 buffer.setU32LE(0, 20212021);
 unsigned short value = buffer.getU32LE(0); /*20212021*/
 ```
@@ -168,32 +188,13 @@ Returns: void.
 
 ```
 std::ds::Buffer first;
-first.setSize(2);
+first.create(2);
 first.setU16LE(0, 2020);
 std::ds::Buffer second;
-second.setSize(2);
+second.create(2);
 second.setU16LE(0, 2021);
 first.move(&second);
 /*first=2021, second=*/
-```
-
-## "setSize" member function:
-
-Changes the size of the buffer. As it creates a 
-new array and copy all the elements, usage of 
-the previous data member is not valid.
-
-Parameters:
-* The new size the buffer.
-
-Returns: void.
-
-```
-std::ds::Buffer buffer;
-buffer.setSize(1);
-unsigned int size = buffer.size; /*1*/
-buffer.setSize(2);
-size = buffer.size; /*2*/
 ```
 
 ## "setU8" member function:
@@ -227,7 +228,7 @@ unsigned char[] values = new unsigned char[2];
 values[0] = 20;
 values[1] = 21;
 std::ds::Buffer buffer;
-buffer.setSize(2);
+buffer.create(2);
 buffer.setU8s(0, values, 0, 2);
 unsigned char value = buffer.getU8(0); /*20*/
 value = buffer.getU8(1); /*21*/
@@ -293,7 +294,7 @@ An example was already given at the
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -363,7 +364,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

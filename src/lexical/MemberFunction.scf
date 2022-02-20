@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -94,14 +94,22 @@ class MemberFunction : lexical::Type {
 	}
 
 	static unsigned char cmpName(void* i, void* j){
-		return std::str::CString::compare(
-			((lexical::MemberFunction*)i)->name.data, 0,
-			((lexical::MemberFunction*)j)->name.data, 0);
+		std::str::String* src = 
+			&(lexical::MemberFunction*)i->name;
+		std::str::String* dst = 
+			&(lexical::MemberFunction*)j->name;
+		return std::arr::Uchar::compareRange(
+			src->data, 0, src->length,
+			dst->data, 0, dst->length);
 	}
 
 	static unsigned char cmpString(void* i, void* j){
-		return (lexical::MemberFunction*)i->
-			name.compareView((std::str::View*)j);
+		std::str::String* src = 
+			&(lexical::MemberFunction*)i->name;
+		std::str::View* dst = (std::str::View*)j;
+		return std::arr::Uchar::compareRange(
+			src->data, 0, src->length,
+			dst->data, dst->start, dst->length);
 	}
 	
 	bool isStatic(){

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -67,46 +67,67 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-/* Singly linked list */
-class SLList {
+/* Doubly linked list */
+class DLList {
 	void* next;
+	void* previous;
 
-	SLList(){
+	DLList(){
 		next = nullptr;
+		previous = nullptr;
 	}
 
 	/* Public member functions. */
 
 	static unsigned int getSize(void* frontElement,
-		std::ds::SLList*(void*) getList){
+		std::ds::DLList*(void*) getList){
 		unsigned int size = 0;
 		while (frontElement != nullptr){
 			size = size + 1;
-			std::ds::SLList* list = getList(frontElement);
+			std::ds::DLList* list = getList(frontElement);
 			frontElement = list->next;
 		}
 		return size;
 	}
 
+	static void popBack(void** front,
+		void** back, std::ds::DLList*(void*) getList){
+		void* backElement = *back;
+		if (backElement != nullptr){
+			std::ds::DLList* list = getList(backElement);
+			void* previousElement = list->previous;
+			if (previousElement != nullptr){
+				getList(previousElement)->next = nullptr;
+			} else if (front != nullptr){
+				*front = nullptr;
+			}
+			*back = previousElement;
+			list->next = nullptr;
+			list->previous = nullptr;
+		}
+	}
+
 	static void popFront(void** front,
-		void** back, std::ds::SLList*(void*) getList){
+		void** back, std::ds::DLList*(void*) getList){
 		void* frontElement = *front;
 		if (frontElement != nullptr){
-			std::ds::SLList* list = getList(frontElement);
+			std::ds::DLList* list = getList(frontElement);
 			void* nextElement = list->next;
-			if (nextElement == nullptr && back != nullptr){
+			if (nextElement != nullptr){
+				getList(nextElement)->previous = nullptr;
+			} else if (back != nullptr){
 				*back = nullptr;
 			}
 			*front = nextElement;
 			list->next = nullptr;
+			list->previous = nullptr;
 		}
 	}
 
 	/* If the element is already part of the list, then it must be
-		removed before calling this function.
-		The back ptr can be nullptr. */
+		removed before calling this function. */
 	static void pushBack(void* element, void** front,
-		void** back, std::ds::SLList*(void*) getList){
+		void** back, std::ds::DLList*(void*) getList){
 		void* backElement;
 		if (back != nullptr){
 			backElement = *back;
@@ -120,10 +141,11 @@ class SLList {
 			}
 		} else {
 			while (true){
-				std::ds::SLList* list = getList(backElement);
+				std::ds::DLList* list = getList(backElement);
 				void* nextElement = list->next;
 				if (nextElement == nullptr){
 					list->next = element;
+					getList(element)->previous = backElement;
 					break;
 				}
 				backElement = nextElement;
@@ -132,19 +154,31 @@ class SLList {
 	}
 
 	/* If the element is already part of the list, then it must be
-		removed before calling this function.
-		The back ptr can be nullptr. */
+		removed before calling this function. */
 	static void pushFront(void* element, void** front,
-		void** back, std::ds::SLList*(void*) getList){
-		void* frontElement = *front;
-		if (frontElement == nullptr){
+		void** back, std::ds::DLList*(void*) getList){
+		void* frontElement;
+		if (front != nullptr){
+			frontElement = *front;
 			*front = element;
+		} else if (back != nullptr){
+			frontElement = *back;
+		} else {return;}
+		if (frontElement == nullptr){
 			if (back != nullptr){
 				*back = element;
 			}
 		} else {
-			getList(element)->next = frontElement;
-			*front = element;
+			while (true){
+				std::ds::DLList* list = getList(frontElement);
+				void* previousElement = list->previous;
+				if (previousElement == nullptr){
+					list->previous = element;
+					getList(element)->next = frontElement;
+					break;
+				}
+				frontElement = previousElement;
+			}
 		}
 	}
 	

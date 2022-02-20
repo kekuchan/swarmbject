@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -106,6 +106,21 @@ class Buffer {
 		delete[] data;
 		data = nullptr;
 	}
+	
+	unsigned char[] create(unsigned int len){
+		unsigned char[] newData = data;
+		if (size != len){
+			delete[] newData;
+			if (len > 0){
+				newData = new unsigned char[len];
+			} else {
+				newData = nullptr;
+			}
+			data = newData;
+			size = len;
+		}
+		return newData;
+	}
 
 	unsigned char getU8(unsigned int start){
 		return data[start];
@@ -140,27 +155,6 @@ class Buffer {
 		data = src->data;
 		src->size = 0;
 		src->data = nullptr;
-	}
-
-	void setSize(unsigned int len){
-		unsigned int copySize = size;
-		if (copySize == len) {return;}
-		if (copySize == 0){
-			data = new unsigned char[len];
-		} else {
-			unsigned char[] previousData = data;
-			if (len > 0){
-				unsigned char[] newData = new unsigned char[len];
-				if (len < copySize) {copySize = len;}
-				std::arr::Uchar::copy(
-					newData, 0, previousData, 0, copySize);
-				data = newData;
-			} else {
-				data = nullptr;
-			}
-			delete[] previousData;
-		}
-		size = len;
 	}
 
 	void setU8(unsigned int start,

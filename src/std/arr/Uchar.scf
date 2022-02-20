@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -302,8 +302,8 @@ class Uchar {
 				if (compare(str, strStart,
 						src, srcStart, srcLen) == 
 					std::Compare::equal){
-					copy(dst, dstStart,
-						data, dataStart, dstLen);
+					copy(data, dataStart, 
+						dst, dstStart, dstLen);
 					dataStart = dataStart + dstLen;
 					strStart = strStart + srcLen;
 					continue;

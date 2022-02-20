@@ -47,6 +47,27 @@ std::ds::PtrDArray array;
 unsigned int size = array.size; /*0*/
 ```
 
+## "add" member function:
+
+Inserts an element to the array's end.
+This might require creating a new array and copy 
+all the elements due to the capacity, making 
+the usage of the previous data member not valid.
+
+Parameters:
+* A pointer to insert.
+* The number of times to insert the element.
+
+Returns: void.
+
+```
+std::ds::PtrDArray array;
+int* year = new int;
+*year = 2021;
+array.add(year, 2);
+/*&2021,&2021*/
+```
+
 ## "addRange" member function:
 
 Inserts a subarray to the array's end.
@@ -131,6 +152,27 @@ array.compare(years, 0, 2, compare);
 	2021,2020 > 2020,2021.*/
 ```
 
+## "copy" member function:
+
+Copy an element to the array, by 
+replacing the values.
+
+Parameters:
+* The starting index in the array to copy to.
+* A pointer to copy.
+* The number of times to copy the element.
+
+Returns: void.
+
+```
+std::ds::PtrDArray array;
+array.create(2);
+int* year = new int;
+*year = 2021;
+array.copy(0, year, 2);
+/*&2021,&2021*/
+```
+
 ## "copyRange" member function:
 
 Copy a subarray to the array, by 
@@ -157,6 +199,28 @@ year = new int;
 array.insert(0, year, 1);
 years[1] = year;
 array.copyRange(0, years, 0, 2);
+/*&2020,&2021*/
+```
+
+## "create" member function:
+
+Sets the array with empty space to set 
+manually. This might require creating a 
+new array due to the capacity, making the 
+usage of the previous data member not valid.
+
+Parameters:
+* The size of the array to create.
+
+Returns: the array data as void*[].
+
+```
+std::ds::PtrDArray array;
+int*[] years = (int*[])(array.create(2));
+years[0] = new int;
+*years[0] = 2020;
+years[1] = new int;
+*years[1] = 2021;
 /*&2020,&2021*/
 ```
 
@@ -399,6 +463,29 @@ array.push(year);
 year = (int*)(array.getBack()); /*&2021*/
 ```
 
+## "grow" member function:
+
+Grows the array, with empty space to set manually.
+This might require creating a new array and copy 
+all the elements due to the capacity, making 
+the usage of the previous data member not valid.
+
+Parameters:
+* The ammount to grow with.
+
+Returns: the array data as void*[].
+
+```
+std::ds::PtrDArray array;
+int* year = new int;
+*year = 2020;
+array.push(year);
+int*[] years = (int*[])(array.grow(1));
+years[1] = new int;
+*years[1] = 2021;
+/*&2020,&2021*/
+```
+
 ## "insert" member function:
 
 Inserts an element to the array. This requires 
@@ -560,9 +647,9 @@ array.push(year);
 ## "reserve" member function:
 
 Increases the capacity of the array. This 
-requires creating a new array and copy all 
-the elements, making the usage of the previous 
-data member not valid.
+requires creating a new array and copy 
+all the elements, making the usage of the 
+previous data member not valid.
 
 Parameters:
 * The new capacity.
@@ -592,6 +679,27 @@ year = new int;
 array.push(year);
 array.reverse();
 /*&2021,&2020*/
+```
+
+## "set" member function:
+
+Sets the array to be a copy of an element.
+This might require creating a new array 
+due to the capacity, making the usage of 
+the previous data member not valid.
+
+Parameters:
+* The pointer to copy.
+* The number of times to copy the element.
+
+Returns: void.
+
+```
+std::ds::PtrDArray array;
+int* year = new int;
+*year = 2021;
+array.set(year, 2);
+/*&2021,&2021*/
 ```
 
 ## "setRange" member function:
@@ -632,18 +740,45 @@ Parameters:
 * The index in the array to shift from.
 * The ammount to shift with.
 
-Returns: void.
+Returns: the array data as void*[].
 
 ```
 std::ds::PtrDArray array;
 int* year = new int;
 *year = 2021;
 array.push(year);
-year = new int;
-*year = 2020;
-array.shift(0, 1);
-array.data[0] = year;
+int*[] years = (int*[])(array.shift(0, 1));
+years[0] = new int;
+*years[0] = 2020;
 /*&2020,&2021*/
+```
+
+## "shrink" member function:
+
+Decreases the capacity of the array. This requires 
+creating a new array and copy the remaining 
+elements, making the usage of the previous data 
+member not valid. The pointed datas are not deleted 
+automatically, as they might be still used elsewhere.
+
+Parameters:
+* The new capacity.
+
+Returns: void.
+
+```
+std::ds::PtrDArray array;
+int* year = new int;
+*year = 2020;
+array.push(year);
+year = new int;
+*year = 2021;
+array.push(year);
+/*When not needed anymore:*/
+delete year;
+array.shrink(1);
+unsigned int capacity = array.capacity; /*1*/
+unsigned int size = array.size; /*1 as &2020.*/
 ```
 
 ## "trim" member function:
@@ -673,7 +808,7 @@ unsigned int size = array.size; /*1 as &2020.*/
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -743,7 +878,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

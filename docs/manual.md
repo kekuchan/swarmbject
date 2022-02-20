@@ -1880,9 +1880,12 @@ of an operator, it can be parenthesized.
 
 ## Data structures (ds) reference:
 
+* [/docs/std/ds/Array.md](std/ds/Array.md)
 * [/docs/std/ds/Buffer.md](std/ds/Buffer.md)
+* [/docs/std/ds/CircuralArray.md](std/ds/CircuralArray.md)
 * [/docs/std/ds/DArray.md](std/ds/DArray.md)
 * [/docs/std/ds/DBuffer.md](std/ds/DBuffer.md)
+* [/docs/std/ds/DLList.md](std/ds/DLList.md)
 * [/docs/std/ds/PtrArray.md](std/ds/PtrArray.md)
 * [/docs/std/ds/PtrCircuralArray.md](std/ds/PtrCircuralArray.md)
 * [/docs/std/ds/PtrDArray.md](std/ds/PtrDArray.md)
@@ -1949,6 +1952,7 @@ of an operator, it can be parenthesized.
 
 ## String (str) reference:
 
+* [/docs/std/str/Compare.md](std/str/Compare.md)
 * [/docs/std/str/CString.md](std/str/CString.md)
 * [/docs/std/str/DString.md](std/str/DString.md)
 * [/docs/std/str/String.md](std/str/String.md)
@@ -1956,7 +1960,7 @@ of an operator, it can be parenthesized.
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -2026,7 +2030,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

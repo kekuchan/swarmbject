@@ -4,24 +4,54 @@ Provides static functions for strings in unsigned
 char arrays, where the string's end is indicated 
 with a 0 unsigned char.
 
+## "charLength" static function:
+
+Gets the length of a character, as if it were a string.
+With UTF-8, a character can use 1-4 unsigned chars.
+
+Parameters:
+* The character.
+
+Returns: unsigned char.
+
+```
+unsigned int length = 
+	std::str::CString::charLength('2'); /*1*/
+```
+		
 ## "compare" static function:
 
 Compares a string to a string.
 
 Parameters:
 * The unsigned char array of the first string.
-* The starting index of the first string in the array.
+* The starting index of the first string 
+in the array.
 * The unsigned char array of the second string.
-* The starting index of the second string in the array.
+* The starting index of the second string 
+in the array.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
 
 Returns: an std::Compare value.
 
 ```
-unsigned char const[] first = "first string";
-unsigned char const[] second = "second string";
+unsigned char const[] first = "YEAR";
+unsigned char const[] second = "year";
+
 unsigned char compare = std::str::CString::compare(
-	first, 0, second, 0);
-/*std::Compare::less, as 'f' < 's'.*/
+	first, 0, second, 0, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = std::str::CString::compare(
+	first, 0, second, 0, &cmp);
+/*std::Compare::equal.*/
 ```
 
 ## "compareRange" static function:
@@ -34,35 +64,194 @@ Parameters:
 * The unsigned char array of the substring.
 * The starting index of the substring in the array.
 * The length of the substring.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
+
 Returns: an std::Compare value.
 
 ```
-unsigned char const[] string = "string";
+unsigned char const[] first = "YEAR";
+unsigned char const[] second = "year";
+
 unsigned char compare = 
 	std::str::CString::compareRange(
-		string, 0, string, 1, 1);
-/*std::Compare::less, as 's' < 't'.*/
+		first, 0, second, 0, 4, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = std::str::CString::compareRange(
+	first, 0, second, 0, 4, &cmp);
+/*std::Compare::equal.*/
 ```
 
-## "compareSubstring" static function:
+## "find" static function:
 
-Compares a substring, to a string.
+Finds the first occurence of a string in a string.
 
 Parameters:
-* The unsigned char array of the substring.
-* The starting index of the substring in the array.
-* The length of the substring.
-* The unsigned char array of the string.
-* The starting index of the string in the array.
+* The unsigned char array of the string to search in.
+* The starting index to search from in the array.
+* The unsigned char array of the string to find.
+* The starting index of the string to find 
+in its array.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning std::Compare::equal 
+if equal, or something else otherwise, and 
+setting their starting and ending + 1 indices.
 
-Returns: an std::Compare value.
+Returns: 0, if not found, otherwise the 
+index + 1 position of the starting character.
 
 ```
-unsigned char const[] string = "string";
-unsigned char compare = 
-	std::str::CString::compareSubstring(
-		string, 1, 1, string, 0);
-/*std::Compare::greater, as 't' > 's'.*/
+unsigned char const[] first = "YEAR";
+unsigned char const[] second = "year";
+
+unsigned int position = 
+	std::str::CString::find(
+		first, 0, second, 0, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCI;
+position = std::str::CString::find(
+	first, 0, second, 0, &cmp); /*1*/
+```
+
+## "findChar" static function:
+
+Finds the first occurence of a character in a string.
+
+Parameters:
+* The unsigned char array of the string to search in.
+* The starting index to search from in the array.
+* The character to find.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare 
+member pointing to a function that compares the 
+character stored in dstStart with a character 
+or more of its src member, from its starting 
+index, returning std::Compare::equal if equal, 
+or something else otherwise, and setting its 
+starting and ending + 1 indices.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the character.
+
+```
+unsigned char const[] first = "YEAR";
+unsigned char second = 'y';
+
+unsigned int position = 
+	std::str::CString::findChar(
+		first, 0, second, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCharCI;
+position = std::str::CString::findChar(
+	first, 0, second, &cmp); /*1*/
+```
+
+## "findRange" static function:
+
+Finds the first occurence of a substring in a string.
+
+Parameters:
+* The unsigned char array of the string to search in.
+* The starting index to search from in the array.
+* The unsigned char array of the substring to find.
+* The starting index of the substring to find 
+in its array.
+* The length of the substring to find.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning std::Compare::equal 
+if equal, or something else otherwise, and 
+setting their starting and ending + 1 indices.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the starting character.
+
+```
+unsigned char const[] first = "YEAR";
+unsigned char const[] second = "year";
+
+unsigned int position = 
+	std::str::CString::findRange(
+		first, 0, second, 0, 4, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCI;
+position = std::str::CString::findRange(
+	first, 0, second, 0, 4, &cmp); /*1*/
+```
+		
+## "getChar" static function:
+
+Gets a character from a string. With UTF-8, 
+a character can use 1-4 unsigned chars. In
+case of an invalid UTF-8 value, 0xFFFD is 
+returned, with the ending + 1 index set
+to the given index + 1.
+
+Parameters:
+* The unsigned char array of the string.
+* A pointer to an unsigned int construct, that 
+contains an index of the character, and if it 
+is not the same as the next parameter, then it 
+will contain the starting index of the character.
+* A pointer to an unsigned int construct, 
+that will be set to contain the ending + 1 
+index of the character in the array.
+* The lowest index that can be used when a 
+lower than the given character index is needed.
+* The highest index + 1 that can be used when 
+a higher than the given character index is needed.
+
+Returns: unsigned int.
+
+```
+unsigned int start = 0;
+unsigned int end;
+unsigned int character = 
+	std::str::CString::getChar(
+		"2021", &start, &end, 0, 4);
+/*character='2', start=0, end=1*/
+```
+		
+## "getValidChar" static function:
+
+Gets a character from a string, assuming 
+that it is valid, as with UTF-8, a 
+character can use 1-4 unsigned chars.
+
+Parameters:
+* The unsigned char array of the string.
+* A pointer to an unsigned int construct, that 
+contains an index of the character, and if it 
+is not the same as the next parameter, then it 
+will contain the starting index of the character.
+* A pointer to an unsigned int construct, 
+that will be set to contain the ending + 1 
+index of the character in the array.
+
+Returns: unsigned int.
+
+```
+unsigned int start = 0;
+unsigned int end;
+unsigned int character = 
+	std::str::CString::getValidChar(
+		"2021", &start, &end);
+/*character='2', start=0, end=1*/
 ```
 
 ## "getUint" static function:
@@ -123,7 +312,29 @@ unsigned int base =
 	std::str::CString::numberBaseToUint(
 		std::NumberBases::decimal); /*10*/
 ```
-	
+
+## "setChar" static function:
+
+Sets a character to a string. With UTF-8, 
+a character can use 1-4 unsigned chars.
+
+Parameters:
+* The unsigned char array of the string.
+* The starting index to write in the array.
+* The character to set.
+
+Returns: the number of characters used while 
+writing as an unsigned char.
+
+```
+unsigned char[] string = new unsigned char[2];
+/*1 character and the ending 0.*/
+string[1] = 0;
+unsigned char chars = 
+	std::str::CString::setChar(string, 0, '2');
+/*chars=1, string="2"*/
+```
+
 ## "setUint" static function:
 
 Sets an unsigned int to a string.
@@ -172,6 +383,306 @@ unsigned int chars =
 /*chars=4, string="2021"*/
 ```
 
+## "subcompare" static function:
+
+Compares a substring, to a string.
+
+Parameters:
+* The unsigned char array of the substring.
+* The starting index of the substring in the array.
+* The length of the substring.
+* The unsigned char array of the string.
+* The starting index of the string in the array.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
+
+Returns: an std::Compare value.
+
+```
+unsigned char const[] first = "YEAR";
+unsigned char const[] second = "year";
+
+unsigned char compare = 
+	std::str::CString::subcompare(
+		first, 0, 4, second, 0, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = std::str::CString::subcompare(
+	first, 0, 4, second, 0, &cmp);
+/*std::Compare::equal.*/
+```
+
+## "subcompareRange" static function:
+
+Compares a substring, to a substring.
+
+Parameters:
+* The unsigned char array of the first substring.
+* The starting index of the 
+first substring in the array.
+* The length of the first substring.
+* The unsigned char array of the second substring.
+* The starting index of the 
+second substring in the array.
+* The length of the second substring.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
+
+Returns: an std::Compare value.
+
+```
+unsigned char const[] first = "YEAR";
+unsigned char const[] second = "year";
+
+unsigned char compare = 
+	std::str::CString::subcompareRange(
+		first, 0, 4, second, 0, 4, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = std::str::CString::subcompareRange(
+	first, 0, 4, second, 0, 4, &cmp);
+/*std::Compare::equal.*/
+```
+
+## "subfind" static function:
+
+Finds the first occurence of a string in a substring.
+
+Parameters:
+* The unsigned char array of the 
+substring to search in.
+* The starting index to search from in the array.
+* The length of the substring to search in.
+* The unsigned char array of the string to find.
+* The starting index of the string to find 
+in its array.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning std::Compare::equal 
+if equal, or something else otherwise, and 
+setting their starting and ending + 1 indices.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the starting character.
+
+```
+unsigned char const[] first = "YEAR";
+unsigned char const[] second = "year";
+
+unsigned int position = 
+	std::str::CString::subfind(
+		first, 0, 4, second, 0, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCI;
+position = std::str::CString::subfind(
+	first, 0, 4, second, 0, &cmp); /*1*/
+```
+
+## "subfindChar" static function:
+
+Finds the first occurence of 
+a character in a substring.
+
+Parameters:
+* The unsigned char array of the 
+substring to search in.
+* The starting index to search from in the array.
+* The length of the substring to search in.
+* The character to find.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare 
+member pointing to a function that compares the 
+character stored in dstStart with a character 
+or more of its src member, from its starting 
+index, returning std::Compare::equal if equal, 
+or something else otherwise, and setting its 
+starting and ending + 1 indices.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the character.
+
+```
+unsigned char const[] first = "YEAR";
+unsigned char second = 'y';
+
+unsigned int position = 
+	std::str::CString::subfindChar(
+		first, 0, 4, second, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCharCI;
+position = std::str::CString::subfindChar(
+	first, 0, 4, second, &cmp); /*1*/
+```
+
+## "subfindLast" static function:
+
+Finds the first occurence of a string,
+but starting backwards in the substring.
+
+Parameters:
+* The unsigned char array of the 
+substring to search in.
+* The ending index to search until in the array.
+* The length from the ending index to search in.
+* The unsigned char array of the string to find.
+* The starting index of the string to find 
+in its array.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning std::Compare::equal 
+if equal, or something else otherwise, and 
+setting their starting and ending + 1 indices.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the starting character.
+
+```
+unsigned char const[] first = "YEAR";
+unsigned char const[] second = "year";
+
+unsigned int position = 
+	std::str::CString::subfindLast(
+		first, 0, 4, second, 0, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCI;
+position = std::str::CString::subfindLast(
+	first, 0, 4, second, 0, &cmp); /*1*/
+```
+
+## "subfindLastChar" static function:
+
+Finds the first occurence of a character, 
+but starting backwards in the substring.
+
+Parameters:
+* The unsigned char array of the 
+substring to search in.
+* The ending index to search until in the array.
+* The length from the ending index to search in.
+* The character to find.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare 
+member pointing to a function that compares the 
+character stored in dstStart with a character 
+or more of its src member, from its starting 
+index, returning std::Compare::equal if equal, 
+or something else otherwise, and setting its 
+starting and ending + 1 indices.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the character.
+
+```
+unsigned char const[] first = "YEAR";
+unsigned char second = 'y';
+
+unsigned int position = 
+	std::str::CString::subfindLastChar(
+		first, 0, 4, second, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCharCI;
+position = std::str::CString::subfindLastChar(
+	first, 0, 4, second, &cmp); /*1*/
+```
+
+## "subfindLastRange" static function:
+
+Finds the first occurence of a substring,
+but starting backwards in a substring.
+
+Parameters:
+* The unsigned char array of the 
+substring to search in.
+* The ending index to search until in the array.
+* The length from the ending index to search in.
+* The unsigned char array of the substring to find.
+* The starting index of the substring to find 
+in its array.
+* The length of the substring to find.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning std::Compare::equal 
+if equal, or something else otherwise, and 
+setting their starting and ending + 1 indices.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the starting character.
+
+```
+unsigned char const[] first = "YEAR";
+unsigned char const[] second = "year";
+
+unsigned int position = 
+	std::str::CString::subfindLastRange(
+		first, 0, 4, second, 0, 4, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCI;
+position = std::str::CString::subfindLastRange(
+	first, 0, 4, second, 0, 4, &cmp); /*1*/
+```
+
+## "subfindRange" static function:
+
+Finds the first occurence of a substring 
+in a substring.
+
+Parameters:
+* The unsigned char array of the 
+substring to search in.
+* The starting index to search from in the array.
+* The length of the substring to search in.
+* The unsigned char array of the substring to find.
+* The starting index of the substring to find 
+in its array.
+* The length of the substring to find.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning std::Compare::equal 
+if equal, or something else otherwise, and 
+setting their starting and ending + 1 indices.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the starting character.
+
+```
+unsigned char const[] first = "YEAR";
+unsigned char const[] second = "year";
+
+unsigned int position = 
+	std::str::CString::subfindRange(
+		first, 0, 4, second, 0, 4, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCI;
+position = std::str::CString::subfindRange(
+	first, 0, 4, second, 0, 4, &cmp); /*1*/
+```
+
 ## "uintLength" static function:
 
 Gets the length of an unsigned int 
@@ -191,7 +702,7 @@ unsigned int chars =
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -261,7 +772,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

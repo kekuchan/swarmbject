@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -208,7 +208,7 @@ class ParseBlock {
 		while (i < len){
 			info.addCString(Lexical::expressionTypeToString(
 				expressions[i]->type));
-			info.addChar(',');
+			info.push(',');
 			i = i + 1;
 		}
 		Parse::logInfoDString(main, &info, 1);
@@ -252,7 +252,7 @@ class ParseBlock {
 		if (block->getVariable(
 			&main->token) != nullptr){
 			std::str::DString error;
-			error.addChar('\'');
+			error.push('\'');
 			error.addView(&main->token);
 			error.addCString("' variable already declared in block.");
 			Parse::logError(main, compileCursor, &error);
@@ -305,7 +305,7 @@ class ParseBlock {
 				case TokenTypes::staticKeyword:
 					{
 						std::str::DString error;
-						error.addChar('\'');
+						error.push('\'');
 						error.addView(&main->token);
 						error.addCString("' keyword at invalid place.");
 						Parse::logError(main, compileCursor, &error);
@@ -675,10 +675,19 @@ class ParseBlock {
 				case TokenTypes::characterLiteral:
 					compileCursor = Lexical::getCharacterToken(
 						main, classType, compileCursor);
-					if (putValueIntoExpression(main, 
-						main->lexicalToken)) {break;}
-					Parse::logErrorCString(main, compileCursor,
-						"Character literal at invalid place.");
+					if (classType->code.data[compileCursor] == '\''){
+						if (putValueIntoExpression(main, 
+							main->lexicalToken)){
+							compileCursor = compileCursor + 1;
+							break;
+						}
+						Parse::logErrorCString(main, compileCursor,
+							"Character literal at invalid place.");
+					} else {
+						Parse::logErrorCString(main, compileCursor,
+							"A character literal can not "
+							"have more characters.");
+					}
 					return false;
 				case TokenTypes::stringLiteral:
 					{
@@ -1773,7 +1782,7 @@ class ParseBlock {
 			if (pointer){
 				error.addCString("->");
 			} else {
-				error.addChar('.');
+				error.push('.');
 			}
 			error.addCString("' operator.");
 			Parse::logError(main, compileCursor, &error);
@@ -1927,8 +1936,11 @@ class ParseBlock {
 			main, dataMember, savedCursor)) {return false;}
 		unsigned char* tokenType = &main->tokenType;
 		if (*tokenType != TokenTypes::identifier ||
-			main->token.compareString(
-				&dataMember->name) != std::Compare::equal){
+			std::arr::Uchar::compareRange(
+				main->token.data, main->token.start,
+				main->token.length, dataMember->name.data, 
+				0, dataMember->name.length) != 
+			std::Compare::equal){
 			Parse::logErrorCString(main, compileCursor,
 				"A data member name has to be after its type.");
 			return false;
@@ -2036,7 +2048,8 @@ class ParseBlock {
 		data::ClassType* classType;
 		std::str::View name;
 		while (true){
-			j = classOrMemberPath->find('/', j);
+			j = std::arr::Uchar::find(
+				classOrMemberPath->data, j, len - j, '/');
 			if (j == 0){
 				j = len + 1;
 			}
@@ -2079,8 +2092,7 @@ class ParseBlock {
 		}
 		unsigned int len = openedFile->getSize();
 		std::str::String* code = &classType->code;
-		code->setLength(len);
-		openedFile->read(code->data, 0, len);
+		openedFile->read(code->create(len), 0, len);
 		Parse::parseClass(app, classType,
 			continueParseClassOrMember);
 		if (main->compileError) {return;}
@@ -2460,7 +2472,7 @@ class ParseBlock {
 						"There has to be an identifier after the :: operator.");
 					return false;
 				}
-				path->addChar('/');
+				path->push('/');
 				path->addView(token);
 				continue;
 			}

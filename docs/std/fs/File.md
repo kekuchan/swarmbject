@@ -87,8 +87,7 @@ Returns: void.
 ```
 /*In Main::onOpened.*/
 std::str::String string;
-string.setLength(4);
-file->read(string.data, 0, 4);
+file->read(string.create(4), 0, 4);
 /*"2021"*/
 ```
 
@@ -105,8 +104,7 @@ Returns: void.
 /*In Main::onOpened.*/
 file->setCursor(2);
 std::str::String string;
-string.setLength(2);
-file->read(string.data, 0, 2);
+file->read(string.create(2), 0, 2);
 /*"21"*/
 ```
 
@@ -135,7 +133,7 @@ file->write("2021", 0, 4);
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -205,7 +203,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

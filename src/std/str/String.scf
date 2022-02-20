@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -82,40 +82,81 @@ class String {
 		delete[] data;
 	}
 
+	unsigned char[] addLength(unsigned int len){
+		unsigned int newLength = length + len;
+		unsigned char[] newData = 
+			new unsigned char[newLength + 1];
+		newData[newLength] = 0;
+		data = newData;
+		length = newLength;
+		return newData;
+	}
+
 	void debug(){
 		unsigned int len = length;
 		void* stringObject = std::js::String::decode(&data[0], len);
 		constwrite "	alert('length: ' + len + ' ' + stringObject);\n";
 	}
 
-	unsigned char[] insertLength(unsigned int len,
-		unsigned int start){
+	unsigned char[] insertLength(
+		unsigned int len, unsigned int start){
 		unsigned int previousLength = length;
-		if (start > previousLength) {return nullptr;}
+		if (start > previousLength ||
+			len == 0) {return nullptr;}
 		unsigned char[] previousData = data;
-		if (len == 0) {return previousData;}
-		unsigned int newLength = previousLength + len;
-		unsigned char[] newData = new unsigned char[
-			 newLength + 1];
-		std::arr::Uchar::copy(newData, 0, previousData, 0, start);
+		unsigned char[] newData = addLength(len);
 		std::arr::Uchar::copy(newData, start + len,
 			previousData, start, previousLength - start);
-		newData[newLength] = 0;
-		delete[] previousData;
+		std::arr::Uchar::copy(newData, 0,
+			previousData, 0, start);
+		return newData;
+	}
+	
+	unsigned char[] setLength(unsigned int len){
+		unsigned char[] newData;
+		if (len > 0){
+			newData = new unsigned char[len + 1];
+			newData[len] = 0;
+		} else {
+			newData = nullptr;
+		}
 		data = newData;
-		length = newLength;
+		length = len;
 		return newData;
 	}
 
-	void setJsArray(void* array){
-		unsigned int len;
-		constwrite "len = array.byteLength;";
-		setLength(len);
-		std::js::Array::get(array, 0, data, 0, len);
+	/* Public member functions. */
+			
+	void add(unsigned char[] str,
+		unsigned int i, unsigned int len){
+		if (len == 0) {return;}
+		unsigned int previousLength = length;
+		unsigned char[] previousData = data;
+		unsigned char[] newData = addLength(len);
+		std::arr::Uchar::copy(newData, 0,
+			previousData, 0, previousLength);
+		std::arr::Uchar::copy(newData, previousLength,
+			str, i, len);
+		delete[] previousData;
 	}
 
-	/* Public member functions. */
-
+	void addChar(unsigned int c, unsigned int len){
+		unsigned int previousLength = length;
+		if (c < 128){
+			std::arr::Uchar::set(
+				grow(len), start, len, c);
+		} else if (c < 2048){
+			std::str::CString::setChars2(
+				grow(len * 2), start, c, len);
+		} else if (c < 65536){
+			std::str::CString::setChars3(
+				grow(len * 3), start, c, len);
+		} else { /* c < 2097152 */
+			std::str::CString::setChars4(
+				grow(len * 4), start, c, len);
+		}
+	}
+	
 	void clear(){
 		length = 0;
 		delete[] data;
@@ -123,31 +164,38 @@ class String {
 	}
 
 	unsigned char compare(unsigned char[] dst, 
-		unsigned int i, unsigned int dstLen){
-		return std::arr::Uchar::compareRange(data, 0,
-			length, dst, i, dstLen);
+		unsigned int i, unsigned int dstLen,
+		std::str::Compare* cmp){
+		return std::str::CString::subcompareRange(
+			data, 0, length, dst, i, dstLen, cmp);
 	}
 	
-	unsigned char compareCString(unsigned char[] cStr){
-		return std::str::CString::compareSubstring(
-			data, 0, length, cStr, 0);
+	unsigned char compareCString(
+		unsigned char[] cStr, std::str::Compare* cmp){
+		return std::str::CString::subcompare(
+			data, 0, length, cStr, 0, cmp);
 	}
 	
 	unsigned char compareDString(
-		std::str::DString* string){
-		return std::arr::Uchar::compareRange(data, 0,
-			length, str->data, 0, str->length);
+		std::str::DString* string, 
+		std::str::Compare* cmp){
+		return std::str::CString::subcompareRange(
+			data, 0, length, 
+			str->data, 0, str->length, cmp);
 	}
 	
 	unsigned char compareString(
-		std::str::String* str){
-		return std::arr::Uchar::compareRange(data, 0,
-			length, str->data, 0, str->length);
+		std::str::String* str, std::str::Compare* cmp){
+		return std::str::CString::subcompareRange(
+			data, 0, length, 
+			str->data, 0, str->length, cmp);
 	}
 	
-	unsigned char compareView(std::str::View* str){
-		return std::arr::Uchar::compareRange(data, 0,
-			length, str->data, str->start, str->length);
+	unsigned char compareView(std::str::View* str, 
+		std::str::Compare* cmp){
+		return std::str::CString::subcompareRange(
+			data, 0, length, 
+			str->data, str->start, str->length, cmp);
 	}
 
 	void copy(unsigned int start, unsigned char[] str,
@@ -161,6 +209,15 @@ class String {
 			str, i, len);
 	}
 
+	unsigned char[] create(unsigned int len){
+		unsigned char[] newData = data;
+		if (length != len){
+			delete[] newData;
+			newData = setLength(len);
+		}
+		return newData;
+	}
+
 	void erase(unsigned int start, unsigned int len){
 		unsigned int previousLength = length;
 		if (start + len > previousLength){
@@ -170,107 +227,152 @@ class String {
 		unsigned char[] previousData = data;
 		unsigned int newLength = previousLength - len;
 		if (newLength > 0){
-			unsigned char[] newData = new unsigned char[
-				 newLength + 1];
-			std::arr::Uchar::copy(newData, 0, previousData, 0, start);
+			unsigned char[] newData = 
+				new unsigned char[newLength + 1];
+			std::arr::Uchar::copy(newData, 0, 
+				previousData, 0, start);
 			std::arr::Uchar::copy(newData, start,
-				previousData, start + len, previousLength - start - len);
+				previousData, start + len, 
+				previousLength - start - len);
 			newData[newLength] = 0;
-			delete[] previousData;
 			data = newData;
 		} else {
 			data = nullptr;
 		}
+		delete[] previousData;
 		length = newLength;
 	}
-
+	
 	unsigned int find(
-		unsigned char c, unsigned int start){
+		unsigned char[] str, unsigned int i,
+		unsigned int len, unsigned int start, 
+		std::str::Compare* cmp){
+		unsigned int max = length;
+		if (start >= max) {return 0;}
+		return std::str::CString::subfindLastRange(
+			data, start, max - start,
+			str, i, len, cmp);
+	}
+
+	unsigned int findChar(
+		unsigned int c, unsigned int start, 
+		std::str::Compare* cmp){
 		unsigned int len = length;
 		if (start >= len) {return 0;}
-		return std::arr::Uchar::find(
-			data, start, len - start, c);
+		return std::str::CString::subfindChar(
+			data, start, len - start, c, cmp);
 	}
 
 	unsigned int findLast(
-		unsigned char c, unsigned int start){
-		unsigned int len = length;
-		if (start > len) {start = len;}
-		return std::arr::Uchar::findLast(
-			data, 0, start, c);
-	}
-
-	unsigned int findLastRange(
 		unsigned char[] str, unsigned int i,
-		unsigned int len, unsigned int start){
+		unsigned int len, unsigned int start, 
+		std::str::Compare* cmp){
 		unsigned int max = length;
 		if (start > max) {start = max;}
-		return std::arr::Uchar::findLastRange(
+		return std::str::CString::subfindLastRange(
 			data, 0, start,
-			str, i, len);
+			str, i, len, cmp);
+	}
+
+	unsigned int findLastChar(
+		unsigned int c, unsigned int start, 
+		std::str::Compare* cmp){
+		unsigned int len = length;
+		if (start > len) {start = len;}
+		return std::str::CString::subfindLastChar(
+			data, 0, start, c, cmp);
 	}
 	
-	unsigned int findRange(
-		unsigned char[] str, unsigned int i,
-		unsigned int len, unsigned int start){
-		unsigned int max = length;
-		if (start >= max) {return 0;}
-		return std::arr::Uchar::findRange(
-			data, start, max - start,
-			str, i, len);
+	unsigned char[] grow(unsigned int len){
+		unsigned char[] previousData = data;
+		if (len == 0) {return previousData;}
+		unsigned int previousLength = length;
+		unsigned char[] newData = addLength(len);
+		std::arr::Uchar::copy(newData, 0,
+			previousData, 0, previousLength);
+		delete[] previousData;
+		return newData;
 	}
 
 	void insert(
-		unsigned char[] src, unsigned int i,
-		unsigned int len, unsigned int start){
-		unsigned char[] newData = insertLength(len, start);
+		unsigned int start, unsigned char[] src, 
+		unsigned int i, unsigned int len){
+		unsigned char[] previousData = data;
+		unsigned char[] newData = 
+			insertLength(len, start);
 		if (newData != nullptr){
-			std::arr::Uchar::copy(newData, start, src, i, len);
+			std::arr::Uchar::copy(newData, start, 
+				src, i, len);
+			delete[] previousData;
 		}
 	}
 
-	void insertUint(unsigned int i,
-		unsigned int start, unsigned char base){
-		unsigned int len = std::str::CString::uintLength(
-			i, base);
-		unsigned char[] newData = insertLength(len, start);
-		if (newData != nullptr){
-			std::str::CString::setUintEnd(
-				i, newData, start + len - 1, base);
+	void insertChar(unsigned int start,
+		unsigned int c, unsigned int len){
+		unsigned char[] previousData = data;
+		unsigned char[] dst;
+		unsigned int start = length;
+		if (c < 128){
+			dst = insertLength(len, start);
+			if (dst == nullptr) {return;}
+			std::arr::Uchar::set(
+				dst, start, len, c);
+		} else if (c < 2048){
+			dst = insertLength(len * 2, start);
+			if (dst == nullptr) {return;}
+			std::str::CString::setChars2(
+				dst, start, c, len);
+		} else if (c < 65536){
+			dst = insertLength(len * 3, start);
+			if (dst == nullptr) {return;}
+			std::str::CString::setChars3(
+				dst, start, c, len);
+		} else { /* c < 2097152 */
+			dst = insertLength(len * 4, start);
+			if (dst == nullptr) {return;}
+			std::str::CString::setChars4(
+				dst, start, c, len);
 		}
+		delete[] previousData;
 	}
 
 	void move(std::str::String* src){
-		if (src == this || src == nullptr) {return;}
+		if (src == this) {return;}
 		length = src->length;
 		delete[] data;
 		data = src->data;
 		src->length = 0;
 		src->data = nullptr;
 	}
-	
-	void reverse(){
-		std::arr::Uchar::reverse(
-			data, 0, length);
-	}
 
-	/* Should work even if the regions overlap. */
 	void set(unsigned char[] str,
 		unsigned int start, unsigned int len){
+		unsigned char[] previousData = data;
 		if (len != length){
-			unsigned char[] previousData = data;
-			if (len > 0){
-				unsigned char[] newData = new unsigned char[len + 1];
-				std::arr::Uchar::copy(newData, 0, str, start, len);
-				newData[len] = 0;
-				data = newData;
-			} else {
-				data = nullptr;
-			}
+			unsigned char[] newData = setLength(len);
+			std::arr::Uchar::copy(newData, 0, 
+				str, start, len);
 			delete[] previousData;
-			length = len;
 		} else {
-			std::arr::Uchar::copy(data, 0, str, start, len);
+			std::arr::Uchar::copy(previousData, 0, 
+				str, start, len);
+		}
+	}
+	
+	void setChar(
+		unsigned int c, unsigned int len){
+		if (c < 128){
+			std::arr::Uchar::set(
+				create(len), 0, len, c);
+		} else if (c < 2048){
+			std::str::CString::setChars2(
+				create(len * 2), 0, c, len);
+		} else if (c < 65536){
+			std::str::CString::setChars3(
+				create(len * 3), 0, c, len);
+		} else { /* c < 2097152 */
+			std::str::CString::setChars4(
+				create(len * 4), 0, c, len);
 		}
 	}
 
@@ -282,29 +384,6 @@ class String {
 	void setDString(std::str::DString* string){
 		set(string->data, 0, string->length);
 	}
-
-	void setLength(unsigned int len){
-		unsigned int copySize = length;
-		if (copySize == len) {return;}
-		unsigned char[] newData;
-		if (copySize == 0){
-			newData = new unsigned char[len + 1];
-			newData[len] = 0;
-		} else {
-			unsigned char[] previousData = data;
-			if (len > 0){
-				newData = new unsigned char[len + 1];
-				newData[len] = 0;
-				if (len < copySize) {copySize = len;}
-				std::arr::Uchar::copy(newData, 0, previousData, 0, copySize);
-			} else {
-				newData = nullptr;
-			}
-			delete[] previousData;
-		}
-		data = newData;
-		length = len;
-	}
 	
 	void setString(std::str::String* str){
 		set(str->data, 0, str->length);
@@ -313,6 +392,37 @@ class String {
 	void setView(std::str::View* str){
 		set(str->data,
 			str->start, str->length);
+	}
+
+	unsigned char[] shift(
+		unsigned int start, unsigned int len){
+		unsigned char[] previousData = data;
+		unsigned char[] newData = 
+			insertLength(len, start);
+		if (newData != nullptr){
+			delete[] previousData;
+		} else if (len == 0){
+			newData = previousData;
+		}
+		return newData;
+	}
+	
+	void trim(unsigned int len){
+		if (len < length){
+			unsigned char[] previousData = data;
+			if (len > 0){
+				unsigned char[] newData = 
+					new unsigned char[len + 1];
+				std::arr::Uchar::copy(newData, 0, 
+					previousData, 0, len);
+				newData[len] = 0;
+				data = newData;
+			} else {
+				data = nullptr;
+			}
+			delete[] previousData;
+			length = len;
+		}
 	}
 
 }

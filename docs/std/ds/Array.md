@@ -1,16 +1,15 @@
-# "std::ds::DArray" class:
+# "std::ds::Array" class:
 
-Used to create arrays as objects, where the number 
-of elements are expected to be changing, thus they
-are dynamic arrays.
+Used to create arrays as objects, where the 
+number of elements are not expected to be changing.
 
 ```
-/*To store int values in a dynamic array.*/
-class IntDArray : std::ds::DArray {
+/*To store int values in an array.*/
+class IntArray : std::ds::Array {
 
-	/*Required, as the DArray does not delete the 
+	/*Required, as the Array does not delete the 
 		data automatically, as it does not know its type.*/
-	~IntDArray(){
+	~IntArray(){
 		delete[] (int[])data;
 	}
 	
@@ -80,37 +79,22 @@ class IntDArray : std::ds::DArray {
 		years[j] = year;
 	}
 	
-	void push(int value){
-		(std::ds::DArray*)this->push(&value, 
-			setElements, newArray, deleteArray, setElement);
+	int[] create(unsigned int elements){
+		return (int[])((std::ds::Array*)this->create(
+			elements, newArray, deleteArray));
 	}
 
 }
 ```
 
-## "capacity" data member:
-
-In order so that a new array doesn't have to be 
-created each time when its number of elements 
-changes, instead an array with a greater capacity 
-might be created than what is currently needed,
-thus a new array has to be created only when enough 
-elements are inserted so that a greater capacity is
-needed. Stored as an unsigned int.
-
-```
-IntDArray array;
-unsigned int capacity = array.capacity; /*0*/
-```
-
 ## "data" data member:
 
 The contained array of data. It is a void*, as 
-the DArray does not know its actual type, thus 
+the Array does not know its actual type, thus 
 it has to be converted.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 int[] getData(){
 	return (int[])data;
 }
@@ -122,28 +106,27 @@ The number of elements in the array as
 an unsigned int.
 
 ```
-IntDArray array;
+IntArray array;
 unsigned int size = array.size; /*0*/
 ```
 
 ## "add" member function:
 
-Inserts an element to the array's end.
-This might require creating a new array and copy 
-all the elements due to the capacity, making 
-the usage of the previous data member not valid.
+Inserts an element to the array's end. As it 
+creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
 
 Parameters:
 * A pointer to the element to insert.
 * The number of times to insert the element.
 * A pointer to a "void(void*, unsigned int, 
 void*, unsigned int)" function used when the 
-capacity is increased to set any element of 
+new array is created to set any element of 
 the given new array data at the given index, 
 to be a copy of an element of the given 
-previous array data at the given index.  
+previous array data at the given index.
 * A pointer to a "void*(unsigned int)" function 
-that returns a new array data of the given size. 
+that returns a new array data of the given size.
 * A pointer to a "void(void*)" function that 
 deletes the given array data.
 * A pointer to an "void(void*, unsigned int, 
@@ -154,26 +137,25 @@ to be a copy of the given element to insert.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void add(int value, 
 	unsigned int elements){
-	(std::ds::DArray*)this->add(
+	(std::ds::Array*)this->add(
 		&value, elements, setElements, newArray, 
 		deleteArray, setElement);
 }
 
 /*In some function:*/
-IntDArray array;
+IntArray array;
 array.add(2021, 2);
 /*2021,2021*/
 ```
 
 ## "addRange" member function:
 
-Inserts a subarray to the array's end.
-This might require creating a new array and copy 
-all the elements due to the capacity, making 
-the usage of the previous data member not valid.
+Inserts a subarray to the array's end. As it 
+creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
 
 Parameters:
 * The array of the subarray to insert.
@@ -182,10 +164,10 @@ in its array.
 * The size of the subarray to insert.
 * A pointer to a "void(void*, unsigned int, 
 void*, unsigned int)" function used when the 
-capacity is increased to set any element of 
+new array is created to set any element of 
 the given new array data at the given index, 
 to be a copy of an element of the given 
-previous array data at the given index. 
+previous array data at the given index.
 * A pointer to a "void*(unsigned int)" function 
 that returns a new array data of the given size.
 * A pointer to a "void(void*)" function that 
@@ -199,16 +181,16 @@ given subarray at the given index to insert.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void addRange(int[] array, 
 	unsigned int i, unsigned int elements){
-	(std::ds::DArray*)this->addRange(
+	(std::ds::Array*)this->addRange(
 		(void*)array, i, elements, setElements, 
 		newArray, deleteArray, setElements);
 }
 
 /*In some function:*/
-IntDArray array;
+IntArray array;
 int[] years = new int[2];
 years[0] = 2020;
 years[1] = 2021;
@@ -218,14 +200,25 @@ array.addRange(years, 0, 2);
 
 ## "clear" member function:
 
-Sets the array's size to 0.
+Clears the array to its initial state. As 
+it deletes the contained array, usage of 
+the previous data member is not valid.
+
+Parameters:
+* A pointer to a "void(void*)" function that 
+deletes the given array data.
 
 Returns: void.
 
 ```
+/*In the IntArray class:*/
+void clear(){
+	(std::ds::Array*)this->clear(deleteArray);
+}
+
 /*In some function:*/
-IntDArray array;
-array.push(2021);
+IntArray array;
+array.create(1);
 array.clear();
 unsigned int size = array.size; /*0*/
 ```
@@ -248,18 +241,19 @@ the given index, and returns an std::Compare value.
 Returns: an std::Compare value.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 unsigned char compare(int[] array, 
 	unsigned int i, unsigned int elements){
-	return (std::ds::DArray*)this->compare(
+	return (std::ds::Array*)this->compare(
 		(void*)array, i, elements, compareElements);
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2021);
-array.push(2020);
-int[] years = new int[2];
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2021;
+years[1] = 2020;
+years = new int[2];
 years[0] = 2020;
 years[1] = 2021;
 array.compare(years, 0, 2);
@@ -284,17 +278,18 @@ to be a copy of the given element.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void copy(unsigned int start, 
 	int value, unsigned int elements){
-	(std::ds::DArray*)this->copy(
+	(std::ds::Array*)this->copy(
 		start, &value, elements, setElement);
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2020);
-array.push(2020);
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2020;
+years[1] = 2020;
 array.copy(0, 2021, 2);
 /*2021,2021*/
 ```
@@ -319,18 +314,19 @@ given subarray at the given index to insert.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void copyRange(unsigned int start, int[] array, 
 	unsigned int i, unsigned int elements){
-	(std::ds::DArray*)this->copyRange(
+	(std::ds::Array*)this->copyRange(
 		start, (void*)array, i, elements, setElements);
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2021);
-array.push(2020);
-int[] years = new int[2];
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2021;
+years[1] = 2020;
+years = new int[2];
 years[0] = 2020;
 years[1] = 2021;
 array.copyRange(0, years, 0, 2);
@@ -339,10 +335,9 @@ array.copyRange(0, years, 0, 2);
 
 ## "create" member function:
 
-Sets the array with empty space to set 
-manually. This might require creating a 
-new array due to the capacity, making the 
-usage of the previous data member not valid.
+Sets the array with empty space to set manually. 
+This might require creating a new array, making 
+the usage of the previous data member not valid.
 
 Parameters:
 * The size of the array to create.
@@ -354,14 +349,14 @@ deletes the given array data.
 Returns: the array data as void*.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 int[] create(unsigned int elements){
-	return (int[])((std::ds::DArray*)this->create(
+	return (int[])((std::ds::Array*)this->create(
 		elements, newArray, deleteArray));
 }
 
 /*In some function:*/
-IntDArray array;
+IntArray array;
 int[] years = array.create(2);
 years[0] = 2020;
 years[1] = 2021;
@@ -370,33 +365,39 @@ years[1] = 2021;
 
 ## "erase" member function:
 
-Erases elements from the array. This requires
-shifting all the elements after it.
+Erases elements from the array. As it creates 
+a new array and copy the remaining elements, 
+usage of the previous data member is not valid. 
 
 Parameters:
 * The index of the first element to erase.
 * The number of elements to erase.
 * A pointer to a "void(void*, unsigned int, 
-void*, unsigned int)" function used  
-when shifting the elements to set any 
-element of the given array data at the 
-given index, to be a copy of an element of 
-the given array data at the given index.
+void*, unsigned int)" function used when the 
+new array is created to set any element of 
+the given new array data at the given index, 
+to be a copy of an element of the given 
+previous array data at the given index.
+* A pointer to a "void*(unsigned int)" function 
+that returns a new array data of the given size.
+* A pointer to a "void(void*)" function that 
+deletes the given array data.
 
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void erase(unsigned int i, 
 	unsigned int elements){
-	(std::ds::DArray*)this->erase(
-		i, elements, setElements);
+	(std::ds::Array*)this->erase(i, elements, 
+		setElements, newArray, deleteArray);
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2020);
-array.push(2021);
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2020;
+years[1] = 2021;
 unsigned int size = array.size;
 /*2 as 2020, 2021.*/
 array.erase(0, 1);
@@ -421,17 +422,18 @@ Returns: 0, if not found, otherwise the
 index + 1 position of the element.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 unsigned int find(
 	unsigned int element, unsigned int i){
-	return (std::ds::DArray*)this->find(
+	return (std::ds::Array*)this->find(
 		&element, equalElement, i);
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2021);
-array.push(2021);
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2021;
+years[1] = 2021;
 unsigned int i = array.find(
 	2021, 0); /*1*/
 ```
@@ -456,17 +458,18 @@ Returns: 0, if not found, otherwise the
 index + 1 position of the element.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 unsigned int findLast(
 	unsigned int element, unsigned int i){
-	return (std::ds::DArray*)this->findLast(
+	return (std::ds::Array*)this->findLast(
 		&element, equalElement, i);
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2021);
-array.push(2021);
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2021;
+years[1] = 2021;
 unsigned int i = array.findLast(
 	2021, array.size); /*2*/
 ```
@@ -495,20 +498,21 @@ Returns: 0, if not found, otherwise the
 index + 1 position of the starting element.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 unsigned int findLastRange(
 	int[] array, unsigned int i, 
 	unsigned int elements, unsigned int start){
-	return (std::ds::DArray*)this->findLastRange(
+	return (std::ds::Array*)this->findLastRange(
 		(void*)array, i, elements, equal, start);
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2021);
-array.push(2021);
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2021;
+years[1] = 2021;
 unsigned int i = array.findLastRange(
-	(int[])(array.data), 0, 1, array.size); /*2*/
+	years, 0, 1, array.size); /*2*/
 ```
 
 ## "findRange" static function:
@@ -534,20 +538,21 @@ Returns: 0, if not found, otherwise the
 index + 1 position of the starting element.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 unsigned int findRange(
 	int[] array, unsigned int i, 
 	unsigned int elements, unsigned int start){
-	return (std::ds::DArray*)this->findRange(
+	return (std::ds::Array*)this->findRange(
 		(void*)array, i, elements, equal, start);
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2021);
-array.push(2021);
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2021;
+years[1] = 2021;
 unsigned int i = array.findRange(
-	(int[])(array.data), 0, 1, 0); /*1*/
+	years, 0, 1, 0); /*1*/
 ```
 
 ## "findSorted" member function:
@@ -566,17 +571,18 @@ Returns: 0, if not found, otherwise the
 index + 1 position of the element.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 unsigned int findSorted(
 	unsigned int element){
-	return (std::ds::DArray*)this->findSorted(
+	return (std::ds::Array*)this->findSorted(
 		&element, compareElement);
 }
 		
 /*In some function:*/
-IntDArray array;
-array.push(2020);
-array.push(2021);
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2020;
+years[1] = 2021;
 unsigned int i = 
 	array.findSorted(2021); /*2*/
 ```
@@ -596,36 +602,36 @@ the given pointed element.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 int getBack(){
 	int value;
-	(std::ds::DArray*)this->getBack(
+	(std::ds::Array*)this->getBack(
 		&value, getElement);
 	return value;
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2020);
-array.push(2021);
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2020;
+years[1] = 2021;
 int value = array.getBack(); /*2021*/
 ```
 
 ## "grow" member function:
 
 Grows the array, with empty space to set manually.
-This might require creating a new array and copy 
-all the elements due to the capacity, making 
-the usage of the previous data member not valid.
+As it creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
 
 Parameters:
 * The ammount to grow with.
 * A pointer to a "void(void*, unsigned int, 
 void*, unsigned int)" function used when the 
-capacity is increased to set any element of 
+new array is created to set any element of 
 the given new array data at the given index, 
 to be a copy of an element of the given 
-previous array data at the given index. 
+previous array data at the given index.
 * A pointer to a "void*(unsigned int)" function 
 that returns a new array data of the given size.
 * A pointer to a "void(void*)" function that 
@@ -634,39 +640,37 @@ deletes the given array data.
 Returns: the array data as void*.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 int[] grow(unsigned int elements){
-	return (int[])((std::ds::DArray*)this->grow(
+	return (int[])((std::ds::Array*)this->grow(
 		elements, setElements, newArray, deleteArray));
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2020);
-int[] years = array.grow(1);
+IntArray array;
+int[] years = array.create(1);
+years[0] = 2020;
+years = array.grow(1);
 years[1] = 2021;
 /*2020,2021*/
 ```
 
 ## "insert" member function:
 		
-Inserts an element to the array. This requires 
-shifting all the elements after it or creating 
-a new array and copy all the elements due to 
-the capacity, making the usage of the previous 
-data member not valid.
+Inserts an element to the array. As it 
+creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
 
 Parameters:
 * The index in the array to insert at.
 * A pointer to the element to insert.
 * The number of times to insert the element.
 * A pointer to a "void(void*, unsigned int, 
-void*, unsigned int)" function used when 
-the capacity is increased and when the 
-elements are shifted to set any element 
-of the given array data at the given 
-index, to be a copy of an element of 
-the given array data at the given index.
+void*, unsigned int)" function used when the 
+new array is created to set any element of 
+the given new array data at the given index, 
+to be a copy of an element of the given 
+previous array data at the given index.
 * A pointer to a "void*(unsigned int)" function 
 that returns a new array data of the given size.
 * A pointer to a "void(void*)" function that 
@@ -679,17 +683,18 @@ to be a copy of the given element to insert.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void insert(unsigned int i, int value, 
 	unsigned int elements){
-	(std::ds::DArray*)this->insert(
+	(std::ds::Array*)this->insert(
 		i, &value, elements, setElements, newArray, 
 		deleteArray, setElement);
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2021);
+IntArray array;
+int[] years = array.create(1);
+years[0] = 2021;
 unsigned int size = array.size;
 /*1 as 2021.*/
 array.insert(0, 2020, 1);
@@ -699,11 +704,9 @@ size = array.size;
 	
 ## "insertRange" member function:
 
-Inserts a subarray to the array. This requires 
-shifting all the elements after it or creating 
-a new array and copy all the elements due to 
-the capacity, making the usage of the previous 
-data member not valid.
+Inserts a subarray to the array. As it 
+creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
 
 Parameters:
 * The index in the array to insert at.
@@ -712,12 +715,11 @@ Parameters:
 in its array.
 * The size of the subarray to insert.
 * A pointer to a "void(void*, unsigned int, 
-void*, unsigned int)" function used when 
-the capacity is increased and when the 
-elements are shifted to set any element 
-of the given array data at the given 
-index, to be a copy of an element of 
-the given array data at the given index.
+void*, unsigned int)" function used when the 
+new array is created to set any element of 
+the given new array data at the given index, 
+to be a copy of an element of the given 
+previous array data at the given index.
 * A pointer to a "void*(unsigned int)" function 
 that returns a new array data of the given size.
 * A pointer to a "void(void*)" function that 
@@ -731,17 +733,17 @@ given subarray at the given index to insert.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void insertRange(
 	unsigned int start, int[] array, 
 	unsigned int i, unsigned int elements){
-	(std::ds::DArray*)this->insertRange(
+	(std::ds::Array*)this->insertRange(
 		start, (void*)array, i, elements, setElements, 
 		newArray, deleteArray, setElements);
 }
 
 /*In some function:*/
-IntDArray array;
+IntArray array;
 int[] years = new int[2];
 years[0] = 2020;
 years[1] = 2021;
@@ -752,11 +754,9 @@ array.insertRange(0, years, 0, 2);
 ## "insertSorted" member function:
 
 Inserts an element to the array at a position 
-to keep the array as sorted. This requires 
-shifting all the elements after it or creating 
-a new array and copy all the elements due to 
-the capacity, making the usage of the previous 
-data member not valid.
+to keep the array as sorted. As it 
+creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
 
 Parameters:
 * A pointer to the element to insert.
@@ -766,12 +766,11 @@ compare any element of the given array data
 at the given index, with the given element 
 to insert, and returns an std::Compare value.
 * A pointer to a "void(void*, unsigned int, 
-void*, unsigned int)" function used when 
-the capacity is increased and when the 
-elements are shifted to set any element 
-of the given array data at the given 
-index, to be a copy of an element of 
-the given array data at the given index.
+void*, unsigned int)" function used when the 
+new array is created to set any element of 
+the given new array data at the given index, 
+to be a copy of an element of the given 
+previous array data at the given index.
 * A pointer to a "void*(unsigned int)" function 
 that returns a new array data of the given size.
 * A pointer to a "void(void*)" function that 
@@ -784,15 +783,15 @@ to be a copy of the given element to insert.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void insertSorted(int value){
-	(std::ds::DArray*)this->insertSorted(
+	(std::ds::Array*)this->insertSorted(
 		&value, compareElement, setElements, 
 		newArray, deleteArray, setElement);
 }
 
 /*In some function:*/
-IntDArray array;
+IntArray array;
 array.insertSorted(2021);
 array.insertSorted(2020);
 /*2020,2021*/
@@ -800,38 +799,52 @@ array.insertSorted(2020);
 
 ## "move" member function:
 
-Moves the data from another std::ds::DArray.
+Moves the data from another std::ds::Array.
 The previous data is deleted.
 
 Parameters:
-* A pointer to the DArray to move from.
+* A pointer to the Array to move from.
 * A pointer to a "void(void*)" function that 
 deletes the given array data.
 
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
-void move(IntDArray* array){
-	(std::ds::DArray*)this->move(
+/*In the IntArray class:*/
+void move(IntArray* array){
+	(std::ds::Array*)this->move(
 		array, deleteArray);
 }
 
-IntDArray first;
-first.push(2020);
-IntDArray second;
-second.push(2021);
+IntArray first;
+int[] years = first.create(1);
+years[0] = 2020;
+IntArray second;
+years = second.create(1);
+years[0] = 2021;
 first.move(&second);
 /*first=2021, second=*/
 ```
 
 ## "pop" member function:
 
-Removes the last element from the array.
+Removes the last element from the array. As it 
+creates a new array and copy the remaining elements, 
+usage of the previous data member is not valid. 
 
 Parameters:
 * Either nullptr, or a pointer to a construct 
 to copy the removed element into.
+* A pointer to a "void(void*, unsigned int, 
+void*, unsigned int)" function used when the 
+new array is created to set any element of 
+the given new array data at the given index, 
+to be a copy of an element of the given 
+previous array data at the given index.
+* A pointer to a "void*(unsigned int)" function 
+that returns a new array data of the given size.
+* A pointer to a "void(void*)" function that 
+deletes the given array data.
 * A pointer to a "void(void*, unsigned int,
 void*)" function to copy an element of the 
 given array data at the given index to 
@@ -840,18 +853,20 @@ the given pointed element.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 int pop(){
 	int value;
-	(std::ds::DArray*)this->pop(
-		&value, getElement);
+	(std::ds::Array*)this->pop(
+		&value, setElements, 
+		newArray, deleteArray, getElement);
 	return value;
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2020);
-array.push(2021);
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2020;
+years[1] = 2021;
 int value = array.pop(); /*2021*/
 unsigned int size = array.size;
 /*1 as 2020.*/
@@ -859,16 +874,15 @@ unsigned int size = array.size;
 
 ## "push" member function:
 
-Inserts an element to the array's end. This 
-might require creating a new array and copy all 
-the elements due to the capacity, making the 
-usage of the previous data member not valid.
+Inserts an element to the array's end. As it 
+creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
 
 Parameters:
 * A pointer to the element to insert.
 * A pointer to a "void(void*, unsigned int, 
 void*, unsigned int)" function used when the 
-capacity is increased to set any element of 
+new array is created to set any element of 
 the given new array data at the given index, 
 to be a copy of an element of the given 
 previous array data at the given index.
@@ -884,56 +898,20 @@ to be a copy of the given element to insert.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void push(int value){
-	(std::ds::DArray*)this->push(&value, setElements, 
+	(std::ds::Array*)this->push(&value, setElements, 
 		newArray, deleteArray, setElement);
 }
 
 /*In some function:*/
-IntDArray array;
+IntArray array;
 array.push(2020);
 unsigned int size = array.size;
 /*1 as 2020.*/
 array.push(2021);
 size = array.size;
 /*2 as 2020, 2021.*/
-```
-
-## "reserve" member function:
-
-Increases the capacity of the array. This 
-requires creating a new array and copy all 
-the elements, making the usage of the previous 
-data member not valid.
-
-Parameters:
-* The new capacity.
-* A pointer to a "void(void*, unsigned int, 
-void*, unsigned int)" function used when the 
-capacity is increased to set any element of 
-the given new array data at the given index, 
-to be a copy of an element of the given 
-previous array data at the given index.
-* A pointer to a "void*(unsigned int)" function 
-that returns a new array data of the given size.
-* A pointer to a "void(void*)" function that 
-deletes the given array data.
-
-Returns: void.
-
-```
-/*In the IntDArray class:*/
-void reserve(unsigned int newCapacity){
-	(std::ds::DArray*)this->reserve(
-		newCapacity, setElements, newArray, deleteArray);
-}
-	
-/*In some function:*/
-IntDArray array;
-array.reserve(2);
-unsigned int capacity = array.capacity; /*2*/
-unsigned int size = array.size; /*0*/
 ```
 
 ## "reverse" member function:
@@ -949,16 +927,17 @@ given index, with another at a given index.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void reverse(){
-	(std::ds::DArray*)this->reverse(
+	(std::ds::Array*)this->reverse(
 		switchElements);
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2020);
-array.push(2021);
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2020;
+years[1] = 2021;
 array.reverse();
 /*2021,2020*/
 ```
@@ -966,9 +945,8 @@ array.reverse();
 ## "set" member function:
 
 Sets the array to be a copy of an element.
-This might require creating a new array 
-due to the capacity, making the usage of 
-the previous data member not valid.
+This might require creating a new array, making 
+the usage of the previous data member not valid.
 
 Parameters:
 * A pointer to the element to copy.
@@ -985,15 +963,15 @@ to be a copy of the given element.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void set(int value, unsigned int elements){
-	(std::ds::DArray*)this->set(
+	(std::ds::Array*)this->set(
 		&value, elements, newArray, 
 		deleteArray, setElement);
 }
 
 /*In some function:*/
-IntDArray array;
+IntArray array;
 array.set(2021, 2);
 /*2021,2021*/
 ```
@@ -1001,9 +979,8 @@ array.set(2021, 2);
 ## "setRange" member function:
 
 Sets the array to be a copy of a subarray.
-This might require creating a new array 
-due to the capacity, making the usage of 
-the previous data member not valid.
+This might require creating a new array, making 
+the usage of the previous data member not valid.
 
 Parameters:
 
@@ -1024,15 +1001,15 @@ given subarray at the given index.
 Returns: void.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 void setRange(int[] array, 
 	unsigned int i, unsigned int elements){
-	(std::ds::DArray*)this->setRange((void*)array, 
+	(std::ds::Array*)this->setRange((void*)array, 
 		i, elements, newArray, deleteArray, setElements);
 }
 
 /*In some function:*/
-IntDArray array;
+IntArray array;
 int[] years = new int[2];
 years[0] = 2020;
 years[1] = 2021;
@@ -1042,22 +1019,20 @@ array.setRange(years, 0, 2);
 
 ## "shift" member function:
 
-Shifts rightwise the elements of the array, 
-to create an empty space to set manually.
-This might require creating a new array and copy 
-all the elements due to the capacity, making 
-the usage of the previous data member not valid.
+Shifts rightwise the elements of the array, to 
+create an empty space to set manually. As it 
+creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
 
 Parameters:
 * The index in the array to shift from.
 * The ammount to shift with.
 * A pointer to a "void(void*, unsigned int, 
-void*, unsigned int)" function used when 
-the capacity is increased and when the 
-elements are shifted to set any element 
-of the given array data at the given 
-index, to be a copy of an element of 
-the given array data at the given index.
+void*, unsigned int)" function used when the 
+new array is created to set any element of 
+the given new array data at the given index, 
+to be a copy of an element of the given 
+previous array data at the given index.
 * A pointer to a "void*(unsigned int)" function 
 that returns a new array data of the given size.
 * A pointer to a "void(void*)" function that 
@@ -1066,33 +1041,33 @@ deletes the given array data.
 Returns: the array data as void*.
 
 ```
-/*In the IntDArray class:*/
+/*In the IntArray class:*/
 int[] shift(unsigned int i, 
 	unsigned int elements){
-	return (int[])((std::ds::DArray*)this->shift(i, 
+	return (int[])((std::ds::Array*)this->shift(i, 
 		elements, setElements, newArray, deleteArray));
 }
 
 /*In some function:*/
-IntDArray array;
-array.push(2021);
-int[] years = array.shift(0, 1);
+IntArray array;
+int[] years = array.create(1);
+years[0] = 2021;
+years = array.shift(0, 1);
 years[0] = 2020;
 /*2020,2021*/
 ```
 
-## "shrink" member function:
+## "trim" member function:
 
-Decreases the capacity of the array. This 
-requires creating a new array and copy 
-the remaining elements, making the usage 
-of the previous data member not valid.
+Decreases the size of the array. As it creates 
+a new array and copy the remaining elements, 
+usage of the previous data member is not valid. 
 
 Parameters:
-* The new capacity.
+* The new size.
 * A pointer to a "void(void*, unsigned int, 
 void*, unsigned int)" function used when the 
-capacity is increased to set any element of 
+new array is created to set any element of 
 the given new array data at the given index, 
 to be a copy of an element of the given 
 previous array data at the given index.
@@ -1102,43 +1077,26 @@ that returns a new array data of the given size.
 deletes the given array data.
 
 Returns: void.
-
-```
-/*In the IntDArray class:*/
-void shrink(unsigned int newCapacity){
-	(std::ds::DArray*)this->shrink(
-		newCapacity, setElements, newArray, deleteArray);
-}
 	
+```
+/*In the IntArray class:*/
+void trim(unsigned int elements){
+	(std::ds::Array*)this->trim(
+		elements, setElements, newArray, deleteArray);
+}
+
 /*In some function:*/
-IntDArray array;
-array.push(2020);
-array.push(2021);
-array.shrink(1);
-unsigned int capacity = array.capacity; /*1*/
-unsigned int size = array.size; /*1 as 2020.*/
-```
-
-## "trim" member function:
-
-Decreases the size of the array.
-
-Parameters:
-* The new size.
-
-Returns: void.
-
-```
-IntDArray array;
-array.push(2020);
-array.push(2021);
+IntArray array;
+int[] years = array.create(2);
+years[0] = 2020;
+years[1] = 2021;
 array.trim(1);
 unsigned int size = array.size; /*1 as 2020.*/
 ```
 
 # Software license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -1208,7 +1166,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

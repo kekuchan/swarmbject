@@ -309,9 +309,30 @@ unsigned int capacity = buffer.capacity; /*2*/
 unsigned int size = buffer.size; /*0*/
 ```
 
+## "shrink" member function:
+
+Decreases the capacity of the buffer. This 
+requires creating a new array and copy 
+the remaining values, making the usage 
+of the previous data member not valid.
+
+Parameters:
+* The new capacity.
+
+Returns: void.
+
+```
+std::ds::DBuffer buffer;
+buffer.addU8(20);
+buffer.addU8(21);
+buffer.shrink(1);
+unsigned int capacity = buffer.capacity; /*1*/
+unsigned int size = buffer.size; /*1 as 20.*/
+```
+
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -381,7 +402,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

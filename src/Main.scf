@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -280,7 +280,7 @@ class Main {
 
 	void setTitle(){
 		if (!fileSaved){
-			currentClassPath.addChar('*');
+			currentClassPath.push('*');
 		}
 		unsigned int len = currentClassPath.length;
 		std::dom::Node node;
@@ -440,7 +440,7 @@ class Main {
 			data.reserve(tabs + 1);
 			unsigned int i = 0;
 			while (i < tabs){
-				data.addChar('\t');
+				data.push('\t');
 				i = i + 1;
 			}
 			range.getStartContainer(&start);
@@ -492,7 +492,7 @@ class Main {
 				std::dom::CharacterData::getDataDString(
 					&node, string);
 			} else {
-				string->addChar('\n');
+				string->push('\n');
 			}
 			node.getNextSibling(&node);
 		}
@@ -663,15 +663,18 @@ class Main {
 		selection.removeAllRanges();
 		std::html::Element::removeChildren(
 			elementWithText);
-		stringToEditor(main, data, len);
+		textToContainer(
+			&main->document, elementWithText, data, len);
 		delete[] data;
 		main->fileSaved = true;
 		main->setTitle();
 		main->body.appendChild(&main->editorContainer);
 	}
 	
-	static void stringToEditor(
-		Main* main,unsigned char[] data,
+	static void textToContainer(
+		std::dom::Node* document,
+		std::dom::Node* container,
+		unsigned char[] data,
 		unsigned int len){
 		unsigned int start = 0;
 		unsigned int end;
@@ -685,21 +688,21 @@ class Main {
 					end = i;
 				}
 				if (start < end){
-					std::dom::Text::create(&main->document,
+					std::dom::Text::create(document,
 						&node, data, start, end - start);
-					main->elementWithText.appendChild(&node);
+					container->appendChild(&node);
 				}
 				start = i + 1;
 				std::html::BrElement::create(
-					&main->document, &node);
-				main->elementWithText.appendChild(&node);
+					document, &node);
+					container->appendChild(&node);
 			}
 			i = i + 1;
 		}
 		if (start < i){
-			std::dom::Text::create(&main->document,
+			std::dom::Text::create(document,
 				&node, data, start, i - start);
-			main->elementWithText.appendChild(&node);
+			container->appendChild(&node);
 		}
 	}
 
@@ -809,8 +812,13 @@ class Main {
 				std::dom::CharacterData::getDataDString(
 					&node, &string);
 				if (next){
-					i = string.findRange(find.data, 0,
-						find.length, offset + 1);
+					if (!range.getCollapsed() && 
+						offset < string.length){
+						offset = offset + 1;
+					}
+					i = std::arr::Uchar::findRange(
+						string.data, offset, string.length - 
+						offset, find.data, 0, find.length);
 				} else if (offset > 0){
 					i = std::arr::Uchar::findLastRange(
 						string.data, 0, offset,
@@ -841,8 +849,9 @@ class Main {
 				std::dom::CharacterData::getDataDString(
 					&node, &string);
 				if (next){
-					i = string.findRange(find.data, 0,
-						find.length, 0);
+					i = std::arr::Uchar::findRange(
+						string.data, 0, string.length,
+						find.data, 0, find.length);
 				} else {
 					i = std::arr::Uchar::findLastRange(
 						string.data, 0, string.length,
@@ -1291,7 +1300,7 @@ class Main {
 
 	static unsigned char[] getLicense(){
 		return
-			"Copyright (c) 2021 SWARMBJECT contributors\n"
+			"Copyright (c) 2021-2022 SWARMBJECT contributors\n"
 			"\n"
 			"Redistribution and use in source and binary forms,\n"
 			"with or without modification, are permitted\n"
@@ -1378,7 +1387,7 @@ class Main {
 		std::html::DivElement::create(
 			&document, &editorContainer);
 		std::html::Element::getStyle(
-			&elementWithText, &style);
+			&editorContainer, &style);
 		style.setPadding(len.set(
 			0, std::css::Units::px));
 		style.setMargin(&len);
@@ -1406,9 +1415,11 @@ class Main {
 		unsigned char[] text =
 			"Welcome to the SWARMBJECT development environment!\n\n"
 			"License\n\n";
-		stringToEditor(this, text,
+		textToContainer(
+			&document, &elementWithText, text,
 			std::str::CString::length(text, 0));
-		stringToEditor(this, getLicense(),
+		textToContainer(
+			&document, &elementWithText, getLicense(),
 			std::str::CString::length(getLicense(), 0));
 		editorContainer.appendChild(&elementWithText);
 
