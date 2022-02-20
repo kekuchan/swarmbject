@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -91,7 +91,48 @@ class View {
 		start = 0;
 		length = 0;
 	}
+	
+	
+	
+	
+	
 
+	unsigned char compare(unsigned char[] dst, 
+		unsigned int i, unsigned int dstLen,
+		std::str::Compare* cmp){
+		return std::str::CString::subcompareRange(
+			data, start, length, dst, i, dstLen, cmp);
+	}
+	
+	unsigned char compareCString(
+		unsigned char[] cStr, std::str::Compare* cmp){
+		return std::str::CString::subcompare(
+			data, start, length, cStr, 0, cmp);
+	}
+	
+	unsigned char compareDString(
+		std::str::DString* string, 
+		std::str::Compare* cmp){
+		return std::str::CString::subcompareRange(
+			data, start, length, 
+			str->data, 0, str->length, cmp);
+	}
+	
+	unsigned char compareString(
+		std::str::String* str, std::str::Compare* cmp){
+		return std::str::CString::subcompareRange(
+			data, start, length, 
+			str->data, 0, str->length, cmp);
+	}
+	
+	unsigned char compareView(std::str::View* str, 
+		std::str::Compare* cmp){
+		return std::str::CString::subcompareRange(
+			data, start, length, 
+			str->data, str->start, str->length, cmp);
+	}
+	
+	/*
 	unsigned char compare(unsigned char[] dst, 
 		unsigned int i, unsigned int dstLen){
 		return std::arr::Uchar::compareRange(data, 
@@ -120,6 +161,7 @@ class View {
 		return std::arr::Uchar::compareRange(data, start,
 			length, str->data, str->start, str->length);
 	}
+	*/
 
 	void set(unsigned char[] str,
 		unsigned int i, unsigned int len){

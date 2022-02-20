@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -69,10 +69,145 @@ SUCH DAMAGE.
 */
 class CString {
 
+	static unsigned int getChar2(
+		unsigned char chr, unsigned char chr2){
+					 /*11111111111*/
+		return ((chr 
+			& 0b00011111 
+				) <<6) | (chr2 
+						& 0b00111111);
+	}
+	
+	static unsigned int getChar3(
+		unsigned char chr, unsigned char chr2, 
+		unsigned char chr3){
+					 /*1111111111111111*/
+		return ((chr 
+		 & 0b00001111 
+		 ) <<12) | ((chr2 
+					 & 0b00111111 
+						 ) <<6) | (chr3 
+								 & 0b00111111);
+	}
+	
+	static unsigned int getChar4(
+		unsigned char chr, unsigned char chr2, 
+		unsigned char chr3, unsigned char chr4){
+					 /*111111111111111111111*/
+		return ((chr 
+		& 0b00000111 
+		) <<18) | ((chr2 
+					& 0b00111111 
+					) <<12) | ((chr3 
+								& 0b00111111 
+									) <<6) | (chr4 
+											& 0b00111111);
+	}
+						
+	static void setChar2(
+		unsigned char[] dst, unsigned int start, 
+		unsigned short c){
+									 /*11111111111*/
+		dst[start    ] = c >>6 
+							| 0b11000000;
+		dst[start + 1] =			c 
+										& 0b00111111 
+										| 0b10000000;
+	}
+	
+	static void setChar3(
+		unsigned char[] dst, unsigned int start, 
+		unsigned short c){
+									 /*1111111111111111*/
+		dst[start    ] = c 
+										 >>12 
+						 | 0b11100000; 
+		dst[start + 1] =		 c >> 6 
+									 & 0b00111111 
+									 | 0b10000000; 
+		dst[start + 2] =					 c 
+												 & 0b00111111 
+												 | 0b10000000;
+	}
+	
+	static void setChar4(
+		unsigned char[] dst, unsigned int start, 
+		unsigned int c){
+									 /*111111111111111111111*/
+		dst[start    ] = c>> 
+											18 
+						| 0b11110000; 
+		dst[start + 1] =		c >>12 
+									& 0b00111111 
+									| 0b10000000; 
+		dst[start + 2] =					c >> 6 
+												& 0b00111111 
+												| 0b10000000; 
+		dst[start + 3] =								c 
+															& 0b00111111 
+															| 0b10000000;
+	}
+	
+	static void setChars2(
+		unsigned char[] dst, unsigned int start, 
+		unsigned short c, unsigned int len){
+		if (len > 0){
+			setChar2(dst, start, c);
+			len = start + 2 * len - 2;
+			while (len > start){
+				dst[len] = dst[start];
+				dst[len + 1] = dst[start + 1];
+				len = len - 2;
+			}
+		}
+	}
+	
+	static void setChars3(
+		unsigned char[] dst, unsigned int start, 
+		unsigned short c, unsigned int len){
+		if (len > 0){
+			setChar3(dst, start, c);
+			len = start + 3 * len - 3;
+			while (len > start){
+				dst[len] = dst[start];
+				dst[len + 1] = dst[start + 1];
+				dst[len + 2] = dst[start + 2];
+				len = len - 3;
+			}
+		}
+	}
+	
+	static void setChars4(
+		unsigned char[] dst, unsigned int start, 
+		unsigned short c, unsigned int len){
+		if (len > 0){
+			setChar4(dst, start, c);
+			len = start + 4 * len - 4;
+			while (len > start){
+				dst[len] = dst[start];
+				dst[len + 1] = dst[start + 1];
+				dst[len + 2] = dst[start + 2];
+				dst[len + 3] = dst[start + 3];
+				len = len - 4;
+			}
+		}
+	}
+
+	/* Public member functions. */
+
+	static unsigned char charLength(unsigned int c){
+		if (c < 128) {return 1;}
+		if (c < 2048) {return 2;}
+		if (c < 65536) {return 3;}
+		/* c < 2097152 */
+		return 4;
+	}
+
 	/* Compares a CString to a CString. */
 	static unsigned char compare(
 		unsigned char[] src, unsigned int i,
-		unsigned char[] dst, unsigned int j){
+		unsigned char[] dst, unsigned int j,
+		std::str::Compare* cmp){
 		if (src == nullptr){
 			src = "";
 			i = 0;
@@ -81,62 +216,305 @@ class CString {
 			dst = "";
 			j = 0;
 		}
-		while (true){
-			unsigned char srcChar = src[i];
-			unsigned char dstChar = dst[j];
-			if (srcChar != dstChar){
-				if (srcChar > dstChar) 
-					{return std::Compare::greater;}
-				return std::Compare::less;
+		if (cmp == nullptr){
+			while (true){
+				unsigned char srcChar = src[i];
+				unsigned char dstChar = dst[j];
+				if (srcChar != dstChar){
+					if (srcChar > dstChar) 
+						{return std::Compare::greater;}
+					return std::Compare::less;
+				}
+				if (srcChar == 0) 
+					{return std::Compare::equal;}
+				i = i + 1;
+				j = j + 1;
 			}
-			if (srcChar == 0) 
-				{return std::Compare::equal;}
-			i = i + 1;
-			j = j + 1;
+		} else {
+			cmp->set(src, i, 0x7FFFFFFF, 
+				dst, j, 0x7FFFFFFF, true);
+			cmp->srcStart = i;
+			cmp->dstStart = j;
+			while (true){
+				switch (cmp->compare(cmp)){
+					case std::Compare::less:
+						return std::Compare::less;
+					case std::Compare::equal:
+						if (src[cmp->srcStart] == 0) 
+							{return std::Compare::equal;}
+						break;
+					case std::Compare::greater:
+						return std::Compare::greater;
+					case std::Compare::unset:
+						break;
+				}
+				cmp->srcStart = cmp->srcEnd;
+				cmp->dstStart = cmp->dstEnd;
+			}
 		}
 	}
 	
 	static unsigned char compareRange(
 		unsigned char[] src, unsigned int i,
 		unsigned char[] dst, unsigned int j,
-		unsigned int len){
+		unsigned int len, std::str::Compare* cmp){
 		return std::Compare::greater - 
-			compareSubstring(dst, j, len, src, i);
+			subcompare(dst, j, 
+				len, src, i, cmp);
 	}
 	
-	/* Compares a substring, to a CString.
-		src is the substring, dst is a CString. */
-	static unsigned char compareSubstring(
-		unsigned char[] src,
-		unsigned int i, unsigned int len,
-		unsigned char[] dst, unsigned int j){
-		if (dst == nullptr){
-			dst = "";
-			j = 0;
-		}
-		len = len + i;
-		while (i < len){
-			unsigned char srcChar = src[i];
-			unsigned char dstChar = dst[j];
-			if (srcChar != dstChar){
-				if (srcChar > dstChar) 
-					{return std::Compare::greater;}
-				return std::Compare::less;
+	static unsigned int find(
+		unsigned char[] dst, unsigned int start, 
+		unsigned char[] src, unsigned int i,
+		std::str::Compare* cmp){
+		/*To skip an if in the loop.*/
+		if (src[i] == 0) {return start + 1;}
+		if (cmp == nullptr){
+			while (true){
+				unsigned char dstChar = dst[start];
+				unsigned char srcChar = src[i];
+				unsigned int j = 0;
+				while (dstChar == srcChar){
+					j = j + 1;
+					srcChar = src[i + j];
+					if (srcChar == 0) {return start + 1;}
+					dstChar = dst[start + j];
+				}
+				if (dstChar == 0) {return 0;}
+				start = start + 1;
 			}
-			if (dstChar == 0) 
-				{return std::Compare::greater;}
-			i = i + 1;
-			j = j + 1;
+		} else {
+			unsigned int dstNext;
+			cmp->set(dst, start, 0x7FFFFFFF,
+				src, i, 0x7FFFFFFF, true);
+			while (dst[start] != 0){
+				cmp->srcStart = start;
+				cmp->dstStart = i;
+				unsigned char cmpChar = 
+					cmp->compare(cmp);
+				dstNext = cmp->srcEnd;
+				while (cmpChar == std::Compare::equal){
+					if (src[cmp->dstEnd] == 0) 
+						{return start + 1;}
+					cmp->srcStart = cmp->srcEnd;
+					cmp->dstStart = cmp->dstEnd;
+					cmpChar = cmp->compare(cmp);
+				}
+				start = dstNext;
+			}
+			return 0;
 		}
-		if (dst[j] == 0) {return std::Compare::equal;}
-		else {return std::Compare::less;}
+	}
+	
+	static unsigned int findChar(
+		unsigned char[] dst, unsigned int start, 
+		unsigned int c, std::str::Compare* cmp){
+		if (cmp == nullptr){
+			unsigned int j = start;
+			unsigned int end;
+			while (dst[j] != 0){
+				if (getChar(dst, &j, &end, start, 
+					0x7FFFFFFF) == c) {return j + 1;}
+				j = end;
+			}
+			return 0;
+		} else {
+			cmp->setChar(dst, start, 0x7FFFFFFF, c, true);
+			cmp->srcStart = start;
+			while (dst[cmp->srcStart] != 0){
+				if (cmp->compare(cmp) == 
+					std::Compare::equal) 
+						{return cmp->srcStart + 1;}
+				cmp->srcStart = cmp->srcEnd;
+			}
+			return 0;
+		}
+	}
+	
+	static unsigned int findRange(
+		unsigned char[] dst, unsigned int start, 
+		unsigned char[] src, unsigned int i, 
+		unsigned int len, std::str::Compare* cmp){
+		/*To skip an if in the loop.*/
+		if (len == 0) {return start + 1;}
+		if (cmp == nullptr){
+			while (true){
+				unsigned int j = 0;
+				while (true){
+					unsigned char dstChar = dst[start + j];
+					if (dstChar == 0) {return 0;}
+					if (dstChar != src[i + j]) {break;}
+					j = j + 1;
+					if (j == len) {return start + 1;}
+				}
+				start = start + 1;
+			}
+		} else {
+			len = i + len;
+			cmp->set(dst, start, 0x7FFFFFFF,
+				src, i, len, true);
+			unsigned int dstNext;
+			while (dst[start] != 0){
+				cmp->srcStart = start;
+				cmp->dstStart = i;
+				unsigned char cmpChar = 
+					cmp->compare(cmp);
+				dstNext = cmp->srcEnd;
+				while (cmpChar == std::Compare::equal){
+					if (cmp->dstEnd >= len) {return start + 1;}
+					if (dst[cmp->srcEnd] == 0) {break;}
+					cmp->srcStart = cmp->srcEnd;
+					cmp->dstStart = cmp->dstEnd;
+					cmpChar = cmp->compare(cmp);
+				}
+				start = dstNext;
+			}
+			return 0;
+		}
+	}
+
+	static unsigned int getChar(unsigned char[] src, 
+		unsigned int* start, unsigned int* end,
+		unsigned int min, unsigned int max){
+		unsigned int i = *start;
+		unsigned char character = src[i];
+		switch (character >> 3){
+			case 0x10: case 0x11:
+			case 0x12: case 0x13:
+			case 0x14: case 0x15:
+			case 0x16: case 0x17:
+				if (i > min){
+					switch (src[i - 1] >> 3){
+						case 0x10: case 0x11:
+						case 0x12: case 0x13:
+						case 0x14: case 0x15:
+						case 0x16: case 0x17:
+							if (i - 1 > min){
+								switch (src[i - 2] >> 3){
+									case 0x10: case 0x11:
+									case 0x12: case 0x13:
+									case 0x14: case 0x15:
+									case 0x16: case 0x17:
+										if (i - 2 > min && 
+											src[i - 3] >> 3 == 0x1E){
+											*start = i - 3;
+											*end = i + 1;
+											return getChar4(
+												src[i - 3], src[i - 2],
+												src[i - 1], character);
+										}
+										break;
+									case 0x1C: case 0x1D:
+										*start = i - 2;
+										*end = i + 1;
+										return getChar3(src[i - 2], 
+											src[i - 1], character);
+										break;
+									case 0x1E:
+										if (i + 1 < max &&
+											src[i + 1] >> 6 == 2){
+											*start = i - 2;
+											*end = i + 2;
+											return getChar4(
+												src[i - 2], src[i - 1],
+												character, src[i + 1]);
+										}
+								}
+							}
+							break;
+						case 0x18: case 0x19:
+						case 0x1A: case 0x1B:
+							*start = i - 1;
+							*end = i + 1;
+							return getChar2(src[i - 1], character);
+						case 0x1C: case 0x1D:
+							if (i + 1 < max && src[i + 1] >> 6 == 2){
+								*start = i - 1;
+								*end = i + 2;
+								return getChar3(src[i - 1], 
+									character, src[i + 1]);
+							}
+							break;
+						case 0x1E:
+							if (i + 2 < max && src[i + 1] >> 6 == 2 && 
+								src[i + 2] >> 6 == 2){
+								*start = i - 1;
+								*end = i + 3;
+								return getChar4(src[i - 1], character,
+									src[i + 1], src[i + 2]);
+							}
+					}
+				}
+				break;
+			case 0x18: case 0x19:
+			case 0x1A: case 0x1B:
+				if (i + 1 < max && src[i + 1] >> 6 == 2){
+					*end = i + 2;
+					return getChar2(character, src[i + 1]);
+				}
+				break;
+			case 0x1C: case 0x1D:
+				if (i + 2 < max && src[i + 1] >> 6 == 2 &&
+					src[i + 2] >> 6 == 2){
+					*end = i + 3;
+					return getChar3(character,
+						src[i + 1], src[i + 2]);
+				}
+				break;
+			case 0x1E:
+				if (i + 3 < max && src[i + 1] >> 6 == 2 &&
+					src[i + 2] >> 6 == 2 && src[i + 3] >> 6 == 2){
+					*end = i + 4;
+					return getChar4(character, src[i + 1],
+						src[i + 2], src[i + 3]);
+				}
+				break;
+			default:
+				*end = i + 1;
+				return character;
+		}
+		*end = i + 1;
+		return 0xFFFD;
+	}
+	
+	static unsigned int getValidChar(
+		unsigned char[] src, 
+		unsigned int* start, unsigned int* end){
+		unsigned int i = *start;
+		while (true){
+			unsigned char character = src[i];
+			switch (character >> 4){
+				case 0x8: case 0x9:
+				case 0xA: case 0xB:
+					i = i - 1;
+					break;
+				case 0xC: case 0xD:
+					*start = i;
+					*end = i + 2;
+					return getChar2(character, src[i + 1]);
+				case 0xE:
+					*start = i;
+					*end = i + 3;
+					return getChar3(character, 
+						src[i + 1], src[i + 2]);
+				case 0xF:
+					*start = i;
+					*end = i + 4;
+					return getChar4(character, src[i + 1],
+						src[i + 2], src[i + 3]);
+				default:
+					*start = i;
+					*end = i + 1;
+					return character;
+			}
+		}
 	}
 
 	/* len is the maximum characters to read, however it also
 		returns at the first non digit character. */
 	static unsigned int getUint(
 		unsigned char[] src, unsigned int start,
-		unsigned int len, unsigned int* bytes,
+		unsigned int len, unsigned int* chars,
 		unsigned char base){
 		unsigned int i = start;
 		unsigned char character;
@@ -182,8 +560,8 @@ class CString {
 			i = i - 1;
 			break;
 		}
-		if (bytes != nullptr){
-			*bytes = i - start;
+		if (chars != nullptr){
+			*chars = i - start;
 		}
 		return value;
 	}
@@ -219,6 +597,26 @@ class CString {
 		return i;
 	}
 	
+	static unsigned char setChar(
+		unsigned char[] dst, unsigned int start, 
+		unsigned int c){
+		if (c < 128){
+			dst[start] = c;
+			return 1;
+		}
+		if (c < 2048){
+			setChar2(dst, start, c);
+			return 2;
+		}
+		if (c < 65536){
+			setChar3(dst, start, c);
+			return 3;
+		}
+		/* c < 2097152 */
+		setChar4(dst, start, c);
+		return 4;
+	}
+	
 	/* Without ending 0, returns length. */
 	static unsigned int setUint(
 		unsigned char[] dst, unsigned int start, 
@@ -248,6 +646,300 @@ class CString {
 			if (i == 0) {break;}
 		}
 		return start - end;
+	}
+	
+	/* Compares a substring, to a CString.
+		src is the substring, dst is a CString. */
+	static unsigned char subcompare(
+		unsigned char[] src, unsigned int i, 
+		unsigned int len, unsigned char[] dst, 
+		unsigned int j, std::str::Compare* cmp){
+		if (dst == nullptr){
+			dst = "";
+			j = 0;
+		}
+		len = len + i;
+		if (cmp == nullptr){
+			while (i < len){
+				unsigned char srcChar = src[i];
+				unsigned char dstChar = dst[j];
+				if (srcChar != dstChar){
+					if (srcChar > dstChar) 
+						{return std::Compare::greater;}
+					return std::Compare::less;
+				}
+				if (dstChar == 0) 
+					{return std::Compare::greater;}
+				i = i + 1;
+				j = j + 1;
+			}
+		} else {
+			cmp->set(src, i, len,
+				dst, j, 0x7FFFFFFF, true);
+			cmp->srcStart = i;
+			cmp->dstStart = j;
+			while (cmp->srcStart < len){
+				switch (cmp->compare(cmp)){
+					case std::Compare::less:
+						return std::Compare::less;
+					case std::Compare::equal:
+						if (dst[cmp->dstStart] == 0) 
+							{return std::Compare::greater;}
+						break;
+					case std::Compare::greater:
+						return std::Compare::greater;
+					case std::Compare::unset:
+						break;
+				}
+				cmp->srcStart = cmp->srcEnd;
+				cmp->dstStart = cmp->dstEnd;
+			}
+			j = cmp->dstStart;
+		}
+		if (dst[j] == 0) {return std::Compare::equal;}
+		else {return std::Compare::less;}
+	}
+
+	static unsigned char subcompareRange(
+		unsigned char[] src, unsigned int i,
+		unsigned int srcLen, unsigned char[] dst,
+		unsigned int j, unsigned int dstLen,
+		std::str::Compare* cmp){
+		if (cmp == nullptr){
+			return std::arr::Uchar::compareRange(
+				src, i, srcLen, dst, j, dstLen);
+		}
+		srcLen = i + srcLen;
+		dstLen = j + dstLen;
+		cmp->set(src, i, srcLen,
+			dst, j, dstLen, true);
+		cmp->srcStart = i;
+		cmp->dstStart = j;
+		while (cmp->srcStart < srcLen && 
+			cmp->dstStart < dstLen){
+			switch (cmp->compare(cmp)){
+				case std::Compare::less:
+					return std::Compare::less;
+				case std::Compare::equal:
+					break;
+				case std::Compare::greater:
+					return std::Compare::greater;
+				case std::Compare::unset:
+					break;
+			}
+			cmp->srcStart = cmp->srcEnd;
+			cmp->dstStart = cmp->dstEnd;
+		}
+		if (cmp->srcStart == srcLen){
+			if (cmp->dstStart == dstLen) 
+				{return std::Compare::equal;}
+			return std::Compare::less;
+		}
+		return std::Compare::greater;
+	}
+	
+	static unsigned int subfind(
+		unsigned char[] dst, unsigned int start, 
+		unsigned int max, unsigned char[] src, 
+		unsigned int i, std::str::Compare* cmp){
+		/*To skip an if in the loop.*/
+		if (src[i] == 0) {return start + 1;}
+		max = start + max;
+		if (cmp == nullptr){
+			unsigned int j;
+			while (true){
+				j = 0;
+				unsigned char srcChar = src[i];
+				while (true){
+					if (start + j == max) {return 0;}
+					unsigned char dstChar = dst[start + j];
+					if (dstChar != srcChar) {break;}
+					j = j + 1;
+					srcChar = src[i + j];
+					if (srcChar == 0) {return start + 1;}
+				}
+				start = start + 1;
+			}
+		} else {
+			cmp->set(dst, start, max, 
+				src, i, 0x7FFFFFFF, true);
+			unsigned int dstNext;
+			while (start < max){
+				cmp->srcStart = start;
+				cmp->dstStart = i;
+				unsigned char cmpChar = 
+					cmp->compare(cmp);
+				dstNext = cmp->srcEnd;
+				while (cmpChar == std::Compare::equal){
+					if (src[cmp->dstEnd] == 0) 
+						{return start + 1;}
+					if (cmp->srcEnd >= max) {break;}
+					cmp->srcStart = cmp->srcEnd;
+					cmp->dstStart = cmp->dstEnd;
+					cmpChar = cmp->compare(cmp);
+				}
+				start = dstNext;
+			}
+			return 0;
+		}
+	}
+	
+	static unsigned int subfindChar(
+		unsigned char[] dst, unsigned int start, 
+		unsigned int max, unsigned int c, 
+		std::str::Compare* cmp){
+		max = start + max;
+		if (cmp == nullptr){
+			unsigned int j = start;
+			unsigned int end;
+			while (j < max){
+				if (getChar(dst, &j, &end, start, 
+					max) == c) {return j + 1;}
+				j = end;
+			}
+			return 0;
+		} else {
+			cmp->setChar(dst, start, max, c, true);
+			cmp->srcStart = start;
+			while (cmp->srcStart < max){
+				if (cmp->compare(cmp) == 
+					std::Compare::equal) 
+						{return cmp->srcStart + 1;}
+				cmp->srcStart = cmp->srcEnd;
+			}
+			return 0;
+		}
+	}
+	
+	static unsigned int subfindLast(
+		unsigned char[] dst, unsigned int end, 
+		unsigned int max, unsigned char[] src, 
+		unsigned int i, std::str::Compare* cmp){
+		if (cmp == nullptr){
+			return std::arr::Uchar::findLastRange(
+				dst, end, max, src, i, 
+				std::str::CString::length(src, i));
+		} else {
+			max = max + end;
+			/*To skip an if in the loop.*/
+			if (src[i] == 0) {return max;}
+			cmp->set(dst, end, max, 
+				src, i, 0x7FFFFFFF, true);
+			unsigned int start = max;
+			while (start > end){
+				cmp->srcStart = start - 1;
+				cmp->dstStart = i;
+				unsigned char cmpChar = 
+					cmp->compare(cmp);
+				start = cmp->srcStart;
+				while (cmpChar == std::Compare::equal){
+					if (src[cmp->dstEnd] == 0) 
+						{return start + 1;}
+					if (cmp->srcEnd >= max) {break;}
+					cmp->srcStart = cmp->srcEnd;
+					cmp->dstStart = cmp->dstEnd;
+					cmpChar = cmp->compare(cmp);
+				}
+			}
+			return 0;
+		}
+	}
+	
+	static unsigned int subfindLastChar(
+		unsigned char[] dst, unsigned int end, 
+		unsigned int max, unsigned char c, 
+		std::str::Compare* cmp){
+		max = max + end;
+		if (cmp == nullptr){
+			unsigned int start = max;
+			unsigned int j;
+			while (start > end){
+				start = start - 1;
+				if (getChar(dst, &start, &j, end, 
+					max) == c) {return start + 1;}
+			}
+			return 0;
+		} else {
+			cmp->setChar(dst, end, max, c, false);
+			cmp->srcStart = max;
+			while (cmp->srcStart > end){
+				cmp->srcStart = cmp->srcStart - 1;
+				if (cmp->compare(cmp) == 
+					std::Compare::equal) 
+						{return cmp->srcStart + 1;}
+			}
+			return 0;
+		}
+	}
+	
+	static unsigned int subfindLastRange(
+		unsigned char[] dst, unsigned int end, 
+		unsigned int max, unsigned char[] src, 
+		unsigned int i, unsigned int len, 
+		std::str::Compare* cmp){
+		if (cmp == nullptr){
+			return std::arr::Uchar::findLastRange(
+				dst, end, max, src, i, len);
+		} else {
+			max = max + end;
+			/*To skip an if in the loop.*/
+			if (len == 0) {return max;}
+			len = i + len - 1;
+			cmp->set(dst, end, max, 
+				src, i, len + 1, false);
+			while (max > end){
+				cmp->srcStart = max - 1;
+				cmp->dstStart = len;
+				unsigned char cmpChar = 
+					cmp->compare(cmp);
+				max = cmp->srcStart;
+				while (cmpChar == std::Compare::equal){
+					if (cmp->dstStart <= i)
+						{return cmp->srcStart + 1;}
+					if (cmp->srcStart <= end) {break;}
+					cmp->srcStart = cmp->srcStart - 1;
+					cmp->dstStart = cmp->dstStart - 1;
+					cmpChar = cmp->compare(cmp);
+				}
+			}
+			return 0;
+		}
+	}
+	
+	static unsigned int subfindRange(
+		unsigned char[] dst, unsigned int start, 
+		unsigned int max, unsigned char[] src, 
+		unsigned int i, unsigned int len, 
+		std::str::Compare* cmp){
+		if (cmp == nullptr){
+			return std::arr::Uchar::findRange(
+				dst, start, max, src, i, len);
+		} else {
+			/*To skip an if in the loop.*/
+			if (len == 0) {return start + 1;}
+			max = start + max;
+			len = i + len;
+			cmp->set(dst, start, max, 
+				src, i, len, true);
+			unsigned int dstNext;
+			while (start < max){
+				cmp->srcStart = start;
+				cmp->dstStart = i;
+				unsigned char cmpChar = 
+					cmp->compare(cmp);
+				dstNext = cmp->srcEnd;
+				while (cmpChar == std::Compare::equal){
+					if (cmp->dstEnd >= len)
+						{return start + 1;}
+					if (cmp->srcEnd >= max) {break;}
+					cmp->srcStart = cmp->srcEnd;
+					cmp->dstStart = cmp->dstEnd;
+					cmpChar = cmp->compare(cmp);
+				}
+				start = dstNext;
+			}
+			return 0;
+		}
 	}
 
 	/* Without ending 0. */
