@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -209,7 +209,8 @@ class DBuffer {
 	void reserve(unsigned int newCapacity){
 		if (newCapacity > capacity){
 			unsigned char[] previousData = data;
-			unsigned char[] newData = new void*[newCapacity];
+			unsigned char[] newData = 
+				new unsigned char[newCapacity];
 			if (previousData != nullptr){
 				std::arr::Uchar::copy(newData, 0,
 					previousData, 0, size);
@@ -218,6 +219,29 @@ class DBuffer {
 			data = newData;
 		}
 		capacity = newCapacity;
+	}
+
+	void shrink(unsigned int len){
+		if (len < capacity){
+			unsigned char[] previousData = data;
+			if (len > 0){
+				unsigned int newSize = size;
+				if (newSize > len){
+					size = len;
+					newSize = len;
+				}
+				unsigned char[] newData = 
+					new unsigned char[len];
+				std::arr::Uchar::copy(newData, 0,
+					previousData, 0, newSize, setArray);
+				data = newData;
+			} else {
+				size = 0;
+				data = nullptr;
+			}
+			delete[] previousData;
+			capacity = len;
+		}
 	}
 
 }
