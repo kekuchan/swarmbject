@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -103,7 +103,7 @@ class GUI {
 		std::dom::Node element;
 		std::dom::Node textNode;
 		addRow(&document, &element, &textNode, "Cancel", 6);
-		path.addChar('/');
+		path.push('/');
 		addRow(&document, &element,
 			&textNode, path.data, path.length);
 		std::html::Element::getStyle(
@@ -199,7 +199,7 @@ class GUI {
 			}
 			name.clear();
 			folder->getName(&name);
-			if (folders) {name.addChar('/');}
+			if (folders) {name.push('/');}
 			gui->addRow(&document, &element,
 				&textNode, name.data, name.length);
 			std::dom::MouseEvent::setOnClick(
@@ -343,7 +343,7 @@ class GUI {
 			element.getLastChild(&element);
 			std::html::InputElement::getValueDString(
 				&element, &gui->path);
-			gui->path.addChar('/');
+			gui->path.push('/');
 			gui->bools = operationPending;
 			app.fileSystem.openFolder(gui->path.data,
 				onFolderCreated, true);
@@ -651,7 +651,7 @@ class GUI {
 					std::html::AElement::setDownload(&element,
 						path->data, start, length - start + 3);
 					path->trim(length - 1);
-					path->addChar('/');
+					path->push('/');
 					data = path->data;
 					gui->folderContent.addU8s(
 						data, start, length - start);
@@ -697,8 +697,8 @@ class GUI {
 				name.clear();
 				folder->getName(&name);
 				folder->next();
-				if (std::str::CString::compare(
-						name.data, 0, path->data, nameStart) == 
+				if (std::str::CString::compare(name.data, 
+						0, path->data, nameStart, nullptr) == 
 					std::Compare::equal) {break;}
 			}
 			path->erase(nameStart, len - nameStart);
@@ -711,7 +711,7 @@ class GUI {
 					gui->folderContent.addU8(0);
 				}
 				/* A placeholder character for cancelPath(). */
-				path->addChar('/');
+				path->push('/');
 				gui->setDownloadLink(gui->folderContent.getJsBlob());
 				gui->folderContent.clear();
 			} else {
@@ -730,7 +730,7 @@ class GUI {
 			folder->getName(path);
 			unsigned int nameLength = path->length - len + 1;
 			if (type == std::fs::EntryTypes::folder){
-				path->addChar('/');
+				path->push('/');
 			}
 			gui->folderContent.addU8s(
 				path->data, len, nameLength);
