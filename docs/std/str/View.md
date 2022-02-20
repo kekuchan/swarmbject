@@ -51,7 +51,7 @@ string.set("2021", 2, 2);
 string.clear();
 unsigned int length = string.length; /*0*/
 ```
-	
+
 ## "compare" member function:
 
 Compares the substring to another substring.
@@ -62,16 +62,29 @@ substring to compare with.
 * The starting index of the substring 
 to compare with in its array.
 * The length of the substring to compare with.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
 
 Returns: an std::Compare value.
 
 ```
 std::str::View first;
-first.addCString("first string");
-unsigned char const[] second = "second string";
-unsigned char compare = first.compare(second, 
-	0, std::str::CString::length(second, 0));
-/*std::Compare::less, as 'f' < 's'.*/
+first.setCString("YEAR");
+unsigned char const[] second = "year";
+
+unsigned char compare = first.compare(
+	second, 0, 4, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = first.compare(
+	second, 0, 4, &cmp);
+/*std::Compare::equal.*/
 ```
 
 ## "compareCString" member function:
@@ -82,15 +95,28 @@ unsigned char array string.
 Parameters:
 * The 0 ended unsigned char array string 
 to compare with.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
 
 Returns: an std::Compare value.
 
 ```
-std::str::View string;
-string.setCString("first string");
+std::str::View first;
+first.setCString("YEAR");
+unsigned char const[] second = "year";
+
 unsigned char compare = 
-	string.compareCString("second string");
-/*std::Compare::less, as 'f' < 's'.*/
+	first.compareCString(second, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = first.compareCString(second, &cmp);
+/*std::Compare::equal.*/
 ```
 
 ## "compareDString" member function:
@@ -99,17 +125,36 @@ Compares the substring to an std::str::DString.
 
 Parameters:
 * A pointer to the DString to compare with.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
+
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
 
 Returns: an std::Compare value.
 
 ```
 std::str::View first;
-first.addCString("first string");
+first.setCString("YEAR");
 std::str::DString second;
-second.addCString("second string");
+second.addCString("year");
+
 unsigned char compare = 
-	first.compareDString(&second);
-/*std::Compare::less, as 'f' < 's'.*/
+	first.compareDString(&second, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = first.compareDString(&second, &cmp);
+/*std::Compare::equal.*/
 ```
 
 ## "compareString" member function:
@@ -118,16 +163,29 @@ Compares the substring to an std::str::String.
 
 Parameters:
 * A pointer to the String to compare with.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
 
 Returns: an std::Compare value.
 
 ```
 std::str::View first;
-first.setCString("first string");
+first.setCString("YEAR");
 std::str::String second;
-second.setCString("second string");
-unsigned char compare = first.compare(&second);
-/*std::Compare::less, as 'f' < 's'.*/
+second.setCString("year");
+
+unsigned char compare = 
+	first.compareString(&second, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = first.compareString(&second, &cmp);
+/*std::Compare::equal.*/
 ```
 
 ## "compareView" member function:
@@ -136,16 +194,29 @@ Compares the substring to an std::str::View.
 
 Parameters:
 * A pointer to the std::str::View to compare with.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
 
 Returns: an std::Compare value.
 
 ```
 std::str::View first;
-first.setCString("first string");
+first.setCString("YEAR");
 std::str::View second;
-second.setCString("second string");
-unsigned char compare = first.compareView(&second);
-/*std::Compare::less, as 'f' < 's'.*/
+second.setCString("year");
+
+unsigned char compare = 
+	first.compareView(&second, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = first.compareView(&second, &cmp);
+/*std::Compare::equal.*/
 ```
 
 ## "set" member function:
@@ -203,7 +274,7 @@ string.setView(&year);
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -273,7 +344,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

@@ -29,7 +29,7 @@ with a 0 unsigned char.
 ```
 std::str::DString string;
 string.addCString("This is a string.");
-unsigned char const[] data = string.data;
+unsigned char[] data = string.data;
 unsigned char letter = data[0]; /*'T'*/
 letter = data[1]; /*'h'*/
 ```
@@ -78,16 +78,17 @@ the usage of the previous data member not valid.
 
 Parameters:
 * The character to insert.
+* The number of times to insert the character.
 
 Returns: void.
 
 ```
 std::str::DString string;
-string.addChar('2');
-string.addChar('1');
-/*"21"*/
+string.add("20", 0, 2);
+string.addChar('2', 2);
+/*"2022"*/
 ```
-	
+
 ## "addCString" member function:
 
 Inserts a 0 ended unsigned char array string 
@@ -107,7 +108,7 @@ string.addCString("20");
 string.addCString("21");
 /*"2021"*/
 ```
-	
+
 ## "addDString" member function:
 
 Inserts a DString to the DString's end.
@@ -128,7 +129,7 @@ string.addCString("20");
 string.addDString(&year);
 /*"2021"*/
 ```
-	
+
 ## "addReplace" member function:
 
 Inserts a string, with all occurences of another 
@@ -153,7 +154,7 @@ std::str::DString string;
 string.addReplace("2021", "21", "20");
 /*"2020", as "21" is replaced with "20".*/
 ```
-	
+
 ## "addString" member function:
 
 Inserts an std::str::String to the DString's end.
@@ -174,7 +175,7 @@ string.addCString("20");
 string.addString(&year);
 /*"2021"*/
 ```
-	
+
 ## "addSubReplace" member function:
 
 Inserts a substring, with all occurences of another 
@@ -206,7 +207,7 @@ string.addSubReplace(
 	"20", 0, 2);
 /*"2020", as "21" is replaced with "20".*/
 ```
-	
+
 ## "addUint" member function:
 
 Inserts an unsigned int to the DString's end.
@@ -226,7 +227,7 @@ string.addUint(2021,
 	std::NumberBases::decimal);
 /*"2021"*/
 ```
-	
+
 ## "addView" member function:
 
 Inserts an std::str::View to the DString's end.
@@ -260,7 +261,7 @@ string.addCString("2021");
 string.clear();
 unsigned int length = string.length; /*0*/
 ```
-	
+
 ## "compare" member function:
 
 Compares the DString to a substring.
@@ -271,18 +272,31 @@ substring to compare with.
 * The starting index of the substring 
 to compare with in its array.
 * The length of the substring to compare with.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
 
 Returns: an std::Compare value.
 
 ```
 std::str::DString first;
-first.addCString("first string");
-unsigned char const[] second = "second string";
-unsigned char compare = first.compare(second, 
-	0, std::str::CString::length(second, 0));
-/*std::Compare::less, as 'f' < 's'.*/
+first.addCString("YEAR");
+unsigned char const[] second = "year";
+
+unsigned char compare = first.compare(
+	second, 0, 4, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = first.compare(
+	second, 0, 4, &cmp);
+/*std::Compare::equal.*/
 ```
-	
+
 ## "compareCString" member function:
 
 Compares the DString to a 0 ended 
@@ -291,15 +305,28 @@ unsigned char array string.
 Parameters:
 * The 0 ended unsigned char 
 array string to compare with.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
 
 Returns: an std::Compare value.
 
 ```
-std::str::DString string;
-string.addCString("first string");
+std::str::DString first;
+first.addCString("YEAR");
+unsigned char const[] second = "year";
+
 unsigned char compare = 
-	string.compareCString("second string");
-/*std::Compare::less, as 'f' < 's'.*/
+	first.compareCString(second, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = first.compareCString(second, &cmp);
+/*std::Compare::equal.*/
 ```
 
 ## "compareDString" member function:
@@ -308,17 +335,29 @@ Compares the DString to another std::str::DString.
 
 Parameters:
 * A pointer to the DString to compare with.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
 
 Returns: an std::Compare value.
 
 ```
 std::str::DString first;
-first.addCString("first string");
+first.addCString("YEAR");
 std::str::DString second;
-second.addCString("second string");
+second.addCString("year");
+
 unsigned char compare = 
-	first.compareDString(&second);
-/*std::Compare::less, as 'f' < 's'.*/
+	first.compareDString(&second, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = first.compareDString(&second, &cmp);
+/*std::Compare::equal.*/
 ```
 
 ## "compareString" member function:
@@ -327,16 +366,29 @@ Compares the DString to an std::str::String.
 
 Parameters:
 * A pointer to the String to compare with.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
 
 Returns: an std::Compare value.
 
 ```
 std::str::DString first;
-first.addCString("first string");
+first.addCString("YEAR");
 std::str::String second;
-second.setCString("second string");
-unsigned char compare = first.compareString(&second);
-/*std::Compare::less, as 'f' < 's'.*/
+second.setCString("year");
+
+unsigned char compare = 
+	first.compareString(&second, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = first.compareString(&second, &cmp);
+/*std::Compare::equal.*/
 ```
 
 ## "compareView" member function:
@@ -345,16 +397,29 @@ Compares the DString to an std::str::View.
 
 Parameters:
 * A pointer to the std::str::View to compare with.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
 
 Returns: an std::Compare value.
 
 ```
 std::str::DString first;
-first.addCString("first string");
+first.addCString("YEAR");
 std::str::View second;
-second.setCString("second string");
-unsigned char compare = first.compareView(&second);
-/*std::Compare::less, as 'f' < 's'.*/
+second.setCString("year");
+
+unsigned char compare = 
+	first.compareView(&second, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = first.compareView(&second, &cmp);
+/*std::Compare::equal.*/
 ```
 
 ## "copy" member function:
@@ -378,7 +443,26 @@ string.addCString("2021");
 string.copy(2, "20", 0, 2);
 /*"2020", as "21" is replaced with "20".*/
 ```
-	
+
+## "create" member function:
+
+Sets the DString with empty space to set 
+manually. This might require creating a 
+new array due to the capacity, making the 
+usage of the previous data member not valid.
+
+Parameters:
+* The size of the DString to create.
+
+Returns: the DString data as unsigned char[].
+
+```
+std::str::DString string;
+unsigned char[] data = string.create(2);
+data[0] = '2';
+data[1] = '1';
+```
+
 ## "erase" member function:
 
 Erases from the DString. This requires 
@@ -399,44 +483,74 @@ string.erase(0, 2);
 
 ## "find" member function:
 
+Finds the first occurence of a substring 
+in the DString.
+
+Parameters:
+* The unsigned char array of the substring to find.
+* The starting index of the substring to find 
+in its array.
+* The length of the substring to find.
+* The starting index to search from in the DString.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning std::Compare::equal 
+if equal, or something else otherwise, and 
+setting their starting and ending + 1 indices.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the starting character.
+
+```
+std::str::DString first;
+first.addCString("YEAR");
+unsigned char const[] second = "year";
+
+unsigned int position = first.findLast(
+	second, 0, 4, 0, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCI;
+position = first.findLast(
+	second, 0, 4, 0, &cmp); /*1*/
+```
+
+## "findChar" member function:
+
 Finds the first occurence of a character 
 in the DString.
 
 Parameters:
 * The character to find.
 * The starting index to search from in the DString.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare 
+member pointing to a function that compares the 
+character stored in dstStart with a character 
+or more of its src member, from its starting 
+index, returning std::Compare::equal if equal, 
+or something else otherwise, and setting its 
+starting and ending + 1 indices.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the character.
 
 ```
-std::str::DString string;
-string.addCString("2020");
-unsigned int position = 
-	string.find('2', 0); /*1*/
+std::str::DString first;
+first.addCString("YEAR");
+unsigned char second = 'y';
+
+unsigned int position = first.findChar(
+	second, 0, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCharCI;
+position = first.findChar(second, 0, &cmp); /*1*/
 ```
 
 ## "findLast" member function:
-
-Finds the first occurence of a character, but 
-starting backwards from the end of the DString.
-
-Parameters:
-* The character to find.
-* The index + 1 position to 
-search from in the DString.
-
-Returns: 0, if not found, otherwise the 
-index + 1 position of the character.
-
-```
-std::str::DString string;
-string.addCString("2020");
-unsigned int position = 
-	string.findLast('2', string.length); /*3*/
-```
-
-## "findLastRange" member function:
 
 Finds the first occurence of a substring, but 
 starting backwards from the end of the DString.
@@ -448,39 +562,87 @@ in its array.
 * The length of the substring to find.
 * The index + 1 position to 
 search from in the DString.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning std::Compare::equal 
+if equal, or something else otherwise, and 
+setting their starting and ending + 1 indices.
 
 Returns: 0, if not found, otherwise the 
 index + 1 position of the starting character.
 
 ```
-std::str::DString string;
-string.addCString("2020");
-unsigned int position = string.findLastRange(
-	"20", 0, 2, string.length); /*3*/
+std::str::DString first;
+first.addCString("YEAR");
+unsigned char const[] second = "year";
+
+unsigned int position = first.findLast(
+	second, 0, 4, first.length, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCI;
+position = first.findLast(
+	second, 0, 4, first.length, &cmp); /*1*/
 ```
 
-## "findRange" member function:
+## "findLastChar" member function:
 
-Finds the first occurence of a substring 
-in the DString.
+Finds the first occurence of a character, but 
+starting backwards from the end of the DString.
 
 Parameters:
-* The unsigned char array of the substring to find.
-* The starting index of the substring to find 
-in its array.
-* The length of the substring to find.
-* The starting index to search from in the DString.
+* The character to find.
+* The index + 1 position to 
+search from in the DString.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare 
+member pointing to a function that compares the 
+character stored in dstStart with a character 
+or more of its src member, from its starting 
+index, returning std::Compare::equal if equal, 
+or something else otherwise, and setting its 
+starting and ending + 1 indices.
 
 Returns: 0, if not found, otherwise the 
-index + 1 position of the starting character.
+index + 1 position of the character.
+
+```
+std::str::DString first;
+first.addCString("YEAR");
+unsigned char second = 'y';
+
+unsigned int position = first.findLastChar(
+	second, first.length, nullptr); /*0*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::equalsCharCI;
+position = first.findLastChar(
+	second, first.length, &cmp); /*1*/
+```
+
+## "grow" member function:
+
+Grows the DString, with empty space to set manually. 
+This might require creating a new array and copy 
+all the unsigned chars due to the capacity, making 
+the usage of the previous data member not valid.
+
+Parameters:
+* The ammount to grow with.
+
+Returns: the DString data as unsigned char[].
 
 ```
 std::str::DString string;
-string.addCString("2020");
-unsigned int position = 
-	string.findRange("20", 0, 2, 0); /*1*/
+string.add("20", 0, 2);
+unsigned char[] data = string.grow(2);
+data[2] = '2';
+data[3] = '1';
+/*"2021"*/
 ```
-	
+
 ## "insert" member function:
 
 Inserts a substring to the DString. This 
@@ -522,7 +684,7 @@ Returns: void.
 
 ```
 std::str::DString string;
-string.addChar('1');
+string.push('1');
 string.insertChar(0, '2', 1);
 /*"21"*/
 ```
@@ -546,6 +708,25 @@ first.move(&second);
 /*first="2021", second=""*/
 ```
 
+## "push" member function:
+
+Inserts a character to the DString's end.
+This might require creating a new array and copy 
+all the unsigned chars due to the capacity, making 
+the usage of the previous data member not valid.
+
+Parameters:
+* The character to insert.
+
+Returns: void.
+
+```
+std::str::DString string;
+string.push('2');
+string.push('1');
+/*"21"*/
+```
+
 ## "reserve" member function:
 
 Increases the capacity of the DString. This 
@@ -563,19 +744,6 @@ Returns: void.
 std::str::DString string;
 string.reserve(2);
 unsigned int capacity = string.capacity; /*2*/
-```
-	
-## "reverse" member function:
-
-Reverses the contained data of the DString.
-
-Returns: void.
-
-```
-std::str::DString string;
-string.addCString("21");
-string.reverse();
-/*"12"*/
 ```
 
 ## "set" member function:
@@ -598,6 +766,25 @@ Returns: void.
 std::str::DString string;
 string.set("2021", 0, 4);
 /*"2021"*/
+```
+
+## "setChar" member function:
+
+Sets the DString to be a copy of a character.
+This might require creating a new array 
+due to the capacity, making the usage of 
+the previous data member not valid.
+
+Parameters:
+* The character to copy.
+* The number of times to copy the character.
+
+Returns: void.
+
+```
+std::str::DString string;
+string.setChar('2', 2);
+/*"22"*/
 ```
 
 ## "setCString" member function:
@@ -691,16 +878,37 @@ Parameters:
 * The index in the DString to shift from.
 * The ammount to shift with.
 
+Returns: the DString data as unsigned char[].
+
+```
+std::str::DString string;
+string.push('1');
+unsigned char[] data = string.shift(0, 1);
+data[0] = '2';
+/*"21"*/
+```
+
+## "shrink" member function:
+
+Decreases the capacity of the DString. This 
+requires creating a new array and copy the 
+remaining unsigned chars, making the usage 
+of the previous data member not valid.
+
+Parameters:
+* The new capacity, including 
+the ending 0 unsigned char.
+
 Returns: void.
 
 ```
 std::str::DString string;
-string.addChar('1');
-string.shift(0, 1);
-string.data[0] = '2';
-/*"21"*/
+string.addCString("2021");
+string.shrink(3);
+unsigned int capacity = string.capacity; /*3*/
+unsigned int size = array.size; /*2 as "20".*/
 ```
-	
+
 ## "trim" member function:
 
 Decreases the length of the DString.
@@ -719,7 +927,7 @@ string.trim(2);
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -789,7 +997,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
