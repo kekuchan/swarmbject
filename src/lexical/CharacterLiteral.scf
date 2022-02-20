@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -68,10 +68,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class CharacterLiteral : lexical::Type {
-	unsigned char character;
+	unsigned int character;
 	
 	static lexical::CharacterLiteral* create(
-		unsigned char literal){
+		unsigned int literal){
 		lexical::CharacterLiteral* characterLiteral =
 			new lexical::CharacterLiteral;
 		characterLiteral->type = lexical::Types::characterLiteral;
@@ -80,14 +80,14 @@ class CharacterLiteral : lexical::Type {
 	}
 
 	static unsigned char cmp(void* i, void* j){
-		return std::arr::Uchar::compareValue(
+		return std::arr::Uint::compareValue(
 			((lexical::CharacterLiteral*)i)->character,
 			((lexical::CharacterLiteral*)j)->character);
 	}
 
-	static unsigned char cmpUchar(void* i, void* j){
-		return std::arr::Uchar::compareValue(
+	static unsigned char cmpUint(void* i, void* j){
+		return std::arr::Uint::compareValue(
 			(lexical::CharacterLiteral*)i->character,
-			*(unsigned char*)j);
+			*(unsigned int*)j);
 	}
 }

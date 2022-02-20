@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -77,13 +77,17 @@ class StringLiteral : lexical::Type {
 	}
 
 	static unsigned char cmp(void* i, void* j){
-		return ((lexical::StringLiteral*)i)->string.compareString(
-			&((lexical::StringLiteral*)j)->string);
+		return cmpString(i, 
+			&(lexical::StringLiteral*)j->string);
 	}
 
 	static unsigned char cmpString(void* i, void* j){
-		return (lexical::StringLiteral*)i->
-			string.compareString((std::str::String*)j);
+		std::str::String* src = 
+			&(lexical::StringLiteral*)i->string;
+		std::str::String* dst = (std::str::String*)j;
+		return std::arr::Uchar::compareRange(
+			src->data, 0, src->length,
+			dst->data, 0, dst->length);
 	}
 
 }
