@@ -30,6 +30,51 @@ std::ds::PtrArray array;
 unsigned int size = array.size; /*0*/
 ```
 
+## "add" member function:
+
+Inserts an element to the array's end. As it 
+creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
+
+Parameters:
+* A pointer to insert.
+* The number of times to insert the element.
+
+Returns: void.
+
+```
+std::ds::PtrArray array;
+int* year = new int;
+*year = 2021;
+array.add(year, 2);
+/*&2021,&2021*/
+```
+
+## "addRange" member function:
+
+Inserts a subarray to the array's end. As it 
+creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
+
+Parameters:
+* The array of the subarray to insert.
+* The starting index of the subarray to insert 
+in its array.
+* The size of the subarray to insert.
+
+Returns: void.
+
+```
+std::ds::PtrArray array;
+int*[] years = new int*[2];
+years[0] = new int;
+*years[0] = 2020;
+years[1] = new int;
+*years[1] = 2021;
+array.addRange(years, 0, 2);
+/*&2020,&2021*/
+```
+
 ## "clear" member function:
 
 Clears the array to its initial state. As 
@@ -87,6 +132,27 @@ array.compare(years, 0, 2, compare);
 	2021,2020 > 2020,2021.*/
 ```
 
+## "copy" member function:
+
+Copy an element to the array, by 
+replacing the values.
+
+Parameters:
+* The starting index in the array to copy to.
+* A pointer to copy.
+* The number of times to copy the element.
+
+Returns: void.
+
+```
+std::ds::PtrArray array;
+array.create(2);
+int* year = new int;
+*year = 2021;
+array.copy(0, year, 2);
+/*&2021,&2021*/
+```
+
 ## "copyRange" member function:
 
 Copy a subarray to the array, by 
@@ -105,14 +171,10 @@ Returns: void.
 std::ds::PtrArray array;
 array.create(2);
 int*[] years = new int*[2];
-int* year = new int;
-*year = 2020;
-array.data[1] = year;
-years[0] = year;
-year = new int;
-*year = 2021;
-array.data[0] = year;
-years[1] = year;
+years[0] = new int;
+*years[0] = 2020;
+years[1] = new int;
+*years[1] = 2021;
 array.copyRange(0, years, 0, 2);
 /*&2020,&2021*/
 ```
@@ -354,6 +416,44 @@ unsigned int i = array.findSorted(
 	&find, compare)); /*2*/
 ```
 
+## "getBack" member function:
+
+Gets the last element.
+	
+Returns: void*.
+
+```
+std::ds::PtrArray array;
+int*[] years = (int*[])(array.create(2));
+years[0] = new int;
+*years[0] = 2020;
+years[1] = new int;
+*years[1] = 2021;
+int* year = (int*)(array.getBack()); /*&2021*/
+```
+
+## "grow" member function:
+
+Grows the array, with empty space to set manually.
+As it creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
+
+Parameters:
+* The ammount to grow with.
+
+Returns: the array data as void*[].
+
+```
+std::ds::PtrArray array;
+int*[] years = (int*[])(array.create(1));
+years[0] = new int;
+*years[0] = 2020;
+years = (int*[])(array.grow(1));
+years[1] = new int;
+*years[1] = 2021;
+/*&2020,&2021*/
+```
+
 ## "insert" member function:
 
 Inserts an element to the array. As it creates 
@@ -463,6 +563,51 @@ delete first.data[0];
 first.move(&second);
 /*first=&2021, second=*/
 ```
+
+## "pop" member function:
+
+Removes the last element from the array. As it 
+creates a new array and copy the remaining elements, 
+usage of the previous data member is not valid. 
+	
+Returns: void*.
+
+```
+std::ds::PtrArray array;
+int*[] years = (int*[])(array.create(2));
+years[0] = new int;
+*years[0] = 2020;
+years[1] = new int;
+*years[1] = 2021;
+int* year = (int*)(array.pop()); /*&2021*/
+unsigned int size = array.size;
+/*1 as &2020*/
+```
+
+## "push" member function:
+
+Inserts an element to the array's end. As it 
+creates a new array and copy all the elements, 
+usage of the previous data member is not valid. 
+
+Parameters:
+* A pointer to insert.
+
+Returns: void.
+
+```
+std::ds::PtrArray array;
+int* year = new int;
+*year = 2020;
+array.push(year);
+unsigned int size = array.size;
+/*1 as &2020.*/
+year = new int;
+*year = 2021;
+array.push(year);
+size = array.size;
+/*2 as &2020, &2021.*/
+```
 	
 ## "reverse" member function:
 
@@ -479,6 +624,26 @@ years[1] = new int;
 *years[1] = 2021;
 array.reverse();
 /*&2021,&2020*/
+```
+
+## "set" member function:
+
+Sets the array to be a copy of an element.
+This might require creating a new array, making 
+the usage of the previous data member not valid.
+
+Parameters:
+* A pointer to copy.
+* The number of times to copy the element.
+
+Returns: void.
+
+```
+std::ds::PtrArray array;
+int* year = new int;
+*year = 2021;
+array.set(year, 2);
+/*&2021,&2021*/
 ```
 
 ## "setRange" member function:
@@ -518,23 +683,46 @@ Parameters:
 * The index in the array to shift from.
 * The ammount to shift with.
 
-Returns: void.
+Returns: the array data as void*[].
 
 ```
 std::ds::PtrArray array;
-int* year = new int;
-*year = 2021;
-array.insert(0, year, 1);
-year = new int;
-*year = 2020;
-array.shift(0, 1);
-array.data[0] = year;
+int*[] years = (int*[])(array.create(1));
+years[0] = new int;
+*years[0] = 2021;
+years = (int*[])(array.shift(0, 1));
+years[0] = new int;
+*years[0] = 2020;
 /*&2020,&2021*/
+```
+
+## "trim" member function:
+
+Decreases the size of the array. As it creates 
+a new array and copy the remaining elements, 
+usage of the previous data member is not valid. 
+
+Parameters:
+* The new size.
+
+Returns: void.
+	
+```
+std::ds::PtrDArray array;
+int*[] years = (int*[])(array.create(2));
+years[0] = new int;
+*years[0] = 2020;
+years[1] = new int;
+*years[1] = 2021;
+/*When not needed anymore:*/
+delete years[1];
+array.trim(1);
+unsigned int size = array.size; /*1 as &2020.*/
 ```
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -604,7 +792,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
