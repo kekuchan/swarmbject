@@ -311,7 +311,6 @@ class String {
 		unsigned int c, unsigned int len){
 		unsigned char[] previousData = data;
 		unsigned char[] dst;
-		unsigned int start = length;
 		if (c < 128){
 			dst = insertLength(len, start);
 			if (dst == nullptr) {return;}
