@@ -149,6 +149,35 @@ std::arr::Void::copy(
 /*values=2020,2021.*/
 ```
 
+## "ends" static function:
+
+Compares the end of a subarray, to a subarray.
+
+Parameters:
+* The array of the first subarray.
+* The starting index of the first subarray in the array.
+* The size of the first subarray.
+* The array of the second subarray.
+* The starting index of the second subarray in the array.
+* The size of the second subarray.
+* A pointer to an "unsigned char(void*, unsigned int, 
+void*, unsigned int)" function that can compare 
+any element of the given first subarray at the given 
+index, with any element of the given second subarray 
+at the given index, and returns an std::Compare value.
+
+Returns: an std::Compare value.
+
+```
+Year[] years = new Year[2];
+years[0].value = 2020;
+years[1].value = 2021;
+unsigned char compare = std::arr::Void::ends(
+	(void*)years, 0, 2, (void*)years, 1, 1, 
+	Year::compare);
+/*std::Compare::equal.*/
+```
+
 ## "find" static function:
 
 Finds the first occurence of an element.
@@ -310,6 +339,33 @@ unsigned int position =
 		Year::compareElement); /*2*/
 ```
 
+## "insert" member function:
+
+Returns the index where an element 
+could be inserted, if the array is sorted.
+
+* The array of a subarray.
+* The starting index of the subarray.
+* The size of the subarray.
+* A pointer to an element to insert.
+* A pointer to an "unsigned char(void*,
+unsigned int, void*)" function that can compare 
+any element of the given subarray at the given 
+index, with the given element to insert, and 
+returns an std::Compare value.
+
+Returns: unsigned int.
+
+```
+Year[] years = new Year[1];
+years[0].value = 2020;
+int insert = 2021;
+unsigned int position = 
+	std::arr::Void::insert(
+		(void*)years, 0, 1, &insert,
+		Year::compareElement); /*1*/
+```
+
 ## "replacedSize" static function:
 
 Returns the size of an array, if all 
@@ -449,9 +505,38 @@ std::arr::Void::setReplace(
 	is replaced with 2020.*/
 ```
 
+## "starts" static function:
+
+Compares the start of a subarray, to a subarray.
+
+Parameters:
+* The array of the first subarray.
+* The starting index of the first subarray in the array.
+* The size of the first subarray.
+* The array of the second subarray.
+* The starting index of the second subarray in the array.
+* The size of the second subarray.
+* A pointer to an "unsigned char(void*, unsigned int, 
+void*, unsigned int)" function that can compare 
+any element of the given first subarray at the given 
+index, with any element of the given second subarray 
+at the given index, and returns an std::Compare value.
+
+Returns: an std::Compare value.
+
+```
+Year[] years = new Year[2];
+years[0].value = 2020;
+years[1].value = 2021;
+unsigned char compare = std::arr::Void::starts(
+	(void*)years, 0, 2, (void*)years, 0, 1, 
+	Year::compare);
+/*std::Compare::equal.*/
+```
+
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -521,7 +606,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
