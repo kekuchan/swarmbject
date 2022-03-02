@@ -97,19 +97,18 @@ class Ptr {
 		unsigned int srcLen, void*[] dst,
 		unsigned int j, unsigned int dstLen,
 		unsigned char(void*,void*) compareElements){
-		unsigned int len;
+		unsigned char cmp;
 		if (srcLen > dstLen){
-			len = dstLen;
-		} else {
-			len = srcLen;
-		}
-		unsigned char cmp = compare(src, i, dst, j, 
-			len, compareElements);
-		if (cmp == std::Compare::equal && 
-			dstLen != srcLen){
-			if (srcLen > dstLen) 
+			cmp = compare(src, i, 
+				dst, j, dstLen, compareElements);
+			if (cmp == std::Compare::equal)
 				{return std::Compare::greater;}
-			return std::Compare::less;
+		} else {
+			cmp = compare(src, i, 
+				dst, j, srcLen, compareElements);
+			if (cmp == std::Compare::equal && 
+				dstLen != srcLen)
+				{return std::Compare::less;}
 		}
 		return cmp;
 	}
@@ -130,6 +129,30 @@ class Ptr {
 				dst[j + len] = src[i + len];
 			}
 		}
+	}
+
+	static unsigned char ends(
+		void*[] src, unsigned int i,
+		unsigned int srcLen, void*[] dst,
+		unsigned int j, unsigned int dstLen,
+		unsigned char(void*,void*) compareElements){
+		unsigned int len;
+		if (srcLen >= dstLen){
+			i = i + srcLen - dstLen;
+			len = dstLen;
+		} else {
+			j = j + dstLen - srcLen;
+			len = srcLen;
+		}
+		while (len > 0){
+			len = len - 1;
+			unsigned char cmp = compareElements(
+				src[i + len], dst[j + len]);
+			if (cmp != std::Compare::equal) {return cmp;}
+		}
+		if (srcLen >= dstLen)
+			{return std::Compare::equal;}
+		return std::Compare::less;
 	}
 	
 	static unsigned int find(
@@ -233,6 +256,40 @@ class Ptr {
 		}
 		return 0;
 	}
+
+	static unsigned int insert(
+		void*[] src, unsigned int start, 
+		unsigned int max, void* element,
+		unsigned char(void*,void*) compareElements){
+		max = max + start;
+		if (max > 0){
+			/* Trick using offset by 1 to keep variables as unsigned. */
+			start = start + 1;
+			unsigned int mid;
+			while (true){
+				mid = (max + start) >> 1;
+				switch (compareElements(
+					src[mid - 1], element)){
+					case std::Compare::less:
+						if (start == max){
+							max = mid;
+							break;
+						}
+						start = mid + 1;
+						continue;
+					case std::Compare::equal:
+						max = mid - 1;
+						break;
+					case std::Compare::greater:
+						max = mid - 1;
+						if (start > max) {break;}
+						continue;
+				}
+				break;
+			}
+		}
+		return max;
+	}
 	
 	static unsigned int replacedSize(
 		void*[] array, unsigned int arrayStart,
@@ -307,6 +364,22 @@ class Ptr {
 			dataStart = dataStart + 1;
 			arrayStart = arrayStart + 1;
 		}
+	}
+
+	static unsigned char starts(
+		void*[] src, unsigned int i,
+		unsigned int srcLen, void*[] dst,
+		unsigned int j, unsigned int dstLen,
+		unsigned char(void*,void*) compareElements){
+		if (srcLen >= dstLen){
+			return compare(src, i, 
+				dst, j, dstLen, compareElements);
+		}
+		unsigned char cmp = compare(
+			src, i, dst, j, srcLen);
+		if (cmp == std::Compare::equal)
+			{return std::Compare::less;}
+		return cmp;
 	}
 	
 	static void switchValue(void* src,

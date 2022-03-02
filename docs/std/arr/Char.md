@@ -2,6 +2,52 @@
 
 Static functions to work with char arrays.
 
+## "compare" static function:
+
+Compares two same sized char subarrays.
+
+Parameters:
+* The char array of the first subarray.
+* The starting index of the first subarray in the array.
+* The char array of the second subarray.
+* The starting index of the second subarray in the array.
+* The size of the subarrays.
+
+Returns: an std::Compare value.
+
+```
+char[] years = new char[2];
+years[0] = -20;
+years[1] = -21;
+unsigned char compare = std::arr::Char::compare(
+	years, 1, years, 0, 1);
+/*std::Compare::less as -21 < -20.*/
+```
+
+## "compareRange" static function:
+
+Compares two possibly different sized 
+char subarrays.
+
+Parameters:
+* The char array of the first subarray.
+* The starting index of the first subarray in the array.
+* The size of the first subarray.
+* The char array of the second subarray.
+* The starting index of the second subarray in the array.
+* The size of the second subarray.
+
+Returns: an std::Compare value.
+
+```
+char[] years = new char[2];
+years[0] = -20;
+years[1] = -21;
+unsigned char compare = std::arr::Char::compareRange(
+	years, 1, 1, years, 0, 1);
+/*std::Compare::less as -21 < -20.*/
+```
+
 ## "compareValue" static function:
 
 Compares two char values.
@@ -18,9 +64,346 @@ unsigned char compare =
 /*std::Compare::greater, as -20 > -21.*/
 ```
 
+## "copy" static function:
+
+Copy chars from an array to another.
+Works even between the same array.
+	
+Parameters:
+* The char array to copy to.
+* The starting index of the array to copy to.
+* The char array to copy from.
+* The starting index of the array to copy from.
+* The number of chars to copy.
+
+Returns: void.
+
+```
+char[] years = new char[2];
+years[0] = -20;
+years[1] = -21;
+char[] values = new char[2];
+std::arr::Char::copy(values, 0, years, 0, 2);
+/*values=-20,-21.*/
+```
+
+## "ends" static function:
+
+Compares the end of a char subarray, 
+to a char subarray.
+
+Parameters:
+* The char array of the first subarray.
+* The starting index of the first subarray in the array.
+* The size of the first subarray.
+* The char array of the second subarray.
+* The starting index of the second subarray in the array.
+* The size of the second subarray.
+
+Returns: an std::Compare value.
+
+```
+char[] years = new char[2];
+years[0] = -20;
+years[1] = -21;
+unsigned char compare = std::arr::Char::ends(
+	years, 0, 2, years, 1, 1);
+/*std::Compare::equal.*/
+```
+	
+## "find" static function:
+
+Finds the first occurence of a char 
+in a char array.
+
+Parameters:
+* The char array to search in.
+* The starting index to search from in the array.
+* The size from the starting index to search in.
+* The char value to find.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the char.
+
+```
+char[] years = new char[2];
+years[0] = -21;
+years[1] = -21;
+char find = -21;
+unsigned int position = 
+	std::arr::Char::find(
+		years, 0, 2, find); /*1*/
+```
+
+## "findLast" static function:
+
+Finds the first occurence of a char, 
+but starting backwards in the char array.
+
+Parameters:
+* The char array to search in.
+* The ending index to search until in the array.
+* The size from the ending index to search in.
+* The char value to find.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the char.
+
+```
+char[] years = new char[2];
+years[0] = -21;
+years[1] = -21;
+char find = -21;
+unsigned int position = 
+	std::arr::Char::findLast(
+		years, 0, 2, find); /*2*/
+```
+
+## "findLastRange" static function:
+
+Finds the first occurence of a subarray, but 
+starting backwards in the char array.
+
+Parameters:
+* The char array to search in.
+* The ending index to search until in the array.
+* The size from the ending index to search in.
+* The char array of the subarray to find.
+* The starting index of the subarray to find 
+in its array.
+* The size of the subarray to find.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the starting char.
+
+```
+char[] years = new char[2];
+years[0] = -21;
+years[1] = -21;
+unsigned int position = 
+	std::arr::Char::findLastRange(
+		years, 0, 2, years, 0, 1); /*2*/
+```
+	
+## "findRange" static function:
+
+Finds the first occurence of a subarray 
+in a char array.
+
+Parameters:
+* The char array to search in.
+* The starting index to search from in the array.
+* The size from the starting index to search in.
+* The char array of the subarray to find.
+* The starting index of the subarray to find 
+in its array.
+* The size of the subarray to find.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the starting char.
+
+```
+char[] years = new char[2];
+years[0] = -21;
+years[1] = -21;
+unsigned int position = 
+	std::arr::Char::findRange(
+		years, 0, 2, years, 0, 1); /*1*/
+```
+
+## "findSorted" member function:
+
+Finds a char in a char array, 
+if the array is sorted.
+
+Parameters:
+* The char array to search in.
+* The starting index to search from in the array.
+* The size from the starting index to search in.
+* The char value to find.
+
+Returns: 0, if not found, otherwise the 
+index + 1 position of the element.
+
+```
+char[] years = new char[2];
+years[0] = -21;
+years[1] = -20;
+char find = -21;
+unsigned int position = 
+	std::arr::Char::findSorted(
+		years, 0, 2, find); /*1*/
+```
+
+## "insert" member function:
+
+Returns the index where a char value 
+could be inserted, if the array is sorted.
+
+* The char array of a subarray.
+* The starting index of the subarray.
+* The size of the subarray.
+* The char value to insert.
+
+Returns: unsigned int.
+
+```
+char[] years = new char[1];
+years[0] = -21;
+char insert = -20;
+unsigned int position = 
+	std::arr::Char::insert(
+		years, 0, 1, insert); /*1*/
+```
+
+## "replacedSize" static function:
+
+Returns the size of a char array.
+if all occurences of a subarray would be replaced.
+
+Parameters:
+* The char array to replace in.
+* The starting index of the array to replace in.
+* The size of the array to replace in.
+* The subarray to replace.
+* The starting index of the subarray to replace 
+in its array.
+* The size of the subarray to replace.
+* The size of the subarray to replace with.
+
+Returns: unsigned int.
+
+```
+char year = -21;
+char[] years = new char[2];
+years[0] = year;
+years[1] = year;
+unsigned int size = 
+	std::arr::Char::replacedSize(
+		years, 0, 2, 
+		years, 0, 1, 2);
+	/*2, as the length of for example -20,-20.*/
+```
+	
+## "reverse" static function:
+
+Reverses a subarray of a char array.
+	
+Parameters:
+* The char array to reverse in.
+* The starting index of the subarray to reverse.
+* The size of the subarray to reverse.
+
+Returns: void.
+
+```
+char[] years = new char[2];
+years[0] = -20;
+years[1] = -21;
+std::arr::Char::reverse(years, 0, 2);
+/*-21,-20.*/
+```
+
+## "set" static function:
+
+Copy a char to a char array.
+
+Parameters:
+* The char array to copy to.
+* The starting index of the array to copy to.
+* The number of times to copy the char.
+* A char to copy.
+
+```
+char[] years = new char[2];
+char year = -21;
+std::arr::Char::set(years, 0, 2, year);
+/*-21,-21.*/
+```
+	
+## "setReplace" static function:
+
+Copy a subarray to a char array, with 
+all occurences of another given subarray replaced.
+	
+Parameters:
+* The char array to copy to.
+* The starting index of the array to copy to.
+* The char array to copy.
+* The starting index of the array to copy.
+* The size of the array to copy.
+* The subarray to replace.
+* The starting index of the subarray to replace 
+in its array.
+* The size of the subarray to replace.
+* The subarray to replace with.
+* The starting index of the subarray to replace 
+with in its array.
+* The size of the subarray to replace with.
+
+Returns: void.
+
+```
+char[] values = new char[2];
+char year = -21;
+char[] years = new char[2];
+years[0] = year;
+years[1] = year;
+char[] replace = new char[1];
+*replace[0] = -20;
+std::arr::Char::setReplace(
+	values, 0,
+	years, 0, 2, 
+	years, 0, 1, 
+	replace, 0, 1);
+/*-20,-20, as -21, 
+	is replaced with -20.*/
+```
+
+## "starts" static function:
+
+Compares the start of a char subarray, 
+to a char subarray.
+
+Parameters:
+* The char array of the first subarray.
+* The starting index of the first subarray in the array.
+* The size of the first subarray.
+* The char array of the second subarray.
+* The starting index of the second subarray in the array.
+* The size of the second subarray.
+
+Returns: an std::Compare value.
+
+```
+char[] years = new char[2];
+years[0] = -20;
+years[1] = -21;
+unsigned char compare = std::arr::Char::starts(
+	years, 0, 2, years, 0, 1);
+/*std::Compare::equal.*/
+```
+
+## "switchValue" static function:
+
+Switch the value of two char constructs.
+	
+Parameters:
+* A pointer to the first char construct.
+* A pointer to the second char construct.
+
+Returns: void.
+
+```
+char first = -21;
+char second = -20;
+std::arr::Char::switchValue(&first, &second);
+/*-20,-21.*/
+```
+
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -90,7 +473,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

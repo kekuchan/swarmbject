@@ -407,7 +407,6 @@ class DString {
 	void insertChar(unsigned int start,
 		unsigned int c, unsigned int len){
 		unsigned char[] dst;
-		unsigned int start = length;
 		if (c < 128){
 			dst = insertLength(len, start);
 			if (dst != nullptr){

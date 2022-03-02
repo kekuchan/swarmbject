@@ -71,7 +71,6 @@ class Uchar {
 
 	/* Public member functions. */
 
-	/* 0 if equals, + if src > dst, - otherwise. */
 	static unsigned char compare(
 		unsigned char[] src, unsigned int i,
 		unsigned char[] dst, unsigned int j, unsigned int len){
@@ -94,18 +93,16 @@ class Uchar {
 		unsigned char[] src, unsigned int i,
 		unsigned int srcLen, unsigned char[] dst,
 		unsigned int j, unsigned int dstLen){
-		unsigned int len;
+		unsigned char cmp;
 		if (srcLen > dstLen){
-			len = dstLen;
-		} else {
-			len = srcLen;
-		}
-		unsigned char cmp = compare(src, i, dst, j, len);
-		if (cmp == std::Compare::equal && 
-			dstLen != srcLen){
-			if (srcLen > dstLen) 
+			cmp = compare(src, i, dst, j, dstLen);
+			if (cmp == std::Compare::equal)
 				{return std::Compare::greater;}
-			return std::Compare::less;
+		} else {
+			cmp = compare(src, i, dst, j, srcLen);
+			if (cmp == std::Compare::equal && 
+				dstLen != srcLen)
+				{return std::Compare::less;}
 		}
 		return cmp;
 	}
@@ -133,6 +130,33 @@ class Uchar {
 				dst[j + len] = src[i + len];
 			}
 		}
+	}
+
+	static unsigned char ends(
+		unsigned char[] src, unsigned int i,
+		unsigned int srcLen, unsigned char[] dst,
+		unsigned int j, unsigned int dstLen){
+		unsigned int len;
+		if (srcLen >= dstLen){
+			i = i + srcLen - dstLen;
+			len = dstLen;
+		} else {
+			j = j + dstLen - srcLen;
+			len = srcLen;
+		}
+		while (len > 0){
+			len = len - 1;
+			unsigned char srcChar = src[i + len];
+			unsigned char dstChar = dst[j + len];
+			if (srcChar != dstChar){
+				if (srcChar > dstChar)
+					{return std::Compare::greater;}
+				return std::Compare::less;
+			}
+		}
+		if (srcLen >= dstLen)
+			{return std::Compare::equal;}
+		return std::Compare::less;
 	}
 	
 	static unsigned int find(
@@ -238,6 +262,35 @@ class Uchar {
 		unsigned char[] src, unsigned int start){
 		return src[start] | src[start + 1] << 8 |
 			src[start + 2] << 16 | src[start + 3] << 24;
+	}
+
+	static unsigned int insert(
+		unsigned char[] src, unsigned int start, 
+		unsigned int max, unsigned char element){
+		max = max + start;
+		if (max > 0){
+			/* Trick using offset by 1 to keep variables as unsigned. */
+			start = start + 1;
+			unsigned int mid;
+			while (true){
+				mid = (max + start) >> 1;
+				unsigned char value = src[mid - 1];
+				if (value < element){
+					if (start == max){
+						max = mid;
+						break;
+					}
+					start = mid + 1;
+				} else if (value == element){
+					max = mid - 1;
+					break;
+				} else {
+					max = mid - 1;
+					if (start > max) {break;}
+				}
+			}
+		}
+		return max;
 	}
 	
 	/* Returns str's size if all occurences of src 
@@ -345,6 +398,19 @@ class Uchar {
 		src[start + 1] = setInt >> 8 & 0xFF;
 		src[start + 2] = setInt >> 16 & 0xFF;
 		src[start + 3] = setInt >> 24;
+	}
+
+	static unsigned char starts(
+		unsigned char[] src, unsigned int i,
+		unsigned int srcLen, unsigned char[] dst,
+		unsigned int j, unsigned int dstLen){
+		if (srcLen >= dstLen)
+			{return compare(src, i, dst, j, dstLen);}
+		unsigned char cmp = compare(
+			src, i, dst, j, srcLen);
+		if (cmp == std::Compare::equal)
+			{return std::Compare::less;}
+		return cmp;
 	}
 	
 	static void switchValue(unsigned char* src,

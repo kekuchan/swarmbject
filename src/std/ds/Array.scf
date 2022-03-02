@@ -367,33 +367,9 @@ class Array {
 		void(void*, unsigned int, 
 			void*) setElement){
 		void* previousData = data;
-		unsigned int end = size;
-		if (end > 0){
-			/* Trick using offset by 1 to keep variables as unsigned. */
-			unsigned int start = 1;
-			unsigned int mid;
-			while (true){
-				mid = (end + start) >> 1;
-				switch (compareElements(previousData, 
-					mid - 1, element)){
-					case std::Compare::less:
-						if (start == end){
-							end = mid;
-							break;
-						}
-						start = mid + 1;
-						continue;
-					case std::Compare::equal:
-						end = mid - 1;
-						break;
-					case std::Compare::greater:
-						end = mid - 1;
-						if (start > end) {break;}
-						continue;
-				}
-				break;
-			}
-		}
+		unsigned int end = std::arr::Void::insert(
+			previousData, 0, size, element, 
+			compareElements);
 		void* newData = insertSize(1, end,
 			setArray, newArray);
 		setElement(newData, end, element);

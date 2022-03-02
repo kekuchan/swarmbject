@@ -98,6 +98,43 @@ int*[] values = new int*[2];
 std::arr::Ptr::copy(values, 0, years, 0, 2);
 /*values=&2020,&2021.*/
 ```
+
+## "ends" static function:
+
+Compares the end of a pointer subarray, 
+to a pointer subarray.
+
+Parameters:
+* The pointer array of the first subarray.
+* The starting index of the first subarray in the array.
+* The size of the first subarray.
+* The pointer array of the second subarray.
+* The starting index of the second subarray in the array.
+* The size of the second subarray.
+* A pointer to an "unsigned char(void*,void*)" 
+function that can compare the given first subarray 
+element with any of the second subarray 
+elements and returns an std::Compare value.
+
+Returns: an std::Compare value.
+
+```
+static unsigned char compare(
+	void* value, void* element){
+	return std::arr::Int::compareValue(
+		*(int*)value, *(int*)element);
+}
+
+/*In some function:*/
+int*[] years = new int*[2];
+years[0] = new int;
+*years[0] = 2020;
+years[1] = new int;
+*years[1] = 2021;
+unsigned char compare = std::arr::Ptr::ends(
+	years, 0, 2, years, 1, 1, compare);
+/*std::Compare::equal.*/
+```
 	
 ## "find" static function:
 
@@ -288,6 +325,7 @@ static unsigned char compare(
 		 *(int*)element, *(int*)find);
 }
 
+/*In some function:*/
 int*[] years = new int*[2];
 years[0] = new int;
 *years[0] = 2020;
@@ -297,6 +335,39 @@ int find = 2021;
 unsigned int position = 
 	std::arr::Ptr::findSorted(
 		years, 0, 2, &find, compare); /*2*/
+```
+
+## "insert" member function:
+
+Returns the index where a pointer value 
+could be inserted, if the array is sorted.
+
+* The pointer array of a subarray.
+* The starting index of the subarray.
+* The size of the subarray.
+* The pointer value to insert.
+* A pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the array 
+elements with the given element to insert 
+and returns an std::Compare value.
+
+Returns: unsigned int.
+
+```
+static unsigned char compare(
+	void* element, void* find){
+	return std::arr::Int::compareValue(
+		 *(int*)element, *(int*)find);
+}
+
+/*In some function:*/
+int*[] years = new int*[1];
+years[0] = new int;
+*years[0] = 2020;
+int insert = 2021;
+unsigned int position = 
+	std::arr::Ptr::insert(
+		years, 0, 1, &insert, compare); /*1*/
 ```
 
 ## "replacedSize" static function:
@@ -341,7 +412,7 @@ unsigned int size =
 		years, 0, 2, 
 		years, 0, 1, 
 		2, compare);
-	/*2, as the length of &2020,&2020.*/
+	/*2, as the length of for example &2020,&2020.*/
 ```
 	
 ## "reverse" static function:
@@ -437,6 +508,43 @@ std::arr::Ptr::setReplace(
 /*&2020,&2020, as &2021, 
 	is replaced with &2020.*/
 ```
+
+## "starts" static function:
+
+Compares the start of a pointer subarray, 
+to a pointer subarray.
+
+Parameters:
+* The pointer array of the first subarray.
+* The starting index of the first subarray in the array.
+* The size of the first subarray.
+* The pointer array of the second subarray.
+* The starting index of the second subarray in the array.
+* The size of the second subarray.
+* A pointer to an "unsigned char(void*,void*)" 
+function that can compare the given first subarray 
+element with any of the second subarray 
+elements and returns an std::Compare value.
+
+Returns: an std::Compare value.
+
+```
+static unsigned char compare(
+	void* value, void* element){
+	return std::arr::Int::compareValue(
+		*(int*)value, *(int*)element);
+}
+
+/*In some function:*/
+int*[] years = new int*[2];
+years[0] = new int;
+*years[0] = 2020;
+years[1] = new int;
+*years[1] = 2021;
+unsigned char compare = std::arr::Ptr::starts(
+	years, 0, 2, years, 0, 1, compare);
+/*std::Compare::equal.*/
+```
 	
 ## "switchValue" static function:
 
@@ -459,7 +567,7 @@ std::arr::Ptr::switchValue(&first, &second);
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -529,7 +637,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

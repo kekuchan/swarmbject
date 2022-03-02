@@ -79,6 +79,27 @@ unsigned char[] values = new unsigned char[4];
 std::arr::Uchar::copy(values, 0, "2021", 0, 4);
 /*values='2','0','2','1'.*/
 ```
+
+## "ends" static function:
+
+Compares the end of an unsigned char subarray, 
+to an unsigned char subarray.
+
+Parameters:
+* The unsigned char array of the first subarray.
+* The starting index of the first subarray in the array.
+* The size of the first subarray.
+* The unsigned char array of the second subarray.
+* The starting index of the second subarray in the array.
+* The size of the second subarray.
+
+Returns: an std::Compare value.
+
+```
+unsigned char compare = std::arr::Uchar::ends(
+	"2021", 0, 4, "21", 0, 2);
+/*std::Compare::equal.*/
+```
 	
 ## "find" static function:
 
@@ -186,6 +207,24 @@ unsigned int position =
 		"012", 0, 3, '2'); /*3*/
 ```
 
+## "insert" member function:
+
+Returns the index where an unsigned char value 
+could be inserted, if the array is sorted.
+
+* The unsigned char array of a subarray.
+* The starting index of the subarray.
+* The size of the subarray.
+* The unsigned char value to insert.
+
+Returns: unsigned int.
+
+```
+unsigned int position = 
+	std::arr::Uchar::insert(
+		"012", 0, 3, '3'); /*3*/
+```
+
 ## "getU16BE" static function:
 
 Gets an unsigned short value from an unsigned 
@@ -285,7 +324,7 @@ unsigned int size =
 		"2021", 0, 4, 
 		"21", 0, 2, 
 		2);
-	/*4, as the size of '2','0','2','0'.*/
+	/*4, as the size of for example '2','0','2','0'.*/
 ```
 	
 ## "reverse" static function:
@@ -419,6 +458,27 @@ Returns: void.
 
 An example was already given at the 
 "getU32LE" member function.
+
+## "starts" static function:
+
+Compares the start of an unsigned char subarray, 
+to an unsigned char subarray.
+
+Parameters:
+* The unsigned char array of the first subarray.
+* The starting index of the first subarray in the array.
+* The size of the first subarray.
+* The unsigned char array of the second subarray.
+* The starting index of the second subarray in the array.
+* The size of the second subarray.
+
+Returns: an std::Compare value.
+
+```
+unsigned char compare = std::arr::Uchar::starts(
+	"2021", 0, 4, "20", 0, 2);
+/*std::Compare::equal.*/
+```
 	
 ## "switchValue" static function:
 
@@ -439,7 +499,7 @@ std::arr::Uchar::switchValue(&first, &second);
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -509,7 +569,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
