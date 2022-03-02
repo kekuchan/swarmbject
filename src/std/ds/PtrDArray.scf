@@ -291,34 +291,8 @@ class PtrDArray {
 	/* Does not support overlapping copy. */
 	void insertSorted(void* element,
 		unsigned char(void*, void*) compareElements){
-		unsigned int end = size;
-		if (end > 0){
-			/* Trick using offset by 1 to keep variables as unsigned. */
-			unsigned int start = 1;
-			unsigned int mid;
-			void*[] arrayData = data;
-			while (true){
-				mid = (end + start) >> 1;
-				switch (compareElements(
-					arrayData[mid - 1], element)){
-					case std::Compare::less:
-						if (start == end){
-							end = mid;
-							break;
-						}
-						start = mid + 1;
-						continue;
-					case std::Compare::equal:
-						end = mid - 1;
-						break;
-					case std::Compare::greater:
-						end = mid - 1;
-						if (start > end) {break;}
-						continue;
-				}
-				break;
-			}
-		}
+		unsigned int end = std::arr::Ptr::insert(
+			data, 0, size, element, compareElements);
 		void*[] newData = insertSize(1, end);
 		newData[end] = element;
 	}
