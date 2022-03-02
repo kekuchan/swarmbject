@@ -383,6 +383,76 @@ unsigned int chars =
 /*chars=4, string="2021"*/
 ```
 
+## "starts" static function:
+
+Compares the start of a string, to a string.
+
+Parameters:
+* The unsigned char array of the first string.
+* The starting index of the first string 
+in the array.
+* The unsigned char array of the second string.
+* The starting index of the second string 
+in the array.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
+
+Returns: an std::Compare value.
+
+```
+unsigned char const[] first = "YEARS";
+unsigned char const[] second = "year";
+
+unsigned char compare = std::str::CString::starts(
+	first, 0, second, 0, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = std::str::CString::starts(
+	first, 0, second, 0, &cmp);
+/*std::Compare::equal.*/
+```
+
+## "startsRange" static function:
+
+Compares the start of a string, to a substring.
+
+Parameters:
+* The unsigned char array of the string.
+* The starting index of the string in the array.
+* The unsigned char array of the substring.
+* The starting index of the substring in the array.
+* The length of the substring.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
+
+Returns: an std::Compare value.
+
+```
+unsigned char const[] first = "YEARS";
+unsigned char const[] second = "year";
+
+unsigned char compare = 
+	std::str::CString::startsRange(
+		first, 0, second, 0, 4, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = std::str::CString::startsRange(
+	first, 0, second, 0, 4, &cmp);
+/*std::Compare::equal.*/
+```
+
 ## "subcompare" static function:
 
 Compares a substring, to a string.
@@ -453,6 +523,44 @@ std::str::Compare cmp;
 cmp.compare = std::str::Compare::rangeCI;
 compare = std::str::CString::subcompareRange(
 	first, 0, 4, second, 0, 4, &cmp);
+/*std::Compare::equal.*/
+```
+
+## "subendsRange" static function:
+
+Compares the end of a substring, to a substring.
+
+Parameters:
+* The unsigned char array of the first substring.
+* The starting index of the 
+first substring in the array.
+* The length of the first substring.
+* The unsigned char array of the second substring.
+* The starting index of the 
+second substring in the array.
+* The length of the second substring.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
+
+Returns: an std::Compare value.
+
+```
+unsigned char const[] first = " YEAR";
+unsigned char const[] second = "year";
+
+unsigned char compare = 
+	std::str::CString::subendsRange(
+		first, 0, 5, second, 0, 4, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = std::str::CString::subendsRange(
+	first, 0, 5, second, 0, 4, &cmp);
 /*std::Compare::equal.*/
 ```
 
@@ -681,6 +789,79 @@ std::str::Compare cmp;
 cmp.compare = std::str::Compare::equalsCI;
 position = std::str::CString::subfindRange(
 	first, 0, 4, second, 0, 4, &cmp); /*1*/
+```
+
+## "substarts" static function:
+
+Compares the start of a substring, to a string.
+
+Parameters:
+* The unsigned char array of the substring.
+* The starting index of the substring in the array.
+* The length of the substring.
+* The unsigned char array of the string.
+* The starting index of the string in the array.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
+
+Returns: an std::Compare value.
+
+```
+unsigned char const[] first = "YEARS";
+unsigned char const[] second = "year";
+
+unsigned char compare = 
+	std::str::CString::substarts(
+		first, 0, 5, second, 0, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = std::str::CString::substarts(
+	first, 0, 5, second, 0, &cmp);
+/*std::Compare::equal.*/
+```
+
+## "substartsRange" static function:
+
+Compares the start of a substring, to a substring.
+
+Parameters:
+* The unsigned char array of the first substring.
+* The starting index of the 
+first substring in the array.
+* The length of the first substring.
+* The unsigned char array of the second substring.
+* The starting index of the 
+second substring in the array.
+* The length of the second substring.
+* Either nullptr, or a pointer to an 
+std::str::Compare object, with its compare member 
+pointing to a function that compares a character 
+or more of its src and dst members, from their 
+starting index, returning an std::Compare value, 
+and setting their starting and ending + 1 indices.
+
+Returns: an std::Compare value.
+
+```
+unsigned char const[] first = "YEARS";
+unsigned char const[] second = "year";
+
+unsigned char compare = 
+	std::str::CString::substartsRange(
+		first, 0, 5, second, 0, 4, nullptr);
+/*std::Compare::less, as 'Y' < 'y'.*/
+
+std::str::Compare cmp;
+cmp.compare = std::str::Compare::rangeCI;
+compare = std::str::CString::substartsRange(
+	first, 0, 5, second, 0, 4, &cmp);
+/*std::Compare::equal.*/
 ```
 
 ## "uintLength" static function:
