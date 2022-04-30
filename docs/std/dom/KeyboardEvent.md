@@ -86,9 +86,32 @@ std::dom::KeyboardEvent::setOnKeyDown(
 	&input, onKeyDown);
 ```
 
+## "setOnKeyUp" static function:
+
+Sets a function to be called each 
+time a key is released.
+
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* Either nullptr to unset, or a 
+pointer to a "void(std::dom::Event*, 
+std::ApplicationInstance)" function to call.
+
+Returns: void.
+
+```
+/*In Main.*/
+static void onKeyUp(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+}
+/*In Main::main.*/
+std::dom::KeyboardEvent::setOnKeyUp(
+	&input, onKeyUp);
+```
+
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -158,7 +181,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
