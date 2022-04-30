@@ -1,117 +1,180 @@
-# "std::dom::KeyboardEvent" class:
+# "std::ds::BalBinTree" class:
 
-Static functions to work with DOM keyboard events.
+Used for objects as part of a binary tree, that 
+is balanced, to have the minimum ammount of levels.
 
 ```
-class Main {
-	void main(std::ApplicationInstance aexcl app){
-		std::bom::Window window;
-		app.getWindow(&window);
-		std::dom::Node document;
-		window.getDocumentNode(&document);
-		std::dom::Node input;
-		std::html::InputElement::create(
-			&document, &input);
-		std::dom::Node node;
-		std::html::Document::getBody(&document, &node);
-		node.appendChild(&input);
+/*In Year.scf*/
+class Year {
+	int value;
+	std::ds::BinTree tree;
+	
+	/*Used by the member functions.*/
+	static std::ds::BinTree* getTree(void* year){
+		return &(Year*)year->tree;
+	}
+	
+	static unsigned char compare(
+		void* first, void* second){
+		return std::arr::Int::compareValue(
+			(Year*)first->value,
+			(Year*)second->value);
+	}
+	
+	static unsigned char compareValue(
+		void* year, void* i){
+		return std::arr::Int::compareValue(
+			(Year*)year->value, *(int*)i);
 	}
 }
 ```
 
-## "getKeyCode" static function:
+## "root" data member:
 
-Gets the pressed key.
+The root element of the tree, as a void*.
+
+```
+std::ds::BalBinTree tree;
+Year* year = (Year*)(tree.root); /*nullptr*/
+```
+
+## "size" data member:
+
+The number of elements in the tree as 
+an unsigned int.
+
+```
+std::ds::BalBinTree tree;
+unsigned int size = tree.size; /*0*/
+```
+
+## "erase" member function:
+
+Removes an element from the tree. The element 
+is not deleted automatically, as it might be 
+still used elsewhere.
 
 Parameters:
-* A pointer to the event as an std::dom::Event.
-
-Returns: unsigned int.
-
-```
-/*In Main.*/
-static void onKeyDown(std::dom::Event* e,
-	std::ApplicationInstance aexcl app){
-	unsigned int keyCode = 
-		std::dom::KeyboardEvent::getKeyCode(e);
-}
-/*In Main::main.*/
-std::dom::KeyboardEvent::setOnKeyDown(
-	&input, onKeyDown);
-```
-
-## "getShiftKey" static function:
-
-Checks if the shift key was 
-pressed during the event.
-
-Parameters:
-* A pointer to the event as an std::dom::Event.
-
-Returns: true, if the shift key was 
-pressed during the event, false otherwise.
-
-```
-/*In Main.*/
-static void onKeyDown(std::dom::Event* e,
-	std::ApplicationInstance aexcl app){
-	unsigned int keyCode = 
-		std::dom::KeyboardEvent::getShiftKey(e);
-}
-/*In Main::main.*/
-std::dom::KeyboardEvent::setOnKeyDown(
-	&input, onKeyDown);
-```
-
-## "setOnKeyDown" static function:
-
-Sets a function to be called each 
-time a key is pressed.
-
-Parameters:
-* A pointer to the element, as an std::dom::Node.
-* Either nullptr to unset, or a 
-pointer to a "void(std::dom::Event*, 
-std::ApplicationInstance)" function to call.
+* The element to remove.
+* A pointer to an "std::ds::BinTree*(void*)" function 
+that returns a pointer to the std::ds::BinTree data 
+member of the given element.
 
 Returns: void.
 
 ```
-/*In Main.*/
-static void onKeyDown(std::dom::Event* e,
-	std::ApplicationInstance aexcl app){
-}
-/*In Main::main.*/
-std::dom::KeyboardEvent::setOnKeyDown(
-	&input, onKeyDown);
+std::ds::BalBinTree tree;
+Year* year = new Year;
+year->value = 2021;
+tree.insert(year, 
+	Year::getTree, Year::compare);
+year = new Year;
+year->value = 2022;
+tree.insert(year, 
+	Year::getTree, Year::compare);
+tree.erase(year, Year::getTree);
+/*root=2022*/
 ```
 
-## "setOnKeyUp" static function:
+## "find" member function:
 
-Sets a function to be called each 
-time a key is released.
+Finds an element in the tree.
+
+* A pointer to an element to find.
+* A pointer to an "std::ds::BinTree*(void*)" function 
+that returns a pointer to the std::ds::BinTree data 
+member of the given element.
+* A pointer to an "unsigned char(void*, void*)" 
+function that can compare any element of the 
+tree, with the given element to find, 
+and returns an std::Compare value.
+
+Returns: nullptr if not found, 
+otherwise the element.
+
+```
+std::ds::BalBinTree tree;
+Year* year = new Year;
+year->value = 2022;
+tree.insert(year, 
+	Year::getTree, Year::compare);
+int i = 2022;
+year = (Year*)(tree.find(&i, 
+	Year::getTree, Year::compareValue));
+```
+
+## "first" member function:
+
+Gets the first element in the tree, as a void*.
 
 Parameters:
-* A pointer to the element, as an std::dom::Node.
-* Either nullptr to unset, or a 
-pointer to a "void(std::dom::Event*, 
-std::ApplicationInstance)" function to call.
+* A pointer to an "std::ds::BinTree*(void*)" function 
+that returns a pointer to the std::ds::BinTree data 
+member of the given element.
+
+```
+std::ds::BalBinTree tree;
+Year* year = new Year;
+year->value = 2021;
+tree.insert(year, 
+	Year::getTree, Year::compare);
+year = new Year;
+year->value = 2022;
+tree.insert(year, 
+	Year::getTree, Year::compare);
+year = (Year*)(tree.first(
+	Year::getTree)); /*2021*/
+```
+
+## "insert" member function:
+
+Inserts an element to the tree.
+
+* A pointer to the element to insert.
+* A pointer to an "std::ds::BinTree*(void*)" function 
+that returns a pointer to the std::ds::BinTree data 
+member of the given element.
+* A pointer to an "unsigned char(void*, void*)" 
+function that can compare any element of the 
+tree, with the given element to insert,
+and returns an std::Compare value.
 
 Returns: void.
 
 ```
-/*In Main.*/
-static void onKeyUp(std::dom::Event* e,
-	std::ApplicationInstance aexcl app){
-}
-/*In Main::main.*/
-std::dom::KeyboardEvent::setOnKeyUp(
-	&input, onKeyUp);
+std::ds::BalBinTree tree;
+Year* year = new Year;
+year->value = 2022;
+tree.insert(year, 
+	Year::getTree, Year::compare);
+/*root=2022*/
+```
+
+## "last" static function:
+		
+Gets the last element in the tree, as a void*.
+
+Parameters:
+* A pointer to an "std::ds::BinTree*(void*)" function 
+that returns a pointer to the std::ds::BinTree data 
+member of the given element.
+
+```
+Year* year = new Year;
+year->value = 2021;
+tree.insert(year, 
+	Year::getTree, Year::compare);
+year = new Year;
+year->value = 2022;
+tree.insert(year, 
+	Year::getTree, Year::compare);
+year = (Year*)(tree.last(
+	Year::getTree)); /*2022*/
 ```
 
 # Software license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -181,7 +244,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

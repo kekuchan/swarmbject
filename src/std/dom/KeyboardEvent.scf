@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -97,6 +97,16 @@ class KeyboardEvent {
 		void* jsCallback = 
 			std::dom::Event::getJsCallback(callback);
 		constwrite "	nodeObject.onkeydown = jsCallback;\n";
+	}
+	
+	static void setOnKeyUp(
+		std::dom::Node* node, void(std::dom::Event*,
+		std::ApplicationInstance) callback){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* jsCallback = 
+			std::dom::Event::getJsCallback(callback);
+		constwrite "	nodeObject.onkeyup = jsCallback;\n";
 	}
 	
 }
