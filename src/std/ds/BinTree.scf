@@ -1,0 +1,284 @@
+/*
+Copyright (c) 2022 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+/* Binary tree */
+class BinTree {
+	void* left;
+	void* parent;
+	void* right;
+	
+	BinTree(){
+		left = nullptr;
+		parent = nullptr;
+		right = nullptr;
+	}
+
+	/* Public member functions. */
+
+	static void erase(
+		void** root, void* node,
+		std::ds::BinTree*(void*) getTree){
+		std::ds::BinTree* tree = getTree(node); 
+		void* move = tree->left;
+		if (move != nullptr){
+			std::ds::BinTree* left = getTree(move);
+				if (left->right != nullptr){
+				std::ds::BinTree* parent;
+				std::ds::BinTree* right = left;
+				while (true){
+					parent = right; 
+					move = right->right; 
+					right = getTree(move); 
+					if (right->right == nullptr) {break;}
+				}
+				parent->right = right->left;
+				if (right->left != nullptr){
+					getTree(right->left)->parent = right->parent;
+				}
+				right->left = tree->left;
+				left->parent = move;
+				left = right; 
+			}
+			left->parent = tree->parent;
+			left->right = tree->right;
+			if (tree->right != nullptr){
+				getTree(tree->right)->parent = move;
+			}
+		} else {
+			move = tree->right; 
+			if (move != nullptr){
+				getTree(move)->parent = tree->parent;
+				/*
+				std::ds::BinTree* right = getTree(move);
+				if (right->left != nullptr){
+					std::ds::BinTree* parent;
+					std::ds::BinTree* left = right; 
+					while (true){
+						parent = left; 
+						move = left->left; 
+						left = getTree(move); 
+						if (left->left == nullptr) {break;}
+					}
+					parent->left = left->right;
+					if (left->right != nullptr){
+						getTree(left->right)->parent = left->parent;
+					}
+					left->right = tree->right;
+					right->parent = move;
+					left->parent = tree->parent;
+				} else {
+					right->parent = tree->parent;
+				}
+				*/
+			}
+		}
+		if (tree->parent != nullptr){
+			tree = getTree(tree->parent);
+			if (tree->left == node){
+				tree->left = move;
+			} else {
+				tree->right = move;
+			}
+		} else {
+			*root = move;
+		}
+	}
+	
+	static void* find(
+		void* root, void* node,
+		std::ds::BinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		while (root != nullptr){
+			switch (compare(root, node)){
+				case std::Compare::less:
+					root = getTree(root)->right;
+					continue;
+				case std::Compare::equal:
+					break;
+				case std::Compare::greater:
+					root = getTree(root)->left;
+					continue;
+			}
+			break;
+		}
+		return root;
+	}
+	
+	static void* first(void* node,
+		std::ds::BinTree*(void*) getTree){
+		if (node != nullptr){
+			while (true){
+				std::ds::BinTree* tree = getTree(node);
+				if (tree->left == nullptr) {break;}
+				node = tree->left;
+			}
+		}
+		return node;
+	}
+	
+	static void insert(
+		void** root, void* node,
+		std::ds::BinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		void* parent = *root;
+		if (parent != nullptr){
+			while (true){
+				std::ds::BinTree* tree = getTree(parent);
+				if (compare(parent, node) == 
+					std::Compare::less){
+					if (tree->right != nullptr){
+						parent = tree->right;
+					} else {
+						tree->right = node;
+						break;
+					}
+				} else {
+					if (tree->left != nullptr){
+						parent = tree->left;
+					} else {
+						tree->left = node;
+						break;
+					}
+				}
+			}
+			getTree(node)->parent = parent;
+		} else {
+			*root = node;
+		}
+	}
+	
+	static void* last(void* node,
+		std::ds::BinTree*(void*) getTree){
+		if (node != nullptr){
+			while (true){
+				std::ds::BinTree* tree = getTree(node);
+				if (tree->right == nullptr) {break;}
+				node = tree->right;
+			}
+		}
+		return node;
+	}
+	
+	static void* next(void* node,
+		std::ds::BinTree*(void*) getTree){
+		std::ds::BinTree* tree = getTree(node);
+		if (tree->right != nullptr){
+			node = tree->right;
+			while (true){
+				tree = getTree(node);
+				if (tree->left == nullptr) {break;}
+				node = tree->left;
+			}
+		} else {
+			while (true){
+				void* parent = tree->parent;
+				if (parent == nullptr){
+					node = nullptr;
+					break;
+				}
+				tree = getTree(parent);
+				if (tree->right != node){
+					node = parent;
+					break;
+				}
+				node = parent;
+			}
+		}
+		return node;
+	}
+	
+	static void* previous(void* node,
+		std::ds::BinTree*(void*) getTree){
+		std::ds::BinTree* tree = getTree(node);
+		if (tree->left != nullptr){
+			node = tree->left;
+			while (true){
+				tree = getTree(node);
+				if (tree->right == nullptr) {break;}
+				node = tree->right;
+			}
+		} else {
+			while (true){
+				void* parent = tree->parent;
+				if (parent == nullptr){
+					node = nullptr;
+					break;
+				}
+				tree = getTree(parent);
+				if (tree->left != node){
+					node = parent;
+					break;
+				}
+				node = parent;
+			}
+		}
+		return node;
+	}
+	
+}
