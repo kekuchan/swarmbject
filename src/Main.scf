@@ -540,10 +540,9 @@ class Main {
 	static void onCopyOnPre(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		e->preventDefault();
-		Main* main = &app.main;
 		std::dom::Range range;
 		std::str::DString string;
-		getRangeToString(main, &range, &string);
+		getRangeToString(&app.main, &range, &string);
 		std::dom::ClipboardEvent::setTextData(
 			e, string.data, 0, string.length);
 	}
@@ -592,7 +591,8 @@ class Main {
 		appWindow.getSelection(&selection);
 		std::dom::Range range;
 		selection.getRangeAt(&range, 0);
-		/* To remove flickering on mobile and caret display recalculations. */
+		/* To remove flickering on mobile and 
+			caret display recalculations. */
 		selection.removeAllRanges();
 		std::css::Declaration style;
 		std::html::Element::getStyle(
