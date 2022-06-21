@@ -86,8 +86,11 @@ class Parse {
 		div.getNextSibling(&div);
 		std::dom::Node text;
 		div.getFirstChild(&text);
+		std::dom::Node br;
+		text.getNextSibling(&br);
 		std::html::Element::removeChildren(&div);
 		div.appendChild(&text);
+		div.appendChild(&br);
 		div.getNextSibling(&div);
 		std::dom::MouseEvent::setOnClick(
 			&div, nullptr);
@@ -621,17 +624,10 @@ class Parse {
 		unsigned char[] infoMessage, unsigned int len,
 		unsigned char type){
 		if (type == 0) {return;}
-		std::dom::Node logContainer;
-		main->compileContainer.getLastChild(
-			&logContainer);
-		logContainer.getPreviousSibling(&logContainer);
 		std::dom::Node node;
-		std::html::BrElement::create(
-			&main->document, &node);
-		logContainer.appendChild(&node);
-		std::dom::Text::create(&main->document,
-			&node, infoMessage, 0, len);
-		logContainer.appendChild(&node);
+		Main::addText(
+			&main->document, &main->logContainer, 
+			&node, infoMessage, len);
 	}
 
 	static unsigned int parseClassMembers(Main* main,
