@@ -341,6 +341,32 @@ class Uint {
 			strStart = strStart + 1;
 		}
 	}
+	
+	static void sort(unsigned int[] src, 
+		unsigned int start, unsigned int max){
+		if (max > 1){
+			unsigned int element = src[start];
+			unsigned int i = start + 1;
+			max = max + start;
+			while (true){
+				unsigned int tmp = src[i];
+				if (tmp < element){
+					unsigned int j = i;
+					unsigned int end = insert(
+						src, start, i - start - 1, tmp);
+					while (j > end){
+						src[j] = src[j - 1];
+						j = j - 1;
+					}
+					src[end] = tmp;
+				} else {
+					element = tmp;
+				}
+				i = i + 1;
+				if (i == max) {break;}
+			}
+		}
+	}
 
 	static unsigned char starts(
 		unsigned int[] src, unsigned int i,

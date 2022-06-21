@@ -258,7 +258,7 @@ class Void {
 		return 0;
 	}
 
-	void insertSorted(
+	static unsigned int insert(
 		void* src, unsigned int start, 
 		unsigned int max, void* element,
 		unsigned char(void*, unsigned int, 
@@ -377,6 +377,40 @@ class Void {
 				array, arrayStart);
 			dataStart = dataStart + 1;
 			arrayStart = arrayStart + 1;
+		}
+	}
+	
+	static void sort(void* src, 
+		unsigned int start, unsigned int max,
+		void* tmp,
+		void(void*, unsigned int, void*) getElement,
+		unsigned char(void*, unsigned int,
+			unsigned int) compareElements,
+		unsigned char(void*, unsigned int,
+			void*) compareElement,
+		void(void*, unsigned int,
+			unsigned int) setElements,
+		void(void*, unsigned int, void*) setElement){
+		if (max > 1){
+			unsigned int i = start + 1;
+			max = max + start;
+			while (true){
+				if (compareElements(src, i, i - 1) ==
+					std::Compare::less){
+					unsigned int j = i;
+					getElement(src, i, tmp);
+					unsigned int end = insert(
+						src, start, i - start - 1, 
+						tmp, compareElement);
+					while (j > end){
+						setElements(src, j, j - 1);
+						j = j - 1;
+					}
+					setElement(src, end, tmp);
+				}
+				i = i + 1;
+				if (i == max) {break;}
+			}
 		}
 	}
 
