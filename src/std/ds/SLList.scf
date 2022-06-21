@@ -76,16 +76,86 @@ class SLList {
 	}
 
 	/* Public member functions. */
+	
+	static void eraseNext(void* element, 
+		void** back, std::ds::SLList*(void*) getList){
+		std::ds::SLList* list = getList(element);
+		if (list->next != nullptr){
+			std::ds::SLList* next = getList(list->next);
+			list->next = next->next;
+			if (next->next != nullptr){
+				next->next = nullptr;
+			} else if (back != nullptr){
+				*back = element;
+			}
+		}
+	}
 
-	static unsigned int getSize(void* frontElement,
+	static unsigned int getSize(void* front,
 		std::ds::SLList*(void*) getList){
 		unsigned int size = 0;
-		while (frontElement != nullptr){
+		while (front != nullptr){
 			size = size + 1;
-			std::ds::SLList* list = getList(frontElement);
-			frontElement = list->next;
+			front = getList(front)->next;
 		}
 		return size;
+	}
+	
+	static void* insert(
+		void* insert, void* front,
+		std::ds::SLList*(void*) getList,
+		unsigned char(void*,void*) compareElements){
+		void* previous = nullptr;
+		while (front != nullptr &&
+			compareElements(front, insert) != 
+				std::Compare::greater){
+			previous = front;
+			front = getList(front)->next;
+		}
+		return previous;
+	}
+	
+	/* Could be static, but it 
+		is more optimized this way. */
+	void insertNext(void* element,
+		void** back, std::ds::SLList*(void*) getList){
+		if (next == nullptr && back != nullptr){
+			*back = element;
+		}
+		getList(element)->next = next;
+		next = element;
+	}
+	
+	static void insertSorted(
+		void* insert, void** front,
+		void** back, std::ds::SLList*(void*) getList,
+		unsigned char(void*,void*) compareElements){
+		void* element = *front;
+		if (element == nullptr){
+			*front = insert;
+			if (back != nullptr) {*back = insert;}
+		} else if (compareElements(element,
+			insert) == std::Compare::greater){
+			*front = insert;
+			getList(insert)->next = element;
+		} else {
+			while (true){
+				std::ds::SLList* list = 
+					getList(element);
+				void* nextElement = list->next;
+				if (nextElement == nullptr){
+					list->next = insert;
+					if (back != nullptr) {*back = insert;}
+					break;
+				} else if (compareElements(nextElement,
+					insert) == std::Compare::greater){
+					list->next = insert;
+					getList(insert)->next = nextElement;
+					break;
+				}
+				element = nextElement;
+			}
+		}
 	}
 
 	static void popFront(void** front,
@@ -102,9 +172,6 @@ class SLList {
 		}
 	}
 
-	/* If the element is already part of the list, then it must be
-		removed before calling this function.
-		The back ptr can be nullptr. */
 	static void pushBack(void* element, void** front,
 		void** back, std::ds::SLList*(void*) getList){
 		void* backElement;
@@ -115,9 +182,8 @@ class SLList {
 			backElement = *front;
 		} else {return;}
 		if (backElement == nullptr){
-			if (front != nullptr){
-				*front = element;
-			}
+			if (front != nullptr)
+				{*front = element;}
 		} else {
 			while (true){
 				std::ds::SLList* list = getList(backElement);
@@ -131,21 +197,61 @@ class SLList {
 		}
 	}
 
-	/* If the element is already part of the list, then it must be
-		removed before calling this function.
-		The back ptr can be nullptr. */
 	static void pushFront(void* element, void** front,
 		void** back, std::ds::SLList*(void*) getList){
 		void* frontElement = *front;
 		if (frontElement == nullptr){
 			*front = element;
-			if (back != nullptr){
-				*back = element;
-			}
+			if (back != nullptr)
+				{*back = element;}
 		} else {
 			getList(element)->next = frontElement;
 			*front = element;
 		}
+	}
+	
+	static void sort(void** front,
+		void** back, std::ds::SLList*(void*) getList,
+		unsigned char(void*,void*) compareElements){
+		void* element = *front;
+		if (element == nullptr) {return;}
+		std::ds::SLList* list = getList(element);
+		void* nextElement = list->next;
+		while (nextElement != nullptr){
+			std::ds::SLList* nextList = getList(nextElement);
+			if (compareElements(element,
+				nextElement) == std::Compare::greater){
+				void* frontElement = *front;
+				if (compareElements(frontElement,
+					nextElement) == std::Compare::greater){
+					*front = nextElement;
+					nextElement = nextList->next;
+					list->next = nextElement;
+					nextList->next = frontElement;
+				} else {
+					while (true){
+						std::ds::SLList* frontList =
+							getList(frontElement);
+						void* next = frontList->next;
+						if (compareElements(next,
+							nextElement) == std::Compare::greater){
+							frontList->next = nextElement;
+							nextElement = nextList->next;
+							list->next = nextElement;
+							nextList->next = next;
+							break;
+						}
+						frontElement = next;
+					}
+				}
+			} else {
+				element = nextElement;
+				list = nextList;
+				nextElement = nextList->next;
+			}
+		}
+		if (back != nullptr)
+			{*back = element;}
 	}
 	
 }

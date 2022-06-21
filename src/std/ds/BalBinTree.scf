@@ -470,6 +470,23 @@ class BalBinTree {
 	
 	/* Public member functions. */
 	
+	void clear(std::ds::BinTree*(void*) getTree,
+		void(void*) onErase){
+		std::ds::BinTree::clear(root,
+			getTree, onErase);
+		root = nullptr;
+		size = 0;
+	}
+		
+	void create(void* src, 
+		unsigned int i, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		std::ds::BinTree*(void*) getTree){
+		root = std::ds::BinTree::create(
+			src, i, len, getElement, getTree);
+		size = len;
+	}
+		
 	void erase(void* node, 
 		std::ds::BinTree*(void*) getTree){
 		unsigned int len = size; 
@@ -705,6 +722,20 @@ class BalBinTree {
 		std::ds::BinTree*(void*) getTree){
 		return std::ds::BinTree::last(
 			root, getTree);
+	}
+	
+	void* max(void* node,
+		std::ds::BinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		return std::ds::BinTree::max(
+			root, node, getTree, compare);
+	}
+	
+	void* min(void* node,
+		std::ds::BinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		return std::ds::BinTree::min(
+			root, node, getTree, compare);
 	}
 	
 }
