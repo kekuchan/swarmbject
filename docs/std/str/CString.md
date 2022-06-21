@@ -51,7 +51,8 @@ std::str::Compare cmp;
 cmp.compare = std::str::Compare::rangeCI;
 compare = std::str::CString::compare(
 	first, 0, second, 0, &cmp);
-/*std::Compare::equal.*/
+/*compare=std::Compare::equal,
+srcStart=4, srcEnd=5, dstStart=4, dstEnd=5*/
 ```
 
 ## "compareRange" static function:
@@ -86,7 +87,8 @@ std::str::Compare cmp;
 cmp.compare = std::str::Compare::rangeCI;
 compare = std::str::CString::compareRange(
 	first, 0, second, 0, 4, &cmp);
-/*std::Compare::equal.*/
+/*compare=std::Compare::equal,
+srcStart=4, srcEnd=4, dstStart=4, dstEnd=4*/
 ```
 
 ## "find" static function:
@@ -415,7 +417,8 @@ std::str::Compare cmp;
 cmp.compare = std::str::Compare::rangeCI;
 compare = std::str::CString::starts(
 	first, 0, second, 0, &cmp);
-/*std::Compare::equal.*/
+/*compare=std::Compare::equal,
+srcStart=4, srcEnd=4, dstStart=4, dstEnd=4*/
 ```
 
 ## "startsRange" static function:
@@ -450,7 +453,8 @@ std::str::Compare cmp;
 cmp.compare = std::str::Compare::rangeCI;
 compare = std::str::CString::startsRange(
 	first, 0, second, 0, 4, &cmp);
-/*std::Compare::equal.*/
+/*compare=std::Compare::equal,
+srcStart=4, srcEnd=4, dstStart=4, dstEnd=4*/
 ```
 
 ## "subcompare" static function:
@@ -485,7 +489,8 @@ std::str::Compare cmp;
 cmp.compare = std::str::Compare::rangeCI;
 compare = std::str::CString::subcompare(
 	first, 0, 4, second, 0, &cmp);
-/*std::Compare::equal.*/
+/*compare=std::Compare::equal,
+srcStart=4, srcEnd=4, dstStart=4, dstEnd=4*/
 ```
 
 ## "subcompareRange" static function:
@@ -523,7 +528,8 @@ std::str::Compare cmp;
 cmp.compare = std::str::Compare::rangeCI;
 compare = std::str::CString::subcompareRange(
 	first, 0, 4, second, 0, 4, &cmp);
-/*std::Compare::equal.*/
+/*compare=std::Compare::equal,
+srcStart=4, srcEnd=4, dstStart=4, dstEnd=4*/
 ```
 
 ## "subendsRange" static function:
@@ -554,14 +560,15 @@ unsigned char const[] second = "year";
 
 unsigned char compare = 
 	std::str::CString::subendsRange(
-		first, 0, 5, second, 0, 4, nullptr);
+		first, 0, 4, second, 0, 4, nullptr);
 /*std::Compare::less, as 'Y' < 'y'.*/
 
 std::str::Compare cmp;
 cmp.compare = std::str::Compare::rangeCI;
 compare = std::str::CString::subendsRange(
-	first, 0, 5, second, 0, 4, &cmp);
-/*std::Compare::equal.*/
+	first, 0, 4, second, 0, 4, &cmp);
+/*compare=std::Compare::equal,
+srcStart=0, srcEnd=1, dstStart=0, dstEnd=1*/
 ```
 
 ## "subfind" static function:
@@ -823,7 +830,8 @@ std::str::Compare cmp;
 cmp.compare = std::str::Compare::rangeCI;
 compare = std::str::CString::substarts(
 	first, 0, 5, second, 0, &cmp);
-/*std::Compare::equal.*/
+/*compare=std::Compare::equal,
+srcStart=4, srcEnd=4, dstStart=4, dstEnd=4*/
 ```
 
 ## "substartsRange" static function:
@@ -861,7 +869,8 @@ std::str::Compare cmp;
 cmp.compare = std::str::Compare::rangeCI;
 compare = std::str::CString::substartsRange(
 	first, 0, 5, second, 0, 4, &cmp);
-/*std::Compare::equal.*/
+/*compare=std::Compare::equal,
+srcStart=4, srcEnd=4, dstStart=4, dstEnd=4*/
 ```
 
 ## "uintLength" static function:

@@ -254,13 +254,49 @@ string.setCString("2021");
 /*'2','0','2','1'*/
 ```
 
+## "setDString" member function:
+
+Sets the view to point to 
+an std::str::DString data.
+
+Parameters:
+* A pointer to the std::str::DString.
+
+Returns: void.
+
+```
+std::str::DString year;
+year.setCString("2021");
+std::str::View string;
+string.setDString(&year);
+/*'2','0','2','1'*/
+```
+
+## "setString" member function:
+
+Sets the view to point to 
+an std::str::String data.
+
+Parameters:
+* A pointer to the std::str::String.
+
+```
+std::str::String year;
+year.setCString("2021");
+std::str::View string;
+string.setString(&year);
+/*'2','0','2','1'*/
+```
+
+Returns: void.
+
 ## "setView" member function:
 
 Sets the view to point to the same 
 substring as another std::str::View.
 
 Parameters:
-* A pointer to the std::str::View to copy.
+* A pointer to the std::str::View.
 	
 Returns: void.
 
