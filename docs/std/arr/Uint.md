@@ -361,6 +361,25 @@ std::arr::Uint::setReplace(
 /*20202020,20202020, as 20212021,
 	is replaced with 20202020.*/
 ```
+	
+## "sort" static function:
+
+Sorts a subarray of an unsigned int array.
+
+Parameters:
+* The unsigned int array to sort in.
+* The starting index of the subarray to sort.
+* The size of the subarray to sort.
+
+Returns: void.
+
+```
+unsigned int[] years = new unsigned int[2];
+years[0] = 20212021;
+years[1] = 20202020;
+std::arr::Uint::sort(years, 0, 2);
+/*20202020,20212021.*/
+```
 
 ## "starts" static function:
 

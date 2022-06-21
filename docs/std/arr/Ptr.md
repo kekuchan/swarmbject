@@ -508,6 +508,38 @@ std::arr::Ptr::setReplace(
 /*&2020,&2020, as &2021, 
 	is replaced with &2020.*/
 ```
+	
+## "sort" static function:
+
+Sorts a subarray of a pointer array.
+
+Parameters:
+* The pointer array to sort in.
+* The starting index of the subarray to sort.
+* The size of the subarray to sort.
+* A pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the array 
+elements and returns an std::Compare value.
+
+Returns: void.
+
+```
+static unsigned char compare(
+	void* value, void* element){
+	return std::arr::Int::compareValue(
+		*(int*)value, *(int*)element);
+}
+
+/*In some function:*/
+int*[] years = new int*[2];
+years[0] = new int;
+*years[0] = 2021;
+years[1] = new int;
+*years[1] = 2020;
+std::arr::Ptr::sort(
+	years, 0, 2, compare);
+/*&2020,&2021.*/
+```
 
 ## "starts" static function:
 

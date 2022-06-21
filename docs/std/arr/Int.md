@@ -362,6 +362,25 @@ std::arr::Int::setReplace(
 /*-20202020,-20202020, as -20212021,
 	is replaced with -20202020.*/
 ```
+	
+## "sort" static function:
+
+Sorts a subarray of an int array.
+
+Parameters:
+* The int array array to sort in.
+* The starting index of the subarray to sort.
+* The size of the subarray to sort.
+
+Returns: void.
+
+```
+int[] years = new int[2];
+years[0] = -20202020;
+years[1] = -20212021;
+std::arr::Int::sort(years, 0, 2);
+/*-20212021,-20202020.*/
+```
 
 ## "starts" static function:
 

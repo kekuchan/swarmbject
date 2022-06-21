@@ -359,6 +359,25 @@ std::arr::Float::setReplace(
 /*20.20,20.20, as 20.21, 
 	is replaced with 20.20.*/
 ```
+	
+## "sort" static function:
+
+Sorts a subarray of a float array.
+
+Parameters:
+* The float array to sort in.
+* The starting index of the subarray to sort.
+* The size of the subarray to sort.
+
+Returns: void.
+
+```
+float[] years = new float[2];
+years[0] = 20.21;
+years[1] = 20.20;
+std::arr::Float::sort(years, 0, 2);
+/*20.20,20.21.*/
+```
 
 ## "starts" static function:
 
