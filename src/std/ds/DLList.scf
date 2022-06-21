@@ -78,16 +78,156 @@ class DLList {
 	}
 
 	/* Public member functions. */
+	
+	/* Could be static, but it 
+		is more optimized this way. */
+	void erase(void** front,
+		void** back, std::ds::DLList*(void*) getList){
+		if (previous != nullptr){
+			getList(previous)->next = next;
+		} else if (front != nullptr){
+			*front = next;
+		}
+		if (next != nullptr){
+			getList(next)->previous = previous;
+			next = nullptr;
+		} else if (back != nullptr){
+			*back = previous;
+		}
+		previous = nullptr;
+	}
 
-	static unsigned int getSize(void* frontElement,
+	static unsigned int getSize(void* front,
 		std::ds::DLList*(void*) getList){
 		unsigned int size = 0;
-		while (frontElement != nullptr){
+		while (front != nullptr){
 			size = size + 1;
-			std::ds::DLList* list = getList(frontElement);
-			frontElement = list->next;
+			front = getList(front)->next;
 		}
 		return size;
+	}
+
+	static unsigned int getSizeBack(void* back,
+		std::ds::DLList*(void*) getList){
+		unsigned int size = 0;
+		while (back != nullptr){
+			size = size + 1;
+			back = getList(back)->previous;
+		}
+		return size;
+	}
+	
+	static void* insert(
+		void* insert, void* front,
+		std::ds::DLList*(void*) getList,
+		unsigned char(void*,void*) compareElements){
+		void* previous = nullptr;
+		while (front != nullptr &&
+			compareElements(front, insert) != 
+				std::Compare::greater){
+			previous = front;
+			front = getList(front)->next;
+		}
+		return previous;
+	}
+	
+	static void* insertBack(
+		void* insert, void* back,
+		std::ds::DLList*(void*) getList,
+		unsigned char(void*,void*) compareElements){
+		void* next = nullptr;
+		while (back != nullptr &&
+			compareElements(back, insert) != 
+				std::Compare::less){
+			next = back;
+			back = getList(back)->previous;
+		}
+		return back;
+	}
+	
+	static void insertNext(
+		void* element, void* nextElement, 
+		void** back, std::ds::DLList*(void*) getList){
+		std::ds::DLList* list = getList(element);
+		if (list->next != nullptr){
+			getList(list->next)->previous = nextElement;
+		} else if (back != nullptr){
+			*back = nextElement;
+		}
+		std::ds::DLList* nextList = getList(nextElement);
+		nextList->previous = element;
+		nextList->next = list->next;
+		list->next = nextElement;
+	}
+	
+	static void insertSorted(
+		void* insert, void** front,
+		void** back, std::ds::DLList*(void*) getList,
+		unsigned char(void*,void*) compareElements){
+		void* element;
+		if (front != nullptr){
+			element = *front;
+			if (element == nullptr){
+				*front = insert;
+				if (back != nullptr) {*back = insert;}
+			} else if (compareElements(element,
+				insert) == std::Compare::greater){
+				*front = insert;
+				getList(insert)->next = element;
+				getList(element)->previous = insert;
+			} else {
+				while (true){
+					std::ds::DLList* list = 
+						getList(element);
+					void* nextElement = list->next;
+					if (nextElement == nullptr){
+						list->next = insert;
+						getList(insert)->previous = element;
+						if (back != nullptr) {*back = insert;}
+						break;
+					} else if (compareElements(nextElement,
+						insert) == std::Compare::greater){
+						list->next = insert;
+						getList(nextElement)->previous = insert;
+						list = getList(insert);
+						list->previous = element;
+						list->next = nextElement;
+						break;
+					}
+					element = nextElement;
+				}
+			}
+		} else {
+			element = *back;
+			if (element == nullptr){
+				*back = insert;
+			} else if (compareElements(element,
+				insert) == std::Compare::less){
+				*back = insert;
+				getList(insert)->previous = element;
+				getList(element)->next = insert;
+			} else {
+				while (true){
+					std::ds::DLList* list = 
+						getList(element);
+					void* nextElement = list->previous;
+					if (nextElement == nullptr){
+						list->previous = insert;
+						getList(insert)->next = element;
+						break;
+					} else if (compareElements(nextElement,
+						insert) == std::Compare::less){
+						list->previous = insert;
+						getList(nextElement)->next = insert;
+						list = getList(insert);
+						list->next = element;
+						list->previous = nextElement;
+						break;
+					}
+					element = nextElement;
+				}
+			}
+		}
 	}
 
 	static void popBack(void** front,
@@ -124,8 +264,6 @@ class DLList {
 		}
 	}
 
-	/* If the element is already part of the list, then it must be
-		removed before calling this function. */
 	static void pushBack(void* element, void** front,
 		void** back, std::ds::DLList*(void*) getList){
 		void* backElement;
@@ -153,8 +291,6 @@ class DLList {
 		}
 	}
 
-	/* If the element is already part of the list, then it must be
-		removed before calling this function. */
 	static void pushFront(void* element, void** front,
 		void** back, std::ds::DLList*(void*) getList){
 		void* frontElement;
@@ -178,6 +314,103 @@ class DLList {
 					break;
 				}
 				frontElement = previousElement;
+			}
+		}
+	}
+	
+	static void sort(void** front,
+		void** back, std::ds::DLList*(void*) getList,
+		unsigned char(void*,void*) compareElements){
+		void* element;
+		if (front != nullptr){
+			void* element = *front;
+			if (element == nullptr) {return;}
+			std::ds::DLList* list = getList(element);
+			void* nextElement = list->next;
+			while (nextElement != nullptr){
+				std::ds::DLList* nextList = 
+					getList(nextElement);
+				nextList->previous = element;
+				if (compareElements(element,
+					nextElement) == std::Compare::greater){
+					void* frontElement = *front;
+					if (compareElements(frontElement,
+						nextElement) == std::Compare::greater){
+						*front = nextElement;
+						getList(frontElement)->previous = nextElement;
+						nextElement = nextList->next;
+						list->next = nextElement;
+						nextList->next = frontElement;
+						nextList->previous = nullptr;
+					} else {
+						while (true){
+							std::ds::DLList* frontList =
+								getList(frontElement);
+							void* next = frontList->next;
+							if (compareElements(next,
+								nextElement) == std::Compare::greater){
+								frontList->next = nextElement;
+								getList(next)->previous = nextElement;
+								nextElement = nextList->next;
+								list->next = nextElement;
+								nextList->next = next;
+								nextList->previous = frontElement;
+								break;
+							}
+							frontElement = next;
+						}
+					}
+				} else {
+					element = nextElement;
+					list = nextList;
+					nextElement = nextList->next;
+				}
+			}
+			if (back != nullptr)
+				{*back = element;}
+		} else {
+			element = *back;
+			if (element == nullptr) {return;}
+			std::ds::DLList* list = getList(element);
+			void* nextElement = list->previous;
+			while (nextElement != nullptr){
+				std::ds::DLList* nextList = 
+					getList(nextElement);
+				nextList->next = element;
+				if (compareElements(element,
+					nextElement) == std::Compare::less){
+					void* frontElement = *back;
+					if (compareElements(frontElement,
+						nextElement) == std::Compare::less){
+						*back = nextElement;
+						getList(frontElement)->next = nextElement;
+						nextElement = nextList->previous;
+						list->previous = nextElement;
+						nextList->previous = frontElement;
+						nextList->next = nullptr;
+					} else {
+						while (true){
+							std::ds::DLList* frontList =
+								getList(frontElement);
+							void* next = frontList->previous;
+							if (compareElements(next,
+								nextElement) == std::Compare::less){
+								frontList->previous = nextElement;
+								getList(next)->next = nextElement;
+								nextElement = nextList->previous;
+								list->previous = nextElement;
+								nextList->previous = next;
+								nextList->next = frontElement;
+								break;
+							}
+							frontElement = next;
+						}
+					}
+				} else {
+					element = nextElement;
+					list = nextList;
+					nextElement = nextList->previous;
+				}
 			}
 		}
 	}

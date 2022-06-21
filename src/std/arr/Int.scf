@@ -339,6 +339,32 @@ class Int {
 			strStart = strStart + 1;
 		}
 	}
+	
+	static void sort(int[] src, 
+		unsigned int start, unsigned int max){
+		if (max > 1){
+			int element = src[start];
+			unsigned int i = start + 1;
+			max = max + start;
+			while (true){
+				int tmp = src[i];
+				if (tmp < element){
+					unsigned int j = i;
+					unsigned int end = insert(
+						src, start, i - start - 1, tmp);
+					while (j > end){
+						src[j] = src[j - 1];
+						j = j - 1;
+					}
+					src[end] = tmp;
+				} else {
+					element = tmp;
+				}
+				i = i + 1;
+				if (i == max) {break;}
+			}
+		}
+	}
 
 	static unsigned char starts(
 		int[] src, unsigned int i,

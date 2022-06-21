@@ -365,6 +365,35 @@ class Ptr {
 			arrayStart = arrayStart + 1;
 		}
 	}
+	
+	static void sort(void*[] src, 
+		unsigned int start, unsigned int max,
+		unsigned char(void*,void*) compareElements){
+		if (max > 1){
+			void* element = src[start];
+			unsigned int i = start + 1;
+			max = max + start;
+			while (true){
+				void* tmp = src[i];
+				if (compareElements(tmp, element) == 
+					std::Compare::less){
+					unsigned int j = i;
+					unsigned int end = insert(
+						src, start, i - start - 1, 
+						tmp, compareElements);
+					while (j > end){
+						src[j] = src[j - 1];
+						j = j - 1;
+					}
+					src[end] = tmp;
+				} else {
+					element = tmp;
+				}
+				i = i + 1;
+				if (i == max) {break;}
+			}
+		}
+	}
 
 	static unsigned char starts(
 		void*[] src, unsigned int i,

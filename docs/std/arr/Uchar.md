@@ -458,6 +458,25 @@ Returns: void.
 
 An example was already given at the 
 "getU32LE" member function.
+	
+## "sort" static function:
+
+Sorts a subarray of an unsigned char array.
+
+Parameters:
+* The unsigned char array to sort in.
+* The starting index of the subarray to sort.
+* The size of the subarray to sort.
+
+Returns: void.
+
+```
+unsigned char[] values = new unsigned char[2];
+values[0] = '2';
+values[1] = '1';
+std::arr::Uchar::sort(years, 0, 2);
+/*'1','2'*/
+```
 
 ## "starts" static function:
 

@@ -79,22 +79,75 @@ class BinTree {
 		right = nullptr;
 	}
 
+	static void* createTree(void* src, 
+		unsigned int start, unsigned int max,
+		void*(void*, unsigned int) getElement,
+		std::ds::BinTree*(void*) getTree,
+		void* parent){
+		unsigned int mid = (max + start) >> 1;
+		void* node = getElement(src, mid);
+		std::ds::BinTree* tree = getTree(node);
+		tree->parent = parent;
+		if (mid > start){
+			tree->left = createTree(
+				src, start, mid - 1,
+				getElement, getTree, node);
+		}
+		if (max > mid){
+			tree->right = createTree(
+				src, mid + 1, max,
+				getElement, getTree, node);
+		}
+		return node;
+	}
+
 	/* Public member functions. */
 
+	static void clear(void* root,
+		std::ds::BinTree*(void*) getTree,
+		void(void*) onErase){
+		if (root != nullptr){
+			std::ds::BinTree* tree = getTree(root);
+			void* node = tree->left;
+			tree->left = nullptr;
+			clear(node, getTree, onErase);
+			node = tree->right;
+			tree->right = nullptr;
+			clear(node, getTree, onErase);
+			tree->parent = nullptr;
+			if (onErase != nullptr) {onErase(root);}
+		}
+	}
+	
+	/* The two callbacks could be combined, 
+		but they are kept separate, for a 
+		possible non-recursive rewrite. */
+	static void* create(void* src, 
+		unsigned int i, unsigned int len,
+		void*(void*, unsigned int) getElement,
+		std::ds::BinTree*(void*) getTree){
+		if (len > 0){
+			return createTree(
+				src, i, i + len - 1,
+				getElement, getTree, nullptr);
+		}
+		return nullptr;
+	}
+	
 	static void erase(
 		void** root, void* node,
 		std::ds::BinTree*(void*) getTree){
-		std::ds::BinTree* tree = getTree(node); 
+		std::ds::BinTree* tree = getTree(node);
 		void* move = tree->left;
 		if (move != nullptr){
 			std::ds::BinTree* left = getTree(move);
-				if (left->right != nullptr){
+			if (left->right != nullptr){
 				std::ds::BinTree* parent;
 				std::ds::BinTree* right = left;
 				while (true){
-					parent = right; 
-					move = right->right; 
-					right = getTree(move); 
+					parent = right;
+					move = right->right;
+					right = getTree(move);
 					if (right->right == nullptr) {break;}
 				}
 				parent->right = right->left;
@@ -114,28 +167,6 @@ class BinTree {
 			move = tree->right; 
 			if (move != nullptr){
 				getTree(move)->parent = tree->parent;
-				/*
-				std::ds::BinTree* right = getTree(move);
-				if (right->left != nullptr){
-					std::ds::BinTree* parent;
-					std::ds::BinTree* left = right; 
-					while (true){
-						parent = left; 
-						move = left->left; 
-						left = getTree(move); 
-						if (left->left == nullptr) {break;}
-					}
-					parent->left = left->right;
-					if (left->right != nullptr){
-						getTree(left->right)->parent = left->parent;
-					}
-					left->right = tree->right;
-					right->parent = move;
-					left->parent = tree->parent;
-				} else {
-					right->parent = tree->parent;
-				}
-				*/
 			}
 		}
 		if (tree->parent != nullptr){
@@ -223,6 +254,52 @@ class BinTree {
 			}
 		}
 		return node;
+	}
+
+	static void* max(
+		void* root, void* node,
+		std::ds::BinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		void* parent = nullptr;
+		while (root != nullptr){
+			switch (compare(root, node)){
+				case std::Compare::less:
+					parent = root;
+					root = getTree(root)->right;
+					continue;
+				case std::Compare::equal:
+					parent = root;
+					break;
+				case std::Compare::greater:
+					root = getTree(root)->left;
+					continue;
+			}
+			break;
+		}
+		return parent;
+	}
+
+	static void* min(
+		void* root, void* node,
+		std::ds::BinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		void* parent = nullptr;
+		while (root != nullptr){
+			switch (compare(root, node)){
+				case std::Compare::less:
+					root = getTree(root)->right;
+					continue;
+				case std::Compare::equal:
+					parent = root;
+					break;
+				case std::Compare::greater:
+					parent = root;
+					root = getTree(root)->left;
+					continue;
+			}
+			break;
+		}
+		return parent;
 	}
 	
 	static void* next(void* node,

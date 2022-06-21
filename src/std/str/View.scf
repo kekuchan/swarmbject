@@ -91,11 +91,6 @@ class View {
 		start = 0;
 		length = 0;
 	}
-	
-	
-	
-	
-	
 
 	unsigned char compare(unsigned char[] dst, 
 		unsigned int i, unsigned int dstLen,
@@ -131,37 +126,6 @@ class View {
 			data, start, length, 
 			str->data, str->start, str->length, cmp);
 	}
-	
-	/*
-	unsigned char compare(unsigned char[] dst, 
-		unsigned int i, unsigned int dstLen){
-		return std::arr::Uchar::compareRange(data, 
-			start, length, dst, i, dstLen);
-	}
-	
-	unsigned char compareCString(
-		unsigned char[] cStr){
-		return std::str::CString::compareSubstring(
-			data, start, length, cStr, 0);
-	}
-	
-	unsigned char compareDString(
-		std::str::DString* string){
-		return std::arr::Uchar::compareRange(data, start,
-			length, str->data, 0, str->length);
-	}
-	
-	unsigned char compareString(
-		std::str::String* str){
-		return std::arr::Uchar::compareRange(data, start,
-			length, str->data, 0, str->length);
-	}
-	
-	unsigned char compareView(std::str::View* str){
-		return std::arr::Uchar::compareRange(data, start,
-			length, str->data, str->start, str->length);
-	}
-	*/
 
 	void set(unsigned char[] str,
 		unsigned int i, unsigned int len){
@@ -173,6 +137,14 @@ class View {
 	void setCString(unsigned char[] str){
 		set(str, 0,
 			std::str::CString::length(str, 0));
+	}
+
+	void setDString(std::str::DString* str){
+		set(str->data, 0, str->length);
+	}
+
+	void setString(std::str::String* str){
+		set(str->data, 0, str->length);
 	}
 	
 	void setView(std::str::View* str){

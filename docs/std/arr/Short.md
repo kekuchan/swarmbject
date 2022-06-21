@@ -359,6 +359,25 @@ std::arr::Short::setReplace(
 /*-2020,-2020, as -2021, 
 	is replaced with -2020.*/
 ```
+	
+## "sort" static function:
+
+Sorts a subarray of a short array.
+
+Parameters:
+* The short array to sort in.
+* The starting index of the subarray to sort.
+* The size of the subarray to sort.
+
+Returns: void.
+
+```
+short[] years = new short[2];
+years[0] = -2020;
+years[1] = -2021;
+std::arr::Short::sort(years, 0, 2);
+/*-2021,-2020.*/
+```
 
 ## "starts" static function:
 

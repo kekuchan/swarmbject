@@ -11,8 +11,22 @@ class Year {
 	std::ds::DLList list;
 	
 	/*Used by the member functions.*/
+	
 	static std::ds::DLList* getList(void* year){
 		return &((Year*)year->list);
+	}
+	
+	static unsigned char compare(
+		void* element, void* year){
+		return std::arr::Int::compareValue(
+			(Year*)element->value,
+			(Year*)year->value);
+	}
+	
+	static unsigned char compareValue(
+		void* year, void* i){
+		return std::arr::Int::compareValue(
+			(Year*)year->value, *(int*)i);
 	}
 }
 ```
@@ -59,17 +73,53 @@ std::ds::DLList::pushBack(year, &front,
 year = (Year*)(back->list.previous); /*2020*/
 ```
 
-## "getSize" member function:
+## "erase" member function:
+
+Removes the element from the list. The 
+element is not deleted automatically, 
+as it might be still used elsewhere.
+
+Parameters:
+* Either nullptr or a pointer to a 
+construct, that points to the front element.
+* Either nullptr or a pointer to a 
+construct, that points to the back element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
+
+Returns: void.
+
+```
+Year* front = nullptr;
+Year* back = nullptr;
+Year* year = new Year;
+year->value = 2020;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+year = new Year;
+year->value = 2021;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+/*When not needed anymore:*/
+year = front;
+front->list.erase(&front,
+	&back, Year::getList);
+delete year;
+/*front=2020,back=2020.*/
+```
+
+## "getSize" static function:
 
 Gets the number of elements the list contains.
 This requires iterating through all the 
-element with the next pointer.
+elements with the next pointer.
 
 Parameters:
 * A pointer to the front element.
-* A pointer to an "std::ds::DLList*(void*)" function 
-that returns a pointer to the std::ds::DLList data 
-member of the given element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
 
 Returns: unsigned int.
 
@@ -89,7 +139,177 @@ unsigned int size =
 /*2 as 2020,2021.*/
 ```
 
-## "popBack" member function:
+## "getSizeBack" static function:
+
+Gets the number of elements the list contains.
+This requires iterating through all the 
+elements with the previous pointer.
+
+Parameters:
+* A pointer to the back element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
+
+Returns: unsigned int.
+
+```
+Year* front = nullptr;
+Year* back = nullptr;
+Year* year = new Year;
+year->value = 2020;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+year = new Year;
+year->value = 2021;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+unsigned int size =
+	std::ds::DLList::getSizeBack(
+		back, Year::getList);
+/*2 as 2020,2021.*/
+```
+
+## "insert" static function:
+
+Returns where an element as the next element 
+could be inserted, if the list is sorted. This 
+requires iterating through the elements with 
+the next pointer, until the position is found.
+
+Parameters:
+* A pointer to the element to insert.
+* A pointer to the front element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
+* A pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the list 
+elements with the given element to insert 
+and returns an std::Compare value.
+
+Returns: the previous element.
+
+```
+Year* front = nullptr;
+Year* back = nullptr;
+Year* year = new Year;
+year->value = 2020;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+int i = 2021;
+year = std::ds::DLList::insert(&i, front,
+	Year::getList, Year::compareValue);
+/*2020*/
+```
+
+## "insertBack" static function:
+
+Returns where an element as the next element 
+could be inserted, if the list is sorted. This 
+requires iterating through the elements with 
+the previous pointer, until the position is found.
+
+Parameters:
+* A pointer to the element to insert.
+* A pointer to the back element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
+* A pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the list 
+elements with the given element to insert 
+and returns an std::Compare value.
+
+Returns: the previous element.
+
+```
+Year* front = nullptr;
+Year* back = nullptr;
+Year* year = new Year;
+year->value = 2020;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+int i = 2021;
+year = std::ds::DLList::insertBack(&i, back, 
+	Year::getList, Year::compareValue);
+/*2020*/
+```
+
+## "insertNext" static function:
+
+Inserts an element as the next element. If the 
+element is already part of the list, then it 
+must be removed before calling this function.
+
+Parameters:
+* A pointer to the previous element.
+* A pointer to the element to insert.
+* Either nullptr or a pointer to a 
+construct, that points to the back element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
+
+Returns: void.
+
+```
+Year* front = nullptr;
+Year* back = nullptr;
+Year* year = new Year;
+year->value = 2020;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+year = new Year;
+year->value = 2021;
+std::ds::DLList::insertNext(
+	front, year, &back, Year::getList);
+/*front=2020,back=2021.*/
+```
+
+## "insertSorted" member function:
+
+Inserts an element to the list at a position 
+to keep the list as sorted. This requires 
+iterating through the elements, until the 
+position is found. If the element is already 
+part of the list, then it must be removed 
+before calling this function.
+
+Parameters:
+* A pointer to the element to insert.
+* Either nullptr but only if the next 
+parameter is not nullptr, or a pointer to a 
+construct, that points to the front element.
+* Either nullptr but only if the previous 
+parameter is not nullptr, or a pointer to a 
+construct, that points to the back element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
+* A pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the list 
+elements with the given element to insert 
+and returns an std::Compare value.
+
+Returns: void.
+
+```
+Year* front = nullptr;
+Year* back = nullptr;
+Year* year = new Year;
+year->value = 2021;
+std::ds::DLList::insertSorted(year, &front,
+	&back, Year::getList, Year::compare);
+/*front=2021,back=2021.*/
+year = new Year;
+year->value = 2020;
+std::ds::DLList::insertSorted(year, &front,
+	&back, Year::getList, Year::compare);
+/*front=2020,back=2021.*/
+```
+
+## "popBack" static function:
 
 Removes the last element from the list. The 
 element is not deleted automatically, as it 
@@ -100,9 +320,9 @@ Parameters:
 construct, that points to the front element.
 * A pointer to a construct, that points to 
 the back element.
-* A pointer to an "std::ds::DLList*(void*)" function 
-that returns a pointer to the std::ds::DLList data 
-member of the given element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
 
 Returns: void.
 
@@ -125,7 +345,7 @@ delete year;
 /*front=2020,back=2020.*/
 ```
 
-## "popFront" member function:
+## "popFront" static function:
 
 Removes the first element from the list. The 
 element is not deleted automatically, as it 
@@ -136,9 +356,9 @@ Parameters:
 the front element.
 * Either nullptr or a pointer to a 
 construct, that points to the back element.
-* A pointer to an "std::ds::DLList*(void*)" function 
-that returns a pointer to the std::ds::DLList data 
-member of the given element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
 
 Returns: void.
 
@@ -162,7 +382,7 @@ delete year;
 /*front=2021,back=2021.*/
 ```
 
-## "pushBack" member function:
+## "pushBack" static function:
 
 Inserts an element after the current last element, 
 making this the new last element. If the element is 
@@ -176,9 +396,9 @@ construct, that points to the front element.
 * Either nullptr to iterate through the list from 
 the front element or a pointer to a construct, 
 that points directly to the back element.
-* A pointer to an "std::ds::DLList*(void*)" function 
-that returns a pointer to the std::ds::DLList data 
-member of the given element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
 
 Returns: void.
 
@@ -197,7 +417,7 @@ std::ds::DLList::pushBack(year, &front,
 /*front=2020,back=2021.*/
 ```
 
-## "pushFront" member function:
+## "pushFront" static function:
 
 Inserts an element before the current first element, 
 making this the new first element. If the element 
@@ -211,9 +431,9 @@ the back element or a pointer to a construct,
 that points directly to the front element.
 * Either nullptr or a pointer to a construct, 
 that points to the back element.
-* A pointer to an "std::ds::DLList*(void*)" function 
-that returns a pointer to the std::ds::DLList data 
-member of the given element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
 
 Returns: void.
 
@@ -229,6 +449,44 @@ year = new Year;
 year->value = 2020;
 std::ds::DLList::pushFront(year, &front,
 	&back, Year::getList);
+/*front=2020,back=2021.*/
+```
+
+## "sort" static function:
+
+Sorts the elements the list contains.
+
+Parameters:
+* Either nullptr but only if the next 
+parameter is not nullptr, or a pointer to a 
+construct, that points to the front element.
+* Either nullptr but only if the previous 
+parameter is not nullptr, or a pointer to a 
+construct, that points to the back element.
+* A pointer to an "std::ds::DLList*(void*)" 
+function that returns a pointer to the 
+std::ds::DLList data member of the given element.
+* A pointer to an "unsigned char(void*,void*)" 
+function that can compare any of the list 
+elements and returns an std::Compare value.
+
+Returns: void.
+
+```
+Year* front = nullptr;
+Year* back = nullptr;
+Year* year = new Year;
+year->value = 2021;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+/*front=2021,back=2021.*/
+year = new Year;
+year->value = 2020;
+std::ds::DLList::pushBack(year, &front,
+	&back, Year::getList);
+/*front=2021,back=2020.*/
+std::ds::DLList::sort(&front, &back, 
+	Year::getList, Year::compare);
 /*front=2020,back=2021.*/
 ```
 

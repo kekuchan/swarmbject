@@ -359,6 +359,25 @@ std::arr::Char::setReplace(
 /*-20,-20, as -21, 
 	is replaced with -20.*/
 ```
+	
+## "sort" static function:
+
+Sorts a subarray of a char array.
+
+Parameters:
+* The char array to sort in.
+* The starting index of the subarray to sort.
+* The size of the subarray to sort.
+
+Returns: void.
+
+```
+char[] years = new char[2];
+years[0] = -20;
+years[1] = -21;
+std::arr::Char::sort(years, 0, 2);
+/*-21,-20.*/
+```
 
 ## "starts" static function:
 

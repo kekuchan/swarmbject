@@ -359,6 +359,25 @@ std::arr::Ushort::setReplace(
 /*2020,2020, as 2021,
 	is replaced with 2020.*/
 ```
+	
+## "sort" static function:
+
+Sorts a subarray of an unsigned short array.
+
+Parameters:
+* The unsigned short array to sort in.
+* The starting index of the subarray to sort.
+* The size of the subarray to sort.
+
+Returns: void.
+
+```
+unsigned short[] years = new unsigned short[2];
+years[0] = 2021;
+years[1] = 2020;
+std::arr::Ushort::sort(years, 0, 2);
+/*2020,2021.*/
+```
 
 ## "starts" static function:
 

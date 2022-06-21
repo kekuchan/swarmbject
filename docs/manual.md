@@ -1878,19 +1878,6 @@ of an operator, it can be parenthesized.
 * [/docs/std/arr/Ushort.md](std/arr/Ushort.md)
 * [/docs/std/arr/Void.md](std/arr/Void.md)
 
-## Data structures (ds) reference:
-
-* [/docs/std/ds/Array.md](std/ds/Array.md)
-* [/docs/std/ds/Buffer.md](std/ds/Buffer.md)
-* [/docs/std/ds/CircuralArray.md](std/ds/CircuralArray.md)
-* [/docs/std/ds/DArray.md](std/ds/DArray.md)
-* [/docs/std/ds/DBuffer.md](std/ds/DBuffer.md)
-* [/docs/std/ds/DLList.md](std/ds/DLList.md)
-* [/docs/std/ds/PtrArray.md](std/ds/PtrArray.md)
-* [/docs/std/ds/PtrCircuralArray.md](std/ds/PtrCircuralArray.md)
-* [/docs/std/ds/PtrDArray.md](std/ds/PtrDArray.md)
-* [/docs/std/ds/SLList.md](std/ds/SLList.md)
-
 ## BOM (bom) reference:
 
 * [/docs/std/bom/Window.md](std/bom/Window.md)
@@ -1915,6 +1902,21 @@ of an operator, it can be parenthesized.
 * [/docs/std/css/Value.md](std/css/Value.md)
 * [/docs/std/css/ValueTypes.md](std/css/ValueTypes.md)
 * [/docs/std/css/WhiteSpaceTypes.md](std/css/WhiteSpaceTypes.md)
+
+## Data structures (ds) reference:
+
+* [/docs/std/ds/Array.md](std/ds/Array.md)
+* [/docs/std/ds/BalBinTree.md](std/ds/BalBinTree.md)
+* [/docs/std/ds/BinTree.md](std/ds/BinTree.md)
+* [/docs/std/ds/Buffer.md](std/ds/Buffer.md)
+* [/docs/std/ds/CircuralArray.md](std/ds/CircuralArray.md)
+* [/docs/std/ds/DArray.md](std/ds/DArray.md)
+* [/docs/std/ds/DBuffer.md](std/ds/DBuffer.md)
+* [/docs/std/ds/DLList.md](std/ds/DLList.md)
+* [/docs/std/ds/PtrArray.md](std/ds/PtrArray.md)
+* [/docs/std/ds/PtrCircuralArray.md](std/ds/PtrCircuralArray.md)
+* [/docs/std/ds/PtrDArray.md](std/ds/PtrDArray.md)
+* [/docs/std/ds/SLList.md](std/ds/SLList.md)
 
 ## DOM (dom) reference:
 

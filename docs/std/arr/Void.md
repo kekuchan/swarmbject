@@ -20,18 +20,12 @@ class Year {
 			(Year[])years[i].value, *(int*)year);
 	}
 	
-	static void set(
-		void* first, unsigned int i,
-		void* second, unsigned int j){
-		Year[] years = (Year[])first;
-		years[i].value = 
-			(Year[])second[j].value;
-	}
-	
-	static void setElement(
-		void* array, unsigned int i, void* year){
-		int[] years = (int[])array;
-		years[i] = *(int*)year;
+	static unsigned char compareElements(
+		void* years, unsigned int i, 
+		unsigned int j){
+		return std::arr::Int::compareValue(
+			(Year[])years[i].value, 
+			(Year[])years[j].value);
 	}
 	
 	static unsigned char equal(
@@ -48,6 +42,32 @@ class Year {
 		if ((Year[])years[i].value == *(int*)year)
 			{return std::Compare::equal;}
 		return std::Compare::unset;
+	}
+	
+	static void get(void* array, 
+		unsigned int i, unsigned int j){
+		Year[] years = (Year[])array;
+		years[i].value = years[j].value;
+	}
+	
+	static void getElement(void* years,
+		unsigned int i, void* value){
+		int* year = (int*)value;
+		*year = (Year[])years[i].value;
+	}
+	
+	static void set(
+		void* first, unsigned int i,
+		void* second, unsigned int j){
+		Year[] years = (Year[])first;
+		years[i].value = 
+			(Year[])second[j].value;
+	}
+	
+	static void setElement(
+		void* array, unsigned int i, void* year){
+		Year[] years = (Year[])array;
+		years[i].value = *(int*)year;
 	}
 	
 	static void switchElements(
@@ -503,6 +523,56 @@ std::arr::Void::setReplace(
 	Year::set, Year::equal);
 /*2020,2020, as 2021, 
 	is replaced with 2020.*/
+```
+	
+## "sort" static function:
+
+Sorts a subarray of an array.
+
+Parameters:
+* The array to sort in.
+* The starting index of the subarray to sort.
+* The size of the subarray to sort.
+* A pointer to a temporary element 
+to use while sorting.
+* A pointer to a "void(void*, unsigned int,
+void*)" function to copy an element of the 
+given array at the given index to the given 
+temporary element.
+* A pointer to an "unsigned char(void*, 
+unsigned int, unsigned int)" function that can 
+compare any of the given array's elements at the 
+given indices and returns an std::Compare value.
+* A pointer to an "unsigned char(void*,
+unsigned int, void*)" function that can 
+compare any element of the given array at 
+the given index, with the temporary element, 
+and returns an std::Compare value.
+* A pointer to an "void(void*, unsigned int, 
+void*, unsigned int)" function that can set 
+any element of the given array at the given 
+index, to be a copy of an element at the 
+given index.
+* A pointer to an "void(void*, unsigned int, 
+void*)" function that can set any element of 
+the given array at the given index, 
+to be a copy of the given temporary element.
+
+Returns: void.
+
+```
+Year[] years = new Year[2];
+years[0].value = 2021;
+years[1].value = 2020;
+int year;
+std::arr::Void::sort(
+	(void*)years, 0, 2, &year, 
+	Year::getElement, 
+	Year::compareElements, 
+	Year::compareElement, 
+	Year::get, 
+	Year::setElement);
+/*2020,2021.*/
 ```
 
 ## "starts" static function:

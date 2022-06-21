@@ -144,7 +144,7 @@ Returns: void.
 ```
 std::ds::DBuffer buffer;
 buffer.addU32BE(20212021);
-unsigned short value = buffer.getU32BE(0); /*20212021*/
+unsigned int value = buffer.getU32BE(0); /*20212021*/
 ```
 
 ## "addU32LE" member function:
@@ -164,7 +164,7 @@ Returns: void.
 ```
 std::ds::DBuffer buffer;
 buffer.addU32LE(20212021);
-unsigned short value = buffer.getU32LE(0); /*20212021*/
+unsigned int value = buffer.getU32LE(0); /*20212021*/
 ```
 
 ## "clear" member function:
