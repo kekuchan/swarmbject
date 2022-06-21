@@ -25,6 +25,17 @@ class Year {
 		return std::arr::Int::compareValue(
 			(Year*)year->value, *(int*)i);
 	}
+
+	static void erase(void* year){
+		delete (Year*)year;
+	}
+	
+	static void* getElement(void* array, 
+		unsigned int i){
+		Year* year = new Year;
+		year->value = (int[])array[i];
+		return year;
+	}
 }
 ```
 
@@ -77,6 +88,61 @@ year->value = 2022;
 std::ds::BinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
 year = (Year*)(root->right); /*2022*/
+```
+
+## "clear" static function:
+
+Removes all the elements from the tree.
+The elements are not deleted automatically, 
+as they might be still used elsewhere.
+
+Parameters:
+* The root element.
+* A pointer to an "std::ds::BinTree*(void*)" function 
+that returns a pointer to the std::ds::BinTree data 
+member of the given element.
+* A pointer to a "void(void*)" function 
+that is called with each removed element.
+
+Returns: void.
+
+```
+Year* root = nullptr;
+Year* year = new Year;
+year->value = 2022;
+std::ds::BinTree::insert(&root, year, 
+	Year::getTree, Year::compare);
+std::ds::BinTree::clear(root, 
+	Year::getTree, Year::erase);
+root = nullptr;
+```
+
+## "create" static function:
+
+Creates a tree, from some construct. If the 
+tree is not empty, its elements are not removed 
+automatically, as they might be still used elsewhere.
+
+Parameters:
+* A pointer to some construct.
+* The starting index of the construct.
+* The size of the construct.
+* A pointer to a "void*(void*, unsigned int)" 
+function that returns an element from the 
+given construct at the given index.
+* A pointer to an "std::ds::BinTree*(void*)" function 
+that returns a pointer to the std::ds::BinTree data 
+member of the given element.
+
+Returns: the root element, as a void*.
+
+```
+int[] years = new int[2];
+years[0] = 2021;
+years[1] = 2022;
+Year* root = std::ds::BinTree::create(
+	years, 0, 2,
+	Year::getElement, Year::getTree);
 ```
 
 ## "erase" static function:
@@ -149,6 +215,8 @@ Parameters:
 that returns a pointer to the std::ds::BinTree data 
 member of the given element.
 
+Returns: void*.
+
 ```
 Year* root = nullptr;
 Year* year = new Year;
@@ -200,6 +268,8 @@ Parameters:
 that returns a pointer to the std::ds::BinTree data 
 member of the given element.
 
+Returns: void*.
+
 ```
 Year* root = nullptr;
 Year* year = new Year;
@@ -214,6 +284,64 @@ year = (Year*)(std::ds::BinTree::last(
 	root, Year::getTree)); /*2022*/
 ```
 
+## "max" static function:
+
+Finds an element, or if not found, then 
+its logically previous element in the tree.
+
+Parameters:
+* The root element.
+* A pointer to an element to find.
+* A pointer to an "std::ds::BinTree*(void*)" function 
+that returns a pointer to the std::ds::BinTree data 
+member of the given element.
+* A pointer to an "unsigned char(void*, void*)" 
+function that can compare any element of the 
+tree, with the given element to find, 
+and returns an std::Compare value.
+
+Returns: void*.
+
+```
+Year* root = nullptr;
+Year* year = new Year;
+year->value = 2021;
+std::ds::BinTree::insert(&root, year, 
+	Year::getTree, Year::compare);
+int i = 2022;
+year = (Year*)(std::ds::BinTree::max(root, &i,
+	Year::getTree, Year::compareValue); /*2021*/
+```
+
+## "min" static function:
+
+Finds an element, or if not found, then 
+its logically next element in the tree.
+
+Parameters:
+* The root element.
+* A pointer to an element to find.
+* A pointer to an "std::ds::BinTree*(void*)" function 
+that returns a pointer to the std::ds::BinTree data 
+member of the given element.
+* A pointer to an "unsigned char(void*, void*)" 
+function that can compare any element of the 
+tree, with the given element to find, 
+and returns an std::Compare value.
+
+Returns: void*.
+
+```
+Year* root = nullptr;
+Year* year = new Year;
+year->value = 2022;
+std::ds::BinTree::insert(&root, year, 
+	Year::getTree, Year::compare);
+int i = 2021;
+year = (Year*)(std::ds::BinTree::min(root, &i,
+	Year::getTree, Year::compareValue); /*2022*/
+```
+
 ## "next" static function:
 
 Gets the next element in the tree, as a void*.
@@ -223,6 +351,8 @@ Parameters:
 * A pointer to an "std::ds::BinTree*(void*)" function 
 that returns a pointer to the std::ds::BinTree data 
 member of the given element.
+
+Returns: void*.
 
 ```
 Year* root = nullptr;
@@ -247,6 +377,8 @@ Parameters:
 * A pointer to an "std::ds::BinTree*(void*)" function 
 that returns a pointer to the std::ds::BinTree data 
 member of the given element.
+
+Returns: void*.
 
 ```
 Year* root = nullptr;

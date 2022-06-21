@@ -155,7 +155,7 @@ Returns: unsigned int.
 std::ds::Buffer buffer;
 buffer.create(4);
 buffer.setU32BE(0, 20212021);
-unsigned short value = buffer.getU32BE(0); /*20212021*/
+unsigned int value = buffer.getU32BE(0); /*20212021*/
 ```
 
 ## "getU32LE" member function:
@@ -173,7 +173,7 @@ Returns: unsigned int.
 std::ds::Buffer buffer;
 buffer.create(4);
 buffer.setU32LE(0, 20212021);
-unsigned short value = buffer.getU32LE(0); /*20212021*/
+unsigned int value = buffer.getU32LE(0); /*20212021*/
 ```
 
 ## "move" member function:
