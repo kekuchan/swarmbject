@@ -67,675 +67,1176 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-
-/* Balanced binary tree, derived and implemented 
-from scratch. It keeps reordering the tree either 
-left or rightwise, until it finds a gap. However 
-if the beginning or the end of the tree is reached,
-then it has to redo the reordering in the opposite 
-direction. This could be allievated by storing the 
-smallest or the largest gap or both and reordering 
-towards that, or by just always continuing the 
-reordering so that all the elements are at the side. 
-These however while can be faster in some use cases, 
-but are slower in others. */
-
+/* Balanced binary tree */
 class BalBinTree {
 
-	void* root;
-	unsigned int size;
+	void* leftOrParent;
+	void* parentOrLeft;
+	void* right;
 	
 	BalBinTree(){
-		root = nullptr;
-		size = 0;
+		leftOrParent = nullptr;
+		parentOrLeft = nullptr;
+		right = nullptr;
 	}
 	
-	void eraseLeft(
-		std::ds::BinTree* parentTree,
-		unsigned int len,
-		std::ds::BinTree*(void*) getTree){
-		void* node;
-		std::ds::BinTree* tree;
-		void* parent;
-		std::ds::BinTree* right;
-		std::ds::BinTree* left;
-		while (true){
-			parentTree->right = nullptr;
-			if (len == 1) {return;}
-			left = getTree(parentTree->left);
-			if (left->right != nullptr){
-				right = getTree(left->right);
-				right->parent = left->parent;
-				right->left = parentTree->left;
-				left->parent = left->right;
-				parentTree->left = left->right;
-				left->right = nullptr;
-				left = right;
-			}
-			left->right = left->parent;
-			left->parent = parentTree->parent;
-			parent = parentTree->left;
-			parentTree->parent = parent;
-			parentTree->left = nullptr;
-			if (left->parent != nullptr){
-				parentTree = getTree(left->parent);
-				if (parentTree->right == left->right){
-					parentTree->right = parent;
-				} else {
-					parentTree->left = parent;
-				}
+	static void clearTree(void* node,
+		std::ds::BalBinTree*(void*) getTree,
+		void(void*) onErase,
+		void* parent){
+		if (node != nullptr){
+			std::ds::BalBinTree* tree = getTree(node);
+			void** left;
+			void** parentNode;
+			if (tree->parentOrLeft == parent){
+				left = &tree->leftOrParent;
+				parentNode = &tree->parentOrLeft;
 			} else {
-				root = parent;
+				left = &tree->parentOrLeft;
+				parentNode = &tree->leftOrParent;
 			}
-			if (left->left != nullptr) {return;}
-			right = left;
-			node = parent;
-			len = 8;
-			while (parentTree->right != parent){
-				if (parentTree->parent == nullptr){
-					eraseRight(left, 2, getTree);
-					return;
-				}
-				parent = right->parent;
-				right = parentTree;
-				parentTree = getTree(parentTree->parent);
-				len = len << 1;
-			}
-			parent = parentTree->parent;
-			parentTree->parent = node;
-			node = right->parent;
-			left->left = node;
-			left = getTree(parentTree->left);
-			/*Trick to store self node pointer.*/
-			right->parent = parentTree->right;
-			parentTree->right = nullptr;
-			left->parent = parentTree->left;
-			parentTree->left = nullptr;
-			parentTree = left;
-			tree = getTree(parentTree->right);
-			len = len >> 2;
-			while (tree->right != nullptr){
-				parentTree = tree;
-				tree = getTree(parentTree->right);
-				len = len >> 1;
-			}
-			tree->right = right->parent;
-			right->parent = parentTree->right;
-			if (parent != nullptr){
-				right = getTree(parent);
-				if (right->right == node){
-					right->right = parentTree->right;
-				} else {
-					right->left = parentTree->right;
-				}
-			} else {
-				root = parentTree->right;
-			}
-			if (tree->left != nullptr){
-				getTree(tree->left)->parent = 
-					tree->parent;
-				parentTree->right = tree->left;
-				tree->left = left->parent;
-				tree->parent = parent;
-				left->parent = right->parent;
-				return;
-			}
-			tree->left = left->parent;
-			tree->parent = parent;
-			left->parent = parentTree->right;
+			parent = node;
+			node = *left;
+			*left = nullptr;
+			clearTree(node, getTree, onErase, parent);
+			node = tree->right;
+			tree->right = nullptr;
+			clearTree(node, getTree, onErase, parent);
+			*parentNode = nullptr;
+			if (onErase != nullptr) {onErase(parent);}
 		}
 	}
 
-	void eraseRight(
-		std::ds::BinTree* parentTree,
-		unsigned int len,
-		std::ds::BinTree*(void*) getTree){
-		void* node;
-		std::ds::BinTree* tree;
-		void* parent;
-		std::ds::BinTree* right;
-		std::ds::BinTree* left;
-		while (true){
-			parentTree->left = nullptr;
-			if (len == 1) {return;}
-			right = getTree(parentTree->right);
-			if (right->left != nullptr){
-				left = getTree(right->left);
-				left->parent = right->parent;
-				left->right = parentTree->right;
-				right->parent = right->left;
-				parentTree->right = right->left;
-				right->left = nullptr;
-				right = left;
-			}
-			right->left = right->parent;
-			right->parent = parentTree->parent;
-			parent = parentTree->right;
-			parentTree->parent = parent;
-			parentTree->right = nullptr;
-			if (right->parent != nullptr){
-				parentTree = getTree(right->parent);
-				if (parentTree->left == right->left){
-					parentTree->left = parent;
-				} else {
-					parentTree->right = parent;
-				}
-			} else {
-				root = parent;
-			}
-			if (right->right != nullptr) {return;}
-			left = right;
-			node = parent;
-			len = 8;
-			while (parentTree->left != parent){
-				if (parentTree->parent == nullptr){
-					eraseLeft(right, 2, getTree);
-					return;
-				}
-				parent = left->parent;
-				left = parentTree;
-				parentTree = getTree(parentTree->parent);
-				len = len << 1;
-			}
-			parent = parentTree->parent;
-			parentTree->parent = node;
-			node = left->parent;
-			right->right = node;
-			right = getTree(parentTree->right);
-			/*Trick to store self node pointer.*/
-			left->parent = parentTree->left;
-			parentTree->left = nullptr;
-			right->parent = parentTree->right;
-			parentTree->right = nullptr;
-			parentTree = right;
-			tree = getTree(parentTree->left);
-			len = len >> 2;
-			while (tree->left != nullptr){
-				parentTree = tree;
-				tree = getTree(parentTree->left);
-				len = len >> 1;
-			}
-			tree->left = left->parent;
-			left->parent = parentTree->left;
-			if (parent != nullptr){
-				left = getTree(parent);
-				if (left->left == node){
-					left->left = parentTree->left;
-				} else {
-					left->right = parentTree->left;
-				}
-			} else {
-				root = parentTree->left;
-			}
-			if (tree->right != nullptr){
-				getTree(tree->right)->parent = 
-					tree->parent;
-				parentTree->left = tree->right;
-				tree->right = right->parent;
-				tree->parent = parent;
-				right->parent = left->parent;
-				return;
-			}
-			tree->right = right->parent;
-			tree->parent = parent;
-			right->parent = parentTree->left;
+	static unsigned char createTree(void* src, 
+		unsigned int start, unsigned int max,
+		void*(void*, unsigned int) getElement,
+		std::ds::BalBinTree*(void*) getTree,
+		void* parent, unsigned char leftLevel,
+		void** node){
+		unsigned int mid = (max + start) >> 1;
+		void* element = getElement(src, mid);
+		std::ds::BalBinTree* tree = getTree(element);
+		tree->parentOrLeft = parent;
+		unsigned char level = 0;
+		if (mid > start){
+			level = createTree(
+				src, start, mid - 1,
+				getElement, getTree, element,
+				255, &tree->leftOrParent);
+			/*The left tree can not have a 
+			greater level than the right tree.*/
 		}
-	}
-	
-	void insertLeft(
-		std::ds::BinTree* tree,
-		std::ds::BinTree* left,
-		std::ds::BinTree*(void*) getTree){
-		while (true){
-			tree->right = nullptr;
-			void* node = tree->left;
-			void* parent = tree->parent; 
-			if (node == nullptr){
-				if (left->parent != nullptr){
-					node = left->left;
-					left = getTree(left->parent);
-					if (left->right == node){
-						left->right = parent;
-					} else {
-						left->left = parent;
-					}
-				} else {root = parent;}
-				break;
-			}
-			tree->left = nullptr;
-			unsigned int len = 2;
-			tree = left;
-			left = getTree(left->parent);
-			if (left->right == tree->left){
-				left->right = parent;
-			} else {
-				left->left = parent;
-				while (true){
-					if (left->parent == nullptr){
-						while (true){
-							len = len >> 1; 
-							if (len == 1) {break;}
-							parent = tree->left;
-							tree = getTree(parent); 
-						}
-						getTree(node)->parent = tree->left;
-						left = getTree(tree->left);
-						left->left = node;
-						left->right = parent;
-						left->parent = tree->parent;
-						tree->parent = tree->left;
-						insertRight(tree, left, getTree);
-						return;
-					}
-					len = len << 1; 
-					parent = tree->parent; 
-					tree = left;
-					left = getTree(left->parent);
-					if (left->right == parent) {break;}
-				}
-			}
-			parent = tree->parent; 
-			tree->parent = node;
-			if (left->parent != nullptr){
-				tree = getTree(left->parent);
-				if (tree->right == parent){
-					tree->right = node;
-				} else {
-					tree->left = node;
-				}
-			} else {root = node;}
-			tree = getTree(node); 
-			tree->parent = left->parent;
-			tree->left = left->left;
-			tree->right = left->right;
-			tree = getTree(tree->left); 
-			parent = node; 
-			node = tree->parent; 
-			tree->parent = parent;
-			parent = left->left;
-			while (true){
-				len = len >> 1; 
-				if (len == 1) {break;}
-				parent = tree->right; 
-				tree = getTree(parent); 
-			}
-			left->left = nullptr;
-			left->right = nullptr;
-			if (tree->right == nullptr){
-				tree->right = node;
-				left->parent = parent;
-				break;
-			}
-			left->parent = tree->right;
-			left = getTree(tree->right);
-			left->right = node;
-			left->left = parent;
-			left->parent = tree->parent;
-			tree->parent = tree->right;
+		if (max > mid){
+			level = createTree(
+				src, mid + 1, max,
+				getElement, getTree, element,
+				level, &tree->right);
 		}
+		*node = element;
+		if (leftLevel == level){
+			std::arr::Ptr::switchValue(
+				&tree->leftOrParent, &tree->parentOrLeft);
+		}
+		return level + 1;
 	}
-	
-	void insertRight(
-		std::ds::BinTree* tree, 
-		std::ds::BinTree* right,
-		std::ds::BinTree*(void*) getTree){
-		while (true){
-			tree->left = nullptr; 
-			void* node = tree->right;
-			void* parent = tree->parent;
-			if (node == nullptr){
-				if (right->parent != nullptr){
-					node = right->right;
-					right = getTree(right->parent);
-					if (right->left == node){
-						right->left = parent;
-					} else {
-						right->right = parent;
-					}
-				} else {root = parent;}
-				break;
-			}
-			tree->right = nullptr;
-			unsigned int len = 2;
-			tree = right;
-			right = getTree(right->parent);
-			if (right->left == tree->right){
-				right->left = parent;
-			} else {
-				right->right = parent;
-				while (true){
-					if (right->parent == nullptr){
-						while (true){
-							len = len >> 1; 
-							if (len == 1) {break;}
-							parent = tree->right; 
-							tree = getTree(parent); 
-						}
-						getTree(node)->parent = tree->right;
-						right = getTree(tree->right);
-						right->right = node;
-						right->left = parent;
-						right->parent = tree->parent;
-						tree->parent = tree->right;
-						insertLeft(tree, right, getTree);
-						return;
-					}
-					len = len << 1; 
-					parent = tree->parent;
-					tree = right;
-					right = getTree(right->parent);
-					if (right->left == parent) {break;}
-				}
-			}
-			parent = tree->parent; 
-			tree->parent = node;
-			if (right->parent != nullptr){
-				tree = getTree(right->parent);
-				if (tree->left == parent){
-					tree->left = node;
-				} else {
-					tree->right = node;
-				}
-			} else {root = node;}
-			tree = getTree(node); 
-			tree->parent = right->parent;
-			tree->right = right->right;
-			tree->left = right->left;
-			tree = getTree(tree->right);
-			parent = node; 
-			node = tree->parent; 
-			tree->parent = parent;
-			parent = right->right;
-			while (true){
-				len = len >> 1; 
-				if (len == 1) {break;}
-				parent = tree->left;
-				tree = getTree(parent); 
-			}
-			right->right = nullptr;
-			right->left = nullptr;
-			if (tree->left == nullptr){
-				tree->left = node;
-				right->parent = parent;
-				break;
-			}
-			right->parent = tree->left;
-			right = getTree(tree->left);
-			right->left = node;
-			right->right = parent;
-			right->parent = tree->parent;
-			tree->parent = tree->left;
-		}	
-	}
-	
+
 	/* Public member functions. */
-	
-	void clear(std::ds::BinTree*(void*) getTree,
+
+	static void clear(void* root,
+		std::ds::BalBinTree*(void*) getTree,
 		void(void*) onErase){
-		std::ds::BinTree::clear(root,
-			getTree, onErase);
-		root = nullptr;
-		size = 0;
+		clearTree(root, getTree, onErase, nullptr);
 	}
-		
-	void create(void* src, 
+	
+	/* The two callbacks could be combined, 
+		but they are kept separate, for a 
+		possible non-recursive rewrite. */
+	static void* create(void* src, 
 		unsigned int i, unsigned int len,
 		void*(void*, unsigned int) getElement,
-		std::ds::BinTree*(void*) getTree){
-		root = std::ds::BinTree::create(
-			src, i, len, getElement, getTree);
-		size = len;
+		std::ds::BalBinTree*(void*) getTree){
+		void* node = nullptr;
+		if (len > 0){
+			createTree(src, i, i + len - 1,
+				getElement, getTree, nullptr, 255, &node);
+		}
+		return node;
 	}
-		
-	void erase(void* node, 
-		std::ds::BinTree*(void*) getTree){
-		unsigned int len = size; 
-		size = len - 1;
-		std::ds::BinTree* tree = getTree(node);
-		void* parent = tree->parent;
-		std::ds::BinTree* parentTree;
-		std::ds::BinTree* right;
-		std::ds::BinTree* left;
-		if (tree->right == nullptr){
-			if (tree->left != nullptr){
-				getTree(tree->left)->parent = parent;
-				if (tree->parent != nullptr){
-					parentTree = getTree(parent);
-					if (parentTree->left == node){
-						parentTree->left = tree->left;
-					} else {
-						parentTree->right = tree->left;
-					}
-					tree->parent = nullptr;
-				} else {
-					root = tree->left;
-				}
-				tree->left = nullptr;
-			} else if (parent == nullptr){
-				root = nullptr;
-			} else {
-				len = len >> 1;
-				parentTree = getTree(parent);
-				parent = parentTree->parent;
-				while (parent != nullptr){
-					len = len >> 1;
-					parent = getTree(parent)->parent;
-				}
-				tree->parent = nullptr;
-				if (parentTree->left == node){
-					eraseRight(parentTree, len, getTree);
-				} else {
-					eraseLeft(parentTree, len, getTree);
-				}
-			}
-		} else if (tree->left == nullptr){
-			getTree(tree->right)->parent = parent;
-			if (tree->parent != nullptr){
-				parentTree = getTree(parent);
-				if (parentTree->left == node){
-					parentTree->left = tree->right;
-				} else {
-					parentTree->right = tree->right;
-				}
-				tree->parent = nullptr;
-			} else {
-				root = tree->right;
-			}
-			tree->right = nullptr;
-		} else {
-			right = getTree(tree->right);
-			if (right->left == nullptr){
+	
+	static void erase(
+		void** root, void* node,
+		std::ds::BalBinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		std::ds::BalBinTree* tree = getTree(node);
+		void* parent = tree->parentOrLeft;
+		std::ds::BalBinTree* parentTree;
+		void* left;
+		void* right;
+		std::ds::BalBinTree* leftTree;
+		if (parent == nullptr){
+			if (node != *root){
+				left = nullptr;
+				leftTree = nullptr;
+				parent = tree->leftOrParent;
 				if (parent != nullptr){
 					parentTree = getTree(parent);
-					if (parentTree->left == node){
-						parentTree->left = tree->right;
-					} else {
-						parentTree->right = tree->right;
-					}
-				} else {
-					root = tree->right;
-				}
-				right->parent = parent;
-				right->left = tree->left;
-				getTree(tree->left)->parent = 
-					tree->right;
-				tree->left = nullptr;
-				tree->right = nullptr;
-				tree->parent = nullptr;
-				if (right->right == nullptr){
-					len = len >> 1;
-					if (parent != nullptr){
-						len = len >> 1;
-						parent = parentTree->parent;
-						while (parent != nullptr){
-							len = len >> 1;
-							parent = getTree(parent)->parent;
-						}
-					}
-					eraseLeft(right, len, getTree);
-				}
-				return;
-			}
-			node = tree->left;
-			/*Trick to store self node pointer.*/
-			right->parent = tree->right;
-			tree->left = nullptr;
-			tree->right = nullptr;
-			tree->parent = nullptr;
-			tree = right;
-			left = getTree(right->left);
-			while (left->left != nullptr){
-				tree = left;
-				left = getTree(left->left);
-				len = len >> 1;
-			}
-			left->left = node;
-			node = left->right;
-			left->right = right->parent;
-			right->parent = tree->left;
-			right = left;
-			left = getTree(left->left);
-			if (parent != nullptr){
-				parentTree = getTree(parent);
-				if (parentTree->left == left->parent){
-					parentTree->left = tree->left;
-				} else {
-					parentTree->right = tree->left;
-				}
+				} else {parentTree = nullptr;}
 			} else {
-				root = tree->left;
-			}
-			left->parent = tree->left;
-			if (node != nullptr){
-				getTree(node)->parent = 
-					right->parent;
-				right->parent = parent;
-				tree->left = node;
-				return;
-			}
-			right->parent = parent;
-			len = len >> 2;
-			if (parent != nullptr){
-				len = len >> 1;
-				parent = parentTree->parent;
-				while (parent != nullptr){
-					len = len >> 1;
-					parent = getTree(parent)->parent;
-				}
-			}
-			eraseRight(tree, len, getTree);
-		}
-	}
-	
-	void* first(
-		std::ds::BinTree*(void*) getTree){
-		return std::ds::BinTree::first(
-			root, getTree);
-	}
-	
-	void* find(void* node,
-		std::ds::BinTree*(void*) getTree,
-		unsigned char(void*, void*) compare){
-		return std::ds::BinTree::find(
-			root, node, getTree, compare);
-	}
-		
-	void insert(void* node,
-		std::ds::BinTree*(void*) getTree,
-		unsigned char(void*, void*) compare){
-		unsigned int len = size + 1; 
-		size = len;
-		if (len == 1){
-			root = node;
-			return;
-		}
-		
-		std::ds::BinTree* parentTree;
-		void* parent = root; 
-		while (true){
-			len = len >> 1; 
-			parentTree = getTree(parent); 
-			if (len == 1) {break;}
-			if (compare(parent, node) == 
-				std::Compare::less){
-				parent = parentTree->right;
-			} else {
-				parent = parentTree->left;
-			}
-		}
-		
-		if (compare(parent, node) == 
-			std::Compare::less){
-			if (parentTree->right != nullptr){
-				std::ds::BinTree* tree;
-				if (compare(parentTree->right, node) ==
-					std::Compare::less){
-					getTree(node)->parent = parentTree->right;
-					tree = getTree(parentTree->right);
-					tree->right = node;
-					tree->left = parent;
-					tree->parent = parentTree->parent;
-					parentTree->parent = parentTree->right;
-				} else {
-					tree = getTree(parentTree->right);
-					tree->parent = node;
-					tree = getTree(node);
-					tree->right = parentTree->right;
-					tree->left = parent;
-					tree->parent = parentTree->parent;
-					parentTree->parent = node;
-				}
-				insertLeft(parentTree, tree, getTree);
-			} else {
-				parentTree->right = node;
-				getTree(node)->parent = parent;
+				left = tree->leftOrParent;
+				if (left != nullptr){
+					leftTree = getTree(left);
+				} else {leftTree = nullptr;}
+				parentTree = nullptr;
 			}
 		} else {
-			if (parentTree->left != nullptr){
-				std::ds::BinTree* tree;
-				if (compare(parentTree->left, node) == 
+			parentTree = getTree(parent);
+			if (parentTree->right == node ||
+				compare(node, parent) == 
 					std::Compare::less){
-					tree = getTree(parentTree->left);
-					tree->parent = node;
-					tree = getTree(node);
-					tree->left = parentTree->left;
-					tree->right = parent;
-					tree->parent = parentTree->parent;
-					parentTree->parent = node;
-				} else {
-					getTree(node)->parent = parentTree->left;
-					tree = getTree(parentTree->left);
-					tree->left = node;
-					tree->right = parent;
-					tree->parent = parentTree->parent;
-					parentTree->parent = parentTree->left;
-				}
-				insertRight(parentTree, tree, getTree);
+				left = tree->leftOrParent;
+				if (left != nullptr){
+					leftTree = getTree(left);
+				} else {leftTree = nullptr;}
 			} else {
-				parentTree->left = node;
-				getTree(node)->parent = parent;
+				left = parent;
+				parent = tree->leftOrParent;
+				leftTree = parentTree;
+				if (parent != nullptr){
+					parentTree = getTree(parent);
+				} else {parentTree = nullptr;}
+			}
+		}
+		std::ds::BalBinTree* rightTree;
+		if (tree->right != nullptr){
+			rightTree = getTree(tree->right);
+		} else {rightTree = nullptr;}
+		void* parentNext;
+		std::ds::BalBinTree* parentNextTree;
+		void* nodeNext;
+		std::ds::BalBinTree* nodeNextTree;
+		if (leftTree != nullptr /* && (
+			leftTree->parentOrLeft != node || 
+			rightTree->parentOrLeft == node)
+			could be used to take the node from the 
+			deeper side, but then the right side 
+			would need this ammount of code too. */
+			){
+			nodeNext = leftTree->right;
+			parentNext = left;
+			parentNextTree = leftTree;
+			if (nodeNext != nullptr){
+				nodeNextTree = getTree(nodeNext);
+				while (nodeNextTree->right != nullptr){
+					parentNext = nodeNext;
+					parentNextTree = nodeNextTree;
+					nodeNext = nodeNextTree->right;
+					nodeNextTree = getTree(nodeNext);
+				}
+				if (leftTree->parentOrLeft == node){
+					leftTree->parentOrLeft = nodeNext;
+				} else {
+					leftTree->leftOrParent = nodeNext;
+				}
+				if (nodeNextTree->parentOrLeft == 
+					parentNext){
+					left = nodeNextTree->leftOrParent;
+					if (left != nullptr){
+						leftTree = getTree(left);
+						leftTree->leftOrParent = nullptr;
+						leftTree->parentOrLeft = parentNext;
+					} else {leftTree = nullptr;}
+				} else {
+					left = nodeNextTree->parentOrLeft;
+					if (left != nullptr){
+						leftTree = getTree(left);
+						leftTree->leftOrParent = parentNext;
+					} else {leftTree = nullptr;}
+				}
+				parentNextTree->right = left;
+				nodeNextTree->parentOrLeft =
+					tree->parentOrLeft;
+				nodeNextTree->leftOrParent = 
+					tree->leftOrParent;
+			} else {
+				nodeNext = left;
+				nodeNextTree = leftTree;
+				if (nodeNextTree->parentOrLeft == node){
+					left = nodeNextTree->leftOrParent;
+					if (left != nullptr){
+						leftTree = getTree(left);
+						leftTree->leftOrParent = nullptr;
+						leftTree->parentOrLeft = nodeNext;
+					} else {leftTree = nullptr;}
+					if (tree->parentOrLeft == parent){
+						nodeNextTree->parentOrLeft = parent;
+					} else {
+						nodeNextTree->parentOrLeft = left;
+						nodeNextTree->leftOrParent = parent;
+					}
+				} else {
+					left = nodeNextTree->parentOrLeft;
+					if (left != nullptr){
+						leftTree = getTree(left);
+					} else {leftTree = nullptr;}
+					if (tree->parentOrLeft == parent){
+						nodeNextTree->leftOrParent = left;
+						nodeNextTree->parentOrLeft = parent;
+					} else {
+						nodeNextTree->leftOrParent = parent;
+					}
+				}
+			}
+			nodeNextTree->right = tree->right;
+			if (rightTree != nullptr){
+				if (rightTree->parentOrLeft == node){
+					rightTree->parentOrLeft = nodeNext;
+				} else {
+					rightTree->leftOrParent = nodeNext;
+				}
+			}
+		} else {
+			if (rightTree != nullptr){
+				if (tree->parentOrLeft == parent){
+					rightTree->parentOrLeft = parent;
+					rightTree->leftOrParent = nullptr;
+				} else {
+					rightTree->leftOrParent = parent;
+				}
+			}
+			nodeNext = tree->right;
+			left = nodeNext;
+			leftTree = rightTree;
+			parentNext = parent;
+			parentNextTree = parentTree;
+		}
+		if (parentTree != nullptr){
+			if (parentTree->right == node){
+				parentTree->right = nodeNext;
+			} else if (parentTree->parentOrLeft == node){
+				parentTree->parentOrLeft = nodeNext;
+			} else {
+				parentTree->leftOrParent = nodeNext;
+			}
+		} else {
+			*root = nodeNext;
+			if (nodeNext == nullptr) {return;}
+		}
+		tree->right = nullptr;
+		tree->parentOrLeft = nullptr;
+		tree->leftOrParent = nullptr;
+		node = left;
+		tree = leftTree;
+		parent = parentNext;
+		parentTree = parentNextTree;
+		while (true){
+			if (parentTree->right == node){
+				parentNext = 
+					parentTree->parentOrLeft;
+				if (parentNext == nullptr){
+					parentNextTree = nullptr;
+					if (parent != *root){
+						left = nullptr;
+						leftTree = nullptr;
+						parentNext = 
+							parentTree->leftOrParent;
+					} else {
+						left = parentTree->leftOrParent;
+						if (left != nullptr){
+							leftTree = getTree(left);
+						} else {leftTree = nullptr;}
+					}
+				} else {
+					parentNextTree = getTree(parentNext);
+					if (parentNextTree->right == parent ||
+						compare(parent, parentNext) == 
+							std::Compare::less){
+						left = parentTree->leftOrParent;
+						if (left != nullptr){
+							leftTree = getTree(left);
+						} else {leftTree = nullptr;}
+					} else {
+						left = parentNext;
+						parentNext = 
+							parentTree->leftOrParent;
+						leftTree = parentNextTree;
+						parentNextTree = nullptr;
+					}
+				}
+				if (left != nullptr){
+					if (leftTree->parentOrLeft == parent){
+						if (node == nullptr || 
+							tree->parentOrLeft == parent){
+							leftTree->parentOrLeft = 
+								leftTree->leftOrParent;
+							leftTree->leftOrParent = parent;
+							break;
+						} else {
+							tree->leftOrParent = 
+								tree->parentOrLeft;
+							tree->parentOrLeft = parent;
+						}
+					} else {
+						if (node == nullptr){
+							if (leftTree->parentOrLeft == nullptr && 
+								leftTree->right == nullptr){
+								break;
+							}
+						} else if (tree->parentOrLeft != parent){
+							tree->leftOrParent = 
+								tree->parentOrLeft;
+							tree->parentOrLeft = parent;
+							break;
+						}
+						bool same = false;
+						right = leftTree->right;
+						if (leftTree->parentOrLeft != nullptr){
+							if (right != nullptr){
+								nodeNext = leftTree->parentOrLeft;
+								nodeNextTree = getTree(nodeNext);
+								rightTree = getTree(right);
+								if (nodeNextTree->parentOrLeft == left){
+									if (rightTree->parentOrLeft == left){
+										rightTree->parentOrLeft = 
+											rightTree->leftOrParent;
+										rightTree->leftOrParent = parent;
+										nodeNext = left;
+										same = true;
+									} else {
+										nodeNext = right;
+										nodeNextTree = rightTree;
+									}
+								} else if (rightTree->parentOrLeft == 
+									left){
+									rightTree->parentOrLeft = parent;
+									nodeNext = left;
+								} else {
+									nodeNextTree->leftOrParent =
+										nodeNextTree->parentOrLeft;
+									nodeNextTree->parentOrLeft = left;
+									rightTree->leftOrParent = parent;
+									nodeNext = left;
+									same = true;
+								}
+							} else {
+								nodeNext = left;
+							}
+						} else {
+							nodeNext = right;
+							nodeNextTree = getTree(nodeNext);
+						}
+						if (right == nodeNext){
+							leftTree->right = 
+								nodeNextTree->parentOrLeft;
+							leftTree->leftOrParent = nodeNext;
+							nodeNextTree->parentOrLeft = left;
+							left = leftTree->parentOrLeft;
+							if (leftTree->right == nullptr){
+								leftTree = nullptr;
+							} else {
+								leftTree = getTree(leftTree->right);
+							}
+							if (leftTree != nullptr &&
+								leftTree->parentOrLeft != nodeNext){
+								leftTree->leftOrParent = 
+									leftTree->parentOrLeft;
+								leftTree->parentOrLeft = 
+									nodeNextTree->parentOrLeft;
+								tree->parentOrLeft = 
+									tree->leftOrParent;
+								tree->leftOrParent = parent;
+								left = nodeNextTree->right;
+								if (left != nullptr){
+									leftTree = getTree(left);
+									if (leftTree->parentOrLeft == right){
+										leftTree->parentOrLeft = parent;
+									} else {
+										leftTree->leftOrParent = parent;
+									}
+								}
+							} else if (left != nullptr){
+								if (leftTree != nullptr){
+									leftTree->parentOrLeft = 
+										nodeNextTree->parentOrLeft;
+								}
+								leftTree = getTree(left);
+								leftTree->parentOrLeft = 
+									leftTree->leftOrParent;
+								leftTree->leftOrParent = 
+									nodeNextTree->parentOrLeft;
+								left = nodeNextTree->right;
+								if (left != nullptr){
+									leftTree = getTree(left);
+									if (leftTree->parentOrLeft == 
+										right){
+										leftTree->parentOrLeft = 
+											leftTree->leftOrParent;
+										leftTree->leftOrParent = parent;
+									} else {
+										leftTree->leftOrParent = 
+											leftTree->parentOrLeft;
+										leftTree->parentOrLeft = parent;
+									}
+								}
+							}
+							leftTree = nodeNextTree;
+							left = nodeNext;
+							nodeNext = nodeNextTree->leftOrParent;
+						}
+						if (parentTree->leftOrParent == nodeNext){
+							leftTree->leftOrParent = 
+								leftTree->parentOrLeft;
+							leftTree->parentOrLeft = parentNext;
+						} else {
+							leftTree->leftOrParent = parentNext;
+						}
+						parentTree->parentOrLeft = 
+							leftTree->right;
+						parentTree->leftOrParent = left;
+						leftTree->right = parent;
+						if (parentNext != nullptr){
+							parentNextTree = getTree(parentNext);
+							if (parentNextTree->right == 
+								parent){
+								parentNextTree->right = left;
+							} else if (parentNextTree->leftOrParent == 
+								parent){
+								parentNextTree->leftOrParent = left;
+							} else {
+								parentNextTree->parentOrLeft = left;
+							}
+						} else {*root = left;}
+						if (same) {break;}
+						parent = left;
+						parentTree = leftTree;
+					}
+				}
+			} else {
+				if (parentTree->leftOrParent == node){
+					parentNext = 
+						parentTree->parentOrLeft;
+				} else {
+					parentNext = 
+						parentTree->leftOrParent;
+				}
+				parentNextTree = nullptr;
+				right = parentTree->right;
+				rightTree = getTree(right);
+				if (rightTree->parentOrLeft == parent){
+					if (node == nullptr || 
+						tree->parentOrLeft == parent){
+						rightTree->parentOrLeft = 
+							rightTree->leftOrParent;
+						rightTree->leftOrParent = parent;
+						break;
+					} else {
+						tree->leftOrParent = tree->parentOrLeft;
+						tree->parentOrLeft = parent;
+					}
+				} else {
+					if (node == nullptr){
+						if (rightTree->parentOrLeft == nullptr && 
+							rightTree->right == nullptr){
+							break;
+						}
+					} else if (tree->parentOrLeft != parent){
+						tree->leftOrParent = tree->parentOrLeft;
+						tree->parentOrLeft = parent;
+						break;
+					}
+					bool same = false;
+					left = rightTree->parentOrLeft;
+					if (rightTree->right != nullptr){
+						if (left != nullptr){
+							nodeNext = rightTree->right;
+							nodeNextTree = getTree(nodeNext);
+							leftTree = getTree(left);
+							if (nodeNextTree->parentOrLeft == right){
+								if (leftTree->parentOrLeft == right){
+									leftTree->parentOrLeft = 
+										leftTree->leftOrParent;
+									leftTree->leftOrParent = parent;
+									nodeNext = parent;
+									same = true;
+								} else {
+									nodeNext = left;
+									nodeNextTree = leftTree;
+								}
+							} else if (leftTree->parentOrLeft == 
+								right){
+								leftTree->parentOrLeft = parent;
+								nodeNext = parent;
+							} else {
+								nodeNextTree->leftOrParent = 
+									nodeNextTree->parentOrLeft;
+								nodeNextTree->parentOrLeft = right;
+								leftTree->leftOrParent = parent;
+								nodeNext = parent;
+								same = true;
+							}
+						} else {
+							nodeNext = parent;
+						}
+					} else {
+						nodeNext = left;
+						nodeNextTree = getTree(nodeNext);
+					}
+					if (left == nodeNext){
+						rightTree->parentOrLeft = 
+							nodeNextTree->right;
+						rightTree->leftOrParent = nodeNext;
+						nodeNextTree->right = right;
+						right = rightTree->right;
+						if (rightTree->parentOrLeft == nullptr){
+							rightTree = nullptr;
+						} else {
+							rightTree = getTree(
+								rightTree->parentOrLeft);
+						}
+						if (rightTree != nullptr &&
+							rightTree->parentOrLeft != nodeNext){
+							rightTree->leftOrParent = 
+								rightTree->parentOrLeft;
+							rightTree->parentOrLeft = 
+								nodeNextTree->right;
+							tree->parentOrLeft = tree->leftOrParent;
+							tree->leftOrParent = parent;
+							right = nodeNextTree->parentOrLeft;
+							if (right != nullptr){
+								rightTree = getTree(right);
+								if (rightTree->parentOrLeft == left){
+									rightTree->parentOrLeft = parent;
+								} else {
+									rightTree->leftOrParent = parent;
+								}
+							}
+						} else if (right != nullptr){
+							if (rightTree != nullptr){
+								rightTree->parentOrLeft = 
+									nodeNextTree->right;
+							}
+							rightTree = getTree(right);
+							rightTree->parentOrLeft = 
+								rightTree->leftOrParent;
+							rightTree->leftOrParent = 
+								nodeNextTree->right;
+							right = nodeNextTree->parentOrLeft;
+							if (right != nullptr){
+								rightTree = getTree(right);
+								if (rightTree->parentOrLeft == left){
+									rightTree->parentOrLeft = 
+										rightTree->leftOrParent;
+									rightTree->leftOrParent = parent;
+								} else {
+									rightTree->leftOrParent = 
+										rightTree->parentOrLeft;
+									rightTree->parentOrLeft = parent;
+								}
+							}
+						}
+						rightTree = nodeNextTree;
+						right = nodeNext;
+					}
+					parentTree->right = rightTree->parentOrLeft;
+					if (parentTree->leftOrParent == node){
+						rightTree->parentOrLeft = parentNext;
+						rightTree->leftOrParent = parent;
+					} else {
+						rightTree->parentOrLeft = parent;
+						rightTree->leftOrParent = parentNext;
+					}
+					parentTree->parentOrLeft = node;
+					parentTree->leftOrParent = right;
+					if (parentNext != nullptr){
+						if (parentNextTree == nullptr){
+							parentNextTree = 
+								getTree(parentNext);
+						}
+						if (parentNextTree->right == 
+							parent){
+							parentNextTree->right = right;
+						} else if (parentNextTree->leftOrParent == 
+							parent){
+							parentNextTree->leftOrParent = right;
+						} else {
+							parentNextTree->parentOrLeft = right;
+						}
+					} else {*root = right;}
+					if (same) {break;}
+					parentTree = rightTree;
+					parent = right;
+				}
+			}
+			if (parentNext == nullptr) {break;}
+			node = parent;
+			tree = parentTree;
+			parent = parentNext;
+			if (parentNextTree == nullptr){
+				parentTree = getTree(parent);
+			} else {
+				parentTree = parentNextTree;
 			}
 		}
 	}
 	
-	void* last(
-		std::ds::BinTree*(void*) getTree){
-		return std::ds::BinTree::last(
-			root, getTree);
+	static void* find(
+		void* root, void* node,
+		std::ds::BalBinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		void* parent = nullptr;
+		std::ds::BalBinTree* tree;
+		while (root != nullptr){
+			switch (compare(root, node)){
+				case std::Compare::less:
+					parent = root;
+					root = getTree(root)->right;
+					continue;
+				case std::Compare::equal:
+					break;
+				case std::Compare::greater:
+					tree = getTree(root);
+					if (tree->parentOrLeft == parent){
+						parent = root;
+						root = tree->leftOrParent;
+					} else {
+						parent = root;
+						root = tree->parentOrLeft;
+					}
+					continue;
+			}
+			break;
+		}
+		return root;
 	}
 	
-	void* max(void* node,
-		std::ds::BinTree*(void*) getTree,
-		unsigned char(void*, void*) compare){
-		return std::ds::BinTree::max(
-			root, node, getTree, compare);
+	static void* first(void* root,
+		std::ds::BalBinTree*(void*) getTree){
+		if (root != nullptr){
+			void* parent = nullptr;
+			void* left;
+			while (true){
+				std::ds::BalBinTree* tree = getTree(root);
+				left = tree->parentOrLeft;
+				if (left == parent)
+					{left = tree->leftOrParent;}
+				if (left == nullptr) {break;}
+				parent = root;
+				root = left;
+			}
+		}
+		return root;
 	}
 	
-	void* min(void* node,
-		std::ds::BinTree*(void*) getTree,
+	static void insert(
+		void** root, void* node,
+		std::ds::BalBinTree*(void*) getTree,
 		unsigned char(void*, void*) compare){
-		return std::ds::BinTree::min(
-			root, node, getTree, compare);
+		void* parent = *root;
+		if (parent != nullptr){
+			std::ds::BalBinTree* tree;
+			std::ds::BalBinTree* parentTree;
+			void* parentNext = nullptr;
+			while (true){
+				parentTree = getTree(parent);
+				if (compare(parent, node) == 
+					std::Compare::less){
+					if (parentTree->right != nullptr){
+						parentNext = parent;
+						parent = parentTree->right;
+					} else {
+						parentTree->right = node;
+						break;
+					}
+				} else {
+					void** left;
+					if (parentTree->parentOrLeft == 
+						parentNext){
+						left = &parentTree->leftOrParent;
+					} else {
+						left = &parentTree->parentOrLeft;
+					}
+					if (*left != nullptr){
+						parentNext = parent;
+						parent = *left;
+					} else {
+						*left = node;
+						break;
+					}
+				}
+			}
+			tree = getTree(node);
+			tree->parentOrLeft = parent;
+			void* left;
+			std::ds::BalBinTree* leftTree;
+			std::ds::BalBinTree* rightTree;
+			std::ds::BalBinTree* parentNextTree;
+			void* nodeNext = nullptr;
+			std::ds::BalBinTree* nodeNextTree;
+			while (true){
+				if (parentTree->right == node){
+					parentNext = 
+						parentTree->parentOrLeft;
+					if (parentNext == nullptr){
+						parentNextTree = nullptr;
+						if (parent != *root){
+							left = nullptr;
+							leftTree = nullptr;
+							parentNext = 
+								parentTree->leftOrParent;
+						} else {
+							left = parentTree->leftOrParent;
+							if (left != nullptr){
+								leftTree = getTree(left);
+							} else {leftTree = nullptr;}
+						}
+					} else {
+						parentNextTree = getTree(parentNext);
+						if (parentNextTree->right == parent ||
+							compare(parent, parentNext) == 
+								std::Compare::less){
+							left = parentTree->leftOrParent;
+							if (left != nullptr){
+								leftTree = getTree(left);
+							} else {leftTree = nullptr;}
+						} else {
+							left = parentNext;
+							parentNext = 
+								parentTree->leftOrParent;
+							leftTree = parentNextTree;
+							parentNextTree = nullptr;
+						}
+					}
+					if (tree->parentOrLeft == parent){
+						std::arr::Ptr::switchValue(
+							&tree->leftOrParent, 
+							&tree->parentOrLeft);
+						if (leftTree != nullptr &&
+							leftTree->parentOrLeft != parent)
+								{break;}
+					} else if (leftTree == nullptr ||
+						leftTree->parentOrLeft == parent){
+						if (tree->right != nodeNext){
+							tree->parentOrLeft = 
+								nodeNextTree->right;
+							tree->leftOrParent = nodeNext;
+							nodeNextTree->right = node;
+							node = tree->right;
+							if (tree->parentOrLeft == nullptr){
+								tree = nullptr;
+							} else {
+								tree = getTree(tree->parentOrLeft);
+							}
+							if (tree != nullptr &&
+								tree->parentOrLeft != nodeNext){
+								tree->leftOrParent = 
+									tree->parentOrLeft;
+								tree->parentOrLeft = 
+									nodeNextTree->right;
+								leftTree->parentOrLeft = 
+									leftTree->leftOrParent;
+								leftTree->leftOrParent = parent;
+								node = nodeNextTree->parentOrLeft;
+								if (node != nullptr){
+									getTree(node)->parentOrLeft = 
+										parent;
+								}
+							} else if (node != nullptr){
+								if (tree != nullptr){
+									tree->parentOrLeft = 
+										nodeNextTree->right;
+								}
+								tree = getTree(node);
+								tree->parentOrLeft = 
+									tree->leftOrParent;
+								tree->leftOrParent = 
+									nodeNextTree->right;
+								node = nodeNextTree->parentOrLeft;
+								if (node != nullptr){
+									tree = getTree(node);
+									tree->leftOrParent = 
+										tree->parentOrLeft;
+									tree->parentOrLeft = parent;
+								}
+							}
+							tree = nodeNextTree;
+							node = nodeNext;
+						} else if (tree->parentOrLeft != nullptr){
+							getTree(tree->parentOrLeft)->
+								parentOrLeft = parent;
+						}
+						parentTree->right = tree->parentOrLeft;
+						if (parentTree->leftOrParent == left){
+							tree->parentOrLeft = parentNext;
+							tree->leftOrParent = parent;
+						} else {
+							tree->parentOrLeft = parent;
+							tree->leftOrParent = parentNext;
+						}
+						parentTree->parentOrLeft = left;
+						parentTree->leftOrParent = node;
+						if (parentNext != nullptr){
+							if (parentNextTree == nullptr){
+								parentNextTree = 
+									getTree(parentNext);
+							}
+							if (parentNextTree->right == 
+								parent){
+								parentNextTree->right = node;
+							} else if (parentNextTree->leftOrParent == 
+								parent){
+								parentNextTree->leftOrParent = node;
+							} else {
+								parentNextTree->parentOrLeft = node;
+							}
+						} else {*root = node;}
+						break;
+					} else {
+						std::arr::Ptr::switchValue(
+							&leftTree->leftOrParent, 
+							&leftTree->parentOrLeft);
+					}
+				} else {
+					if (parentTree->leftOrParent == node){
+						parentNext = 
+							parentTree->parentOrLeft;
+					} else {
+						parentNext = 
+							parentTree->leftOrParent;
+					}
+					if (parentTree->right != nullptr){
+						rightTree = getTree(parentTree->right);
+					} else {
+						rightTree = nullptr;
+					}
+					if (tree->parentOrLeft == parent){
+						std::arr::Ptr::switchValue(
+							&tree->leftOrParent, 
+							&tree->parentOrLeft);
+						if (rightTree != nullptr &&
+							rightTree->parentOrLeft != parent)
+								{break;}
+					} else if (rightTree == nullptr ||
+						rightTree->parentOrLeft == parent){
+						if (tree->right == nodeNext){
+							tree->right = 
+								nodeNextTree->parentOrLeft;
+							tree->leftOrParent = nodeNext;
+							nodeNextTree->parentOrLeft = node;
+							node = tree->parentOrLeft;
+							if (tree->right == nullptr){
+								tree = nullptr;
+							} else {
+								tree = getTree(tree->right);
+							}
+							if (tree != nullptr &&
+								tree->parentOrLeft != nodeNext){
+								tree->leftOrParent = 
+									tree->parentOrLeft;
+								tree->parentOrLeft = 
+									nodeNextTree->parentOrLeft;
+								rightTree->parentOrLeft = 
+									rightTree->leftOrParent;
+								rightTree->leftOrParent = parent;
+								node = nodeNextTree->right;
+								if (node != nullptr){
+									getTree(node)->parentOrLeft = 
+										parent;
+								}
+							} else if (node != nullptr){
+								if (tree != nullptr){
+									tree->parentOrLeft = 
+										nodeNextTree->parentOrLeft;
+								}
+								tree = getTree(node);
+								tree->parentOrLeft = 
+									tree->leftOrParent;
+								tree->leftOrParent = 
+									nodeNextTree->parentOrLeft;
+								node = nodeNextTree->right;
+								if (node != nullptr){
+									tree = getTree(node);
+									tree->leftOrParent = 
+										tree->parentOrLeft;
+									tree->parentOrLeft = parent;
+								}
+							}
+							tree = nodeNextTree;
+							node = nodeNext;
+						} else if (tree->right != nullptr){
+							getTree(tree->right)->parentOrLeft = 
+								parent;
+						}
+						if (parentTree->leftOrParent == 
+							nodeNextTree->leftOrParent){
+							tree->leftOrParent = 
+								tree->parentOrLeft;
+							tree->parentOrLeft = parentNext;
+						} else {
+							tree->leftOrParent = parentNext;
+						}
+						parentTree->parentOrLeft = tree->right;
+						parentTree->leftOrParent = node;
+						tree->right = parent;
+						if (parentNext != nullptr){
+							parentNextTree = getTree(parentNext);
+							if (parentNextTree->right == 
+								parent){
+								parentNextTree->right = node;
+							} else if (parentNextTree->leftOrParent == 
+								parent){
+								parentNextTree->leftOrParent = node;
+							} else {
+								parentNextTree->parentOrLeft = node;
+							}
+						} else {*root = node;}
+						break;
+					} else {
+						std::arr::Ptr::switchValue(
+							&rightTree->leftOrParent,
+							&rightTree->parentOrLeft);
+					}
+				}
+				if (parentNext == nullptr) {break;}
+				nodeNext = node;
+				nodeNextTree = tree;
+				node = parent;
+				tree = parentTree;
+				parent = parentNext;
+				parentTree = getTree(parent);
+			}
+		} else {
+			*root = node;
+		}
+	}
+	
+	static void* last(void* node,
+		std::ds::BalBinTree*(void*) getTree){
+		if (node != nullptr){
+			while (true){
+				std::ds::BalBinTree* tree = getTree(node);
+				if (tree->right == nullptr) {break;}
+				node = tree->right;
+			}
+		}
+		return node;
+	}
+
+	static void* max(
+		void* root, void* node,
+		std::ds::BalBinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		void* parent = nullptr;
+		void* parentNext = nullptr;
+		std::ds::BalBinTree* tree;
+		while (root != nullptr){
+			switch (compare(root, node)){
+				case std::Compare::less:
+					parent = root;
+					parentNext = root;
+					root = getTree(root)->right;
+					continue;
+				case std::Compare::equal:
+					parentNext = root;
+					break;
+				case std::Compare::greater:
+					tree = getTree(root);
+					if (tree->parentOrLeft == parent){
+						parent = root;
+						root = tree->leftOrParent;
+					} else {
+						parent = root;
+						root = tree->parentOrLeft;
+					}
+					continue;
+			}
+			break;
+		}
+		return parentNext;
+	}
+
+	static void* min(
+		void* root, void* node,
+		std::ds::BalBinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		void* parent = nullptr;
+		void* parentNext = nullptr;
+		std::ds::BalBinTree* tree;
+		while (root != nullptr){
+			switch (compare(root, node)){
+				case std::Compare::less:
+					parent = root;
+					root = getTree(root)->right;
+					continue;
+				case std::Compare::equal:
+					parentNext = root;
+					break;
+				case std::Compare::greater:
+					parentNext = root;
+					tree = getTree(root);
+					if (tree->parentOrLeft == parent){
+						root = tree->leftOrParent;
+					} else {
+						root = tree->parentOrLeft;
+					}
+					parent = parentNext;
+					continue;
+			}
+			break;
+		}
+		return parentNext;
+	}
+	
+	static void* debug(void* node){
+		std::str::DString string;
+		string.addUint(
+			(Node*)node->number,
+			std::NumberBases::decimal);
+		string.debug();
+	}
+	
+	static void* next(void* node,
+		std::ds::BalBinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		std::ds::BalBinTree* tree = getTree(node);
+		void* parent;
+		if (tree->right != nullptr){
+			void* left;
+			parent = node;
+			node = tree->right;
+			while (true){
+				tree = getTree(node);
+				left = tree->parentOrLeft;
+				if (left == parent)
+					{left = tree->leftOrParent;}
+				if (left == nullptr) {break;}
+				parent = node;
+				node = left;
+			}
+		} else {
+			std::ds::BalBinTree* parentTree;
+			while (true){
+				parent = tree->parentOrLeft;
+				if (parent != nullptr){
+					parentTree = tree;
+					tree = getTree(parent);
+					if (tree->right != node &&
+						compare(node, parent) != 
+							std::Compare::less){
+						parent = 
+							parentTree->leftOrParent;
+						if (parent == nullptr){
+							node = nullptr;
+							break;
+						}
+						tree = getTree(parent);
+					}
+					if (tree->right != node){
+						node = parent;
+						break;
+					}
+				} else {
+					parent = tree->leftOrParent;
+					if (parent == nullptr){
+						node = nullptr;
+						break;
+					}
+					tree = getTree(parent);
+					if (tree->right != node){
+						if (compare(node, parent) != 
+							std::Compare::less){
+							node = nullptr;
+						} else {
+							node = parent;
+						}
+						break;
+					}
+				}
+				node = parent;
+			}
+		}
+		return node;
+	}
+	
+	static void* previous(void* node,
+		std::ds::BalBinTree*(void*) getTree,
+		unsigned char(void*, void*) compare){
+		std::ds::BalBinTree* tree = getTree(node);
+		void* left;
+		void* parent = tree->parentOrLeft;
+		std::ds::BalBinTree* parentTree;
+		if (parent != nullptr){
+			left = tree->leftOrParent;
+			tree = getTree(parent);
+			if (tree->right != node &&
+				compare(node, parent) != 
+					std::Compare::less){
+				left = parent;
+			} else if (left != nullptr){
+				tree = getTree(left);
+			}
+		} else {
+			parent = tree->leftOrParent;
+			if (parent == nullptr)
+				{return nullptr;}
+			tree = getTree(parent);
+			if (tree->right != node &&
+				compare(node, parent) != 
+					std::Compare::less){
+				left = parent;
+			} else {
+				left = nullptr;
+			}
+		}
+		if (left != nullptr){
+			node = left;
+			while (true){
+				if (tree->right == nullptr) {break;}
+				node = tree->right;
+				tree = getTree(node);
+			}
+		} else {
+			std::ds::BalBinTree* parentTree;
+			while (true){
+				if (tree->right == node){
+					node = parent;
+					break;
+				}
+				node = parent;
+				parent = tree->parentOrLeft;
+				if (parent != nullptr){
+					parentTree = tree;
+					tree = getTree(parent);
+					if (tree->right != node &&
+						compare(node, parent) != 
+							std::Compare::less){
+						left = parent;
+						parent = 
+							parentTree->leftOrParent;
+						if (parent == nullptr){
+							node = nullptr;
+							break;
+						}
+						tree = getTree(parent);
+					} else {
+						left = parentTree->leftOrParent;
+					}
+				} else {
+					parent = tree->leftOrParent;
+					if (parent == nullptr){
+						node = nullptr;
+						break;
+					}
+					tree = getTree(parent);
+					if (tree->right != node &&
+						compare(node, parent) != 
+							std::Compare::less){
+						node = nullptr;
+						break;
+					}
+					left = nullptr;
+				}
+			}
+		}
+		return node;
 	}
 	
 }
