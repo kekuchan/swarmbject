@@ -1,17 +1,16 @@
 # "std::ds::BalBinTree" class:
 
 Used for objects as part of a binary tree, that 
-is balanced, to have the minimum ammount of levels.
+is balanced, to have a minimized ammount of levels.
 
 ```
 /*In Year.scf*/
 class Year {
 	int value;
-	std::ds::BinTree tree;
+	std::ds::BalBinTree tree;
 	
 	/*Used by the member functions.*/
-	
-	static std::ds::BinTree* getTree(void* year){
+	static std::ds::BalBinTree* getTree(void* year){
 		return &(Year*)year->tree;
 	}
 	
@@ -27,7 +26,7 @@ class Year {
 		return std::arr::Int::compareValue(
 			(Year*)year->value, *(int*)i);
 	}
-	
+
 	static void erase(void* year){
 		delete (Year*)year;
 	}
@@ -38,56 +37,37 @@ class Year {
 		year->value = (int[])array[i];
 		return year;
 	}
-	
 }
 ```
 
-## "root" data member:
+## "clear" static function:
 
-The root element of the tree, as a void*.
-
-```
-std::ds::BalBinTree tree;
-Year* year = (Year*)(tree.root); /*nullptr*/
-```
-
-## "size" data member:
-
-The number of elements in the tree as 
-an unsigned int.
-
-```
-std::ds::BalBinTree tree;
-unsigned int size = tree.size; /*0*/
-```
-
-## "clear" member function:
-
-Removes all the elements from the tree. 
+Removes all the elements from the tree.
 The elements are not deleted automatically, 
 as they might be still used elsewhere.
 
 Parameters:
-* A pointer to an "std::ds::BinTree*(void*)" function 
-that returns a pointer to the std::ds::BinTree data 
-member of the given element.
+* The root element.
+* A pointer to an "std::ds::BalBinTree*(void*)" 
+function that returns a pointer to the 
+std::ds::BalBinTree data member of the given element.
 * A pointer to a "void(void*)" function 
 that is called with each removed element.
 
 Returns: void.
 
 ```
-std::ds::BalBinTree tree;
+Year* root = nullptr;
 Year* year = new Year;
 year->value = 2022;
-tree.insert(year, 
+std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
-tree.clear(Year::getTree,
-	Year::erase);
-unsigned int size = tree.size; /*0*/
+std::ds::BalBinTree::clear(root, 
+	Year::getTree, Year::erase);
+root = nullptr;
 ```
 
-## "create" member function:
+## "create" static function:
 
 Creates a tree, from some construct. If the 
 tree is not empty, its elements are not removed 
@@ -100,58 +80,62 @@ Parameters:
 * A pointer to a "void*(void*, unsigned int)" 
 function that returns an element from the 
 given construct at the given index.
-* A pointer to an "std::ds::BinTree*(void*)" function 
-that returns a pointer to the std::ds::BinTree data 
-member of the given element.
+* A pointer to an "BalBinTree*(void*)" 
+function that returns a pointer to the 
+std::ds::BalBinTree data member of the given element.
 
-Returns: void.
+Returns: the root element, as a void*.
 
 ```
 int[] years = new int[2];
 years[0] = 2021;
 years[1] = 2022;
-std::ds::BalBinTree tree;
-tree.create(
-	years, 0, 2, 
+Year* root = std::ds::BalBinTree::create(
+	years, 0, 2,
 	Year::getElement, Year::getTree);
 ```
 
-## "erase" member function:
+## "erase" static function:
 
 Removes an element from the tree. The element 
 is not deleted automatically, as it might be 
 still used elsewhere.
 
 Parameters:
+* A pointer to a construct, that points to 
+the root element.
 * The element to remove.
-* A pointer to an "std::ds::BinTree*(void*)" function 
-that returns a pointer to the std::ds::BinTree data 
-member of the given element.
+* A pointer to an "BalBinTree*(void*)" 
+function that returns a pointer to the 
+std::ds::BalBinTree data member of the given element.
 
 Returns: void.
 
 ```
-std::ds::BalBinTree tree;
+Year* root = nullptr;
 Year* year = new Year;
 year->value = 2021;
-tree.insert(year, 
+std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
 year = new Year;
 year->value = 2022;
-tree.insert(year, 
+std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
-tree.erase(year, Year::getTree);
+std::ds::BalBinTree::erase(&root, 
+	root, Year::getTree);
 /*root=2022*/
 ```
 
-## "find" member function:
+## "find" static function:
 
 Finds an element in the tree.
 
+Parameters:
+* The root element.
 * A pointer to an element to find.
-* A pointer to an "std::ds::BinTree*(void*)" function 
-that returns a pointer to the std::ds::BinTree data 
-member of the given element.
+* A pointer to an "std::ds::BalBinTree*(void*)" 
+function that returns a pointer to the 
+std::ds::BalBinTree data member of the given element.
 * A pointer to an "unsigned char(void*, void*)" 
 function that can compare any element of the 
 tree, with the given element to find, 
@@ -161,49 +145,53 @@ Returns: nullptr if not found,
 otherwise the element.
 
 ```
-std::ds::BalBinTree tree;
+Year* root = nullptr;
 Year* year = new Year;
 year->value = 2022;
-tree.insert(year, 
+std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
 int i = 2022;
-year = (Year*)(tree.find(&i, 
-	Year::getTree, Year::compareValue));
+year = (Year*)(std::ds::BalBinTree::find(root, &i,
+	Year::getTree, Year::compareValue);
 ```
 
-## "first" member function:
+## "first" static function:
 
 Gets the first element in the tree, as a void*.
 
 Parameters:
-* A pointer to an "std::ds::BinTree*(void*)" function 
-that returns a pointer to the std::ds::BinTree data 
-member of the given element.
+* The root element.
+* A pointer to an "std::ds::BalBinTree*(void*)" 
+function that returns a pointer to the 
+std::ds::BalBinTree data member of the given element.
 
 Returns: void*.
 
 ```
-std::ds::BalBinTree tree;
+Year* root = nullptr;
 Year* year = new Year;
 year->value = 2021;
-tree.insert(year, 
+std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
 year = new Year;
 year->value = 2022;
-tree.insert(year, 
+std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
-year = (Year*)(tree.first(
-	Year::getTree)); /*2021*/
+year = (Year*)(std::ds::BalBinTree::first(
+	root, Year::getTree)); /*2021*/
 ```
-
-## "insert" member function:
+		
+## "insert" static function:
 
 Inserts an element to the tree.
 
-* A pointer to the element to insert.
-* A pointer to an "std::ds::BinTree*(void*)" function 
-that returns a pointer to the std::ds::BinTree data 
-member of the given element.
+Parameters:
+* A pointer to a construct, that points to 
+the root element.
+* The element to insert.
+* A pointer to an "std::ds::BalBinTree*(void*)" 
+function that returns a pointer to the 
+std::ds::BalBinTree data member of the given element.
 * A pointer to an "unsigned char(void*, void*)" 
 function that can compare any element of the 
 tree, with the given element to insert,
@@ -212,10 +200,10 @@ and returns an std::Compare value.
 Returns: void.
 
 ```
-std::ds::BalBinTree tree;
+Year* root = nullptr;
 Year* year = new Year;
 year->value = 2022;
-tree.insert(year, 
+std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
 /*root=2022*/
 ```
@@ -225,34 +213,38 @@ tree.insert(year,
 Gets the last element in the tree, as a void*.
 
 Parameters:
-* A pointer to an "std::ds::BinTree*(void*)" function 
-that returns a pointer to the std::ds::BinTree data 
-member of the given element.
+* The root element.
+* A pointer to an "std::ds::BalBinTree*(void*)" 
+function that returns a pointer to the 
+std::ds::BalBinTree data member of the given element.
 
 Returns: void*.
 
 ```
+Year* root = nullptr;
 Year* year = new Year;
 year->value = 2021;
-tree.insert(year, 
+std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
 year = new Year;
 year->value = 2022;
-tree.insert(year, 
+std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
-year = (Year*)(tree.last(
-	Year::getTree)); /*2022*/
+year = (Year*)(std::ds::BalBinTree::last(
+	root, Year::getTree)); /*2022*/
 ```
 
-## "max" member function:
+## "max" static function:
 
 Finds an element, or if not found, then 
 its logically previous element in the tree.
 
+Parameters:
+* The root element.
 * A pointer to an element to find.
-* A pointer to an "std::ds::BinTree*(void*)" function 
-that returns a pointer to the std::ds::BinTree data 
-member of the given element.
+* A pointer to an "std::ds::BalBinTree*(void*)" 
+function that returns a pointer to the 
+std::ds::BalBinTree data member of the given element.
 * A pointer to an "unsigned char(void*, void*)" 
 function that can compare any element of the 
 tree, with the given element to find, 
@@ -261,25 +253,27 @@ and returns an std::Compare value.
 Returns: void*.
 
 ```
-std::ds::BalBinTree tree;
+Year* root = nullptr;
 Year* year = new Year;
 year->value = 2021;
-tree.insert(year, 
+std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
 int i = 2022;
-year = (Year*)(tree.max(&i, 
-	Year::getTree, Year::compareValue)); /*2021*/
+year = (Year*)(std::ds::BalBinTree::max(root, &i,
+	Year::getTree, Year::compareValue); /*2021*/
 ```
 
-## "min" member function:
+## "min" static function:
 
 Finds an element, or if not found, then 
 its logically next element in the tree.
 
+Parameters:
+* The root element.
 * A pointer to an element to find.
-* A pointer to an "std::ds::BinTree*(void*)" function 
-that returns a pointer to the std::ds::BinTree data 
-member of the given element.
+* A pointer to an "std::ds::BalBinTree*(void*)" 
+function that returns a pointer to the 
+std::ds::BalBinTree data member of the given element.
 * A pointer to an "unsigned char(void*, void*)" 
 function that can compare any element of the 
 tree, with the given element to find, 
@@ -288,14 +282,66 @@ and returns an std::Compare value.
 Returns: void*.
 
 ```
-std::ds::BalBinTree tree;
+Year* root = nullptr;
 Year* year = new Year;
 year->value = 2022;
-tree.insert(year, 
+std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
 int i = 2021;
-year = (Year*)(tree.min(&i, 
-	Year::getTree, Year::compareValue)); /*2022*/
+year = (Year*)(std::ds::BalBinTree::min(root, &i,
+	Year::getTree, Year::compareValue); /*2022*/
+```
+
+## "next" static function:
+
+Gets the next element in the tree, as a void*.
+
+Parameters:
+* An element in the tree.
+* A pointer to an "std::ds::BalBinTree*(void*)" 
+function that returns a pointer to the 
+std::ds::BalBinTree data member of the given element.
+
+Returns: void*.
+
+```
+Year* root = nullptr;
+Year* year = new Year;
+year->value = 2021;
+std::ds::BalBinTree::insert(&root, year, 
+	Year::getTree, Year::compare);
+year = new Year;
+year->value = 2022;
+std::ds::BalBinTree::insert(&root, year, 
+	Year::getTree, Year::compare);
+year = (Year*)(std::ds::BalBinTree::next(
+	root, Year::getTree)); /*2022*/
+```
+	
+## "previous" static function:
+
+Gets the previous element in the tree, as a void*.
+
+Parameters:
+* An element in the tree.
+* A pointer to an "std::ds::BalBinTree*(void*)" 
+function that returns a pointer to the 
+std::ds::BalBinTree data member of the given element.
+
+Returns: void*.
+
+```
+Year* root = nullptr;
+Year* year = new Year;
+year->value = 2021;
+std::ds::BalBinTree::insert(&root, year, 
+	Year::getTree, Year::compare);
+year = new Year;
+year->value = 2022;
+std::ds::BalBinTree::insert(&root, year, 
+	Year::getTree, Year::compare);
+year = (Year*)(std::ds::BalBinTree::previous(
+	year, Year::getTree)); /*2021*/
 ```
 
 # Software license
