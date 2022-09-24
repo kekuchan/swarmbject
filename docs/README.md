@@ -40,8 +40,6 @@ it easier.
 *Extensive API:*
 While the base language is made to be simple, there should be
 an extensive set of pre-programmed functionalities (API).
-Note: This is a future goal, as currently only what was
-needed for the compiler is programmed.
 
 *C/C++ like syntax:*
 C and C++ are old but still very popular languages,
@@ -84,7 +82,7 @@ Read [/docs/CONTRIBUTE.md](CONTRIBUTE.md).
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -154,7 +152,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

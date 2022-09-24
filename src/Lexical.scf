@@ -1109,13 +1109,10 @@ class Lexical {
 		return operand1;
 	}
 	
-	static void doConstParse(Main* main,
-		lexical::BinaryOperator* expression){
-		lexical::DataMember* dataMember =
-			(lexical::DataMember*)
-				(expression->operand1);
+	static lexical::Type* doConstParse(Main* main,
+		lexical::Type* expression){
 		lexical::Type* value = 
-			constParse(main, expression->operand2);
+			constParse(main, expression);
 		if (!main->isConstLiteral){
 			switch (value->type){
 				case lexical::Types::integerLiteral:
@@ -1128,8 +1125,8 @@ class Lexical {
 					break;
 			}
 		}
-		dataMember->value = value;
 		maybeDeleteExpression(main, expression);
+		return value;
 	}
 	
 	static lexical::Type* maybeDeleteExpressions(Main* main,
@@ -2020,6 +2017,9 @@ class Lexical {
 				break;
 			case KeywordTypes::constexprT :
 				tokenType = TokenTypes::constexprKeyword;
+				break;
+			case KeywordTypes::constifT :
+				tokenType = TokenTypes::constifKeyword;
 				break;
 			case KeywordTypes::constwriteT :
 				tokenType = TokenTypes::constwriteKeyword;

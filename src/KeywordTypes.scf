@@ -80,6 +80,7 @@ enum KeywordTypes {
 	classT,
 	constT,
 	constexprT,
+	constifT,
 	constwriteT,
 	continueT,
 	defaultT,

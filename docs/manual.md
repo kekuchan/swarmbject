@@ -592,7 +592,7 @@ after the type of the array's elements.
 
 ```
 unsigned char const[] string =
-	"This is a string."
+	"This is a string.";
 /*A string contains sequence of chars, thus it
 is an array. As it is a literal, its elements 
 can not be changed indicated by the const specifier.*/
@@ -1390,6 +1390,27 @@ A constwrite statement is intended only for
 developers, having to write platform dependent 
 code, as it simply compiles the operand as 
 unprocessed code.
+
+## constif statement 
+
+When the "constif" expression is true, then the 
+statements of its block are compiled, but if 
+it is false, then it is ignored as if it were 
+just like a comment, and the first "else if" 
+that is true is compiled, or if all are false, 
+then the "else" block is compiled. The "else if" 
+and the "else" parts can be omited if not needed.
+
+```
+bool constexpr compile = true;
+
+/*In some function:*/
+constif (compile){
+	/*This block is compiled. */
+} else {
+	/*This block is ignored. */
+}
+```
 
 ## Expressions:
 
