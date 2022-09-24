@@ -89,19 +89,6 @@ in fix sized arrays
 
 ### constexpr member functions 
 
-### constif statement 
-
-```
-bool constexpr compile = true;
-
-/*In some function:*/
-constif (compile){
-	/*This block is compiled. */
-} else {
-	/*This block is ignored. */
-}
-```
-
 ### alock specifier 
 
 Async function parameters with the alock 
@@ -143,7 +130,7 @@ size used to store the language constructs
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -213,7 +200,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
