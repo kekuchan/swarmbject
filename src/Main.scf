@@ -125,6 +125,8 @@ class Main {
 	std::str::DString classOrMemberPath;
 	std::str::DString classMemberName;
 	unsigned int rootPath;
+	bool onlyConst;
+	bool savedOnlyConst;
 
 	lexical::Type* nullptrLiteral;
 	lexical::Type* thisLiteral;

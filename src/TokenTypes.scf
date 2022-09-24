@@ -100,6 +100,7 @@ enum TokenTypes {
 	switchKeyword,
 	caseKeyword,
 	defaultKeyword,
+	constifKeyword,
 	identifier,
 	/* Generic token type, the specific type will
 		be determined by parsing it further. */

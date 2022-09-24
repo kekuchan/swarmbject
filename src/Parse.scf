@@ -153,6 +153,7 @@ class Parse {
 			data[KeywordTypes::classT] = "class";
 			data[KeywordTypes::constT] = "const";
 			data[KeywordTypes::constexprT] = "constexpr";
+			data[KeywordTypes::constifT] = "constif";
 			data[KeywordTypes::constwriteT] = "constwrite";
 			data[KeywordTypes::continueT] = "continue";
 			data[KeywordTypes::defaultT] = "default";
@@ -199,6 +200,7 @@ class Parse {
 		main->functionMaybeCast = false;
 		main->nestedBlocks = 0;
 		main->needAsyncStaticObject = false;
+		main->onlyConst = false;
 
 		main->classOrMemberPath.trim(main->rootPath);
 		main->classOrMemberPath.addCString(

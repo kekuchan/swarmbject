@@ -562,7 +562,7 @@ class ParseBlock {
 						std::ds::PtrDArray* dataMembersStack =
 							&main->dataMembersStack;
 						if (!isNextUnary(main) ||
-							dataMembersStack->size > 0){
+							main->onlyConst){
 							Parse::logErrorCString(main, compileCursor,
 								"'new' at invalid place.");
 							return false;
@@ -744,7 +744,7 @@ class ParseBlock {
 						"'nullptr' at invalid place.");
 					return false;
 				case TokenTypes::thisLiteral:
-					if (main->dataMembersStack.size > 0 ||
+					if (main->onlyConst ||
 						getFunctionToParse(main)->isStatic()){
 						Parse::logErrorCString(main, compileCursor,
 							"'this' keyword can not be used in static function.");
@@ -1097,6 +1097,38 @@ class ParseBlock {
 								main->currentExpression = (lexical::Type*)
 									(expressionStack->data[len - 2]);
 								break;
+							case lexical::Types::constifStatement:
+								{
+									lexical::UnaryOperator* expression =
+										(lexical::UnaryOperator*)
+											currentExpression;
+									expressionStack->data[len - 1] = 
+										expression->operand;
+									main->currentExpression = 
+										expression->operand;
+									delete expression;
+								}
+								main->onlyConst = false;
+								while (true){
+									compileCursor = Lexical::getNextToken(main,
+										classType, compileCursor);
+									if (*tokenType == TokenTypes::elseKeyword){
+										compileCursor = Lexical::getNextToken(main,
+											classType, compileCursor);
+										if (*tokenType == TokenTypes::ifKeyword){
+											compileCursor = Lexical::getNextToken(
+												main, classType, 
+												Parse::ignoreParameters(main,
+													classType, Lexical::getNextToken(main,
+														classType, compileCursor)));
+										}
+										compileCursor = Parse::ignoreBlock(main,
+											classType, compileCursor);
+										continue;
+									}
+									break;
+								}
+								continue;
 						}
 						break;
 					}
@@ -1308,6 +1340,7 @@ class ParseBlock {
 							case lexical::Types::ifStatement:
 							case lexical::Types::whileStatement:
 							case lexical::Types::switchStatement:
+							case lexical::Types::constifStatement:
 								break;
 							default:
 								if (isNextUnary(main)){
@@ -1490,6 +1523,76 @@ class ParseBlock {
 										main->statementEnd = true;
 										break;
 									}
+								case lexical::Types::constifStatement:
+									{
+										lexical::UnaryOperator* expression =
+											(lexical::UnaryOperator*)
+												currentExpression;
+										lexical::Type** operand =
+											&expression->operand;
+										if (*operand == nullptr ||
+											Lexical::getWithoutSpecifiers(
+												main, *operand, classType) != 
+													main->boolType){
+											Parse::logErrorCString(main, compileCursor,
+												"The constif statement "
+												"has to have a boolean argument.");
+											return false;
+										}
+										compileCursor = Lexical::getNextToken(main,
+											classType, compileCursor);
+										if (*tokenType != TokenTypes::leftBrace){
+											Parse::logErrorCString(main, compileCursor,
+												"The constif statement condition has "
+												" to be followed by the '{' token.");
+											return false;
+										}
+										if (Lexical::doConstParse(
+											main, *operand) != main->trueLiteral){
+											compileCursor = Lexical::getNextToken(main,
+												classType, Parse::ignoreBlock(main,
+													classType, compileCursor));
+											if (*tokenType != TokenTypes::elseKeyword){
+												Lexical::popExpression(main,
+													classType);
+												delete expression;
+												doContinue = true;
+												main->statementEnd = true;
+												break;
+											}
+											compileCursor = 
+												Lexical::getNextToken(main,
+													classType, compileCursor);
+											if (*tokenType == TokenTypes::ifKeyword){
+												compileCursor = Lexical::getNextToken(main,
+													classType, compileCursor);
+												if (*tokenType != TokenTypes::leftParenthesis){
+													Parse::logErrorCString(main, compileCursor,
+														"'if' has to be followed by the '(' token.");
+													return false;
+												}
+												*operand = nullptr;
+												break;
+											}
+											if (*tokenType != TokenTypes::leftBrace){
+												Parse::logErrorCString(main, compileCursor,
+													"Else has to be followed by the '{' or 'if' token.");
+												return false;
+											}
+										}
+										std::ds::PtrDArray* expressionStack =
+											main->expressionStack;
+										unsigned int len = expressionStack->size;
+										*operand = (lexical::Type*)
+											(expressionStack->data[len - 2]);
+										expressionStack->data[len - 2] = 
+											currentExpression;
+										expressionStack->data[len - 1] = 
+											*operand;
+										main->currentExpression = *operand;
+										main->statementEnd = true;
+										break;
+									}
 								default:
 									if (Lexical::popExpression(main, classType)){
 										currentExpression = main->currentExpression;
@@ -1546,8 +1649,16 @@ class ParseBlock {
 										(lexical::BinaryOperator*)
 											(main->expressionStack->data[0]);
 									if (Lexical::popExpression(main, classType)){
-										Lexical::doConstParse(main, expression);
+										(lexical::DataMember*)
+											(expression->operand1)->value = 
+												Lexical::doConstParse(
+													main, expression->operand2);
+										delete expression;
 										main->dataMembersStack.pop();
+										if (main->dataMembersStack.size == 0){
+											main->onlyConst = 
+												main->savedOnlyConst;
+										}
 										return true;
 									}
 									return false;
@@ -1592,6 +1703,29 @@ class ParseBlock {
 						}
 						return false;
 					}
+				case TokenTypes::constifKeyword:
+					if (main->currentExpression->type ==
+							lexical::Types::block &&
+						main->statementEnd){
+						compileCursor = Lexical::getNextToken(main,
+							classType, compileCursor);
+						if (*tokenType != TokenTypes::leftParenthesis){
+							Parse::logErrorCString(main, compileCursor,
+								"'constif' has to be followed by the '(' token.");
+							return false;
+						}
+						lexical::Type* operator = 
+							lexical::UnaryOperator::create(
+								lexical::Types::constifStatement);
+						main->statementEnd = false;
+						main->currentExpression = operator;
+						main->expressionStack->push(operator);
+						main->onlyConst = true;
+						break;
+					}
+					Parse::logErrorCString(main, compileCursor,
+						"'constif' has to be directly in a block.");
+					return false;
 				default:
 					Parse::logErrorCString(main, compileCursor,
 						"Invalid token.");
@@ -1984,6 +2118,10 @@ class ParseBlock {
 					lexical::Types::assignment);
 			expression->operand1 = dataMember;
 			dataMemberStack->expressionStack.push(expression);
+			if (main->dataMembersStack.size == 0){
+				main->savedOnlyConst = main->onlyConst;
+				main->onlyConst = true;
+			}
 			main->dataMembersStack.push(dataMemberStack);
 			dataMember->cursor = compileCursor;
 		} else if (*tokenType != TokenTypes::semicolon){
@@ -2119,8 +2257,23 @@ class ParseBlock {
 			type != lexical::Types::memberPointer){
 			unsigned char specifiers =
 				dataMember->getSpecifiers();
-			unsigned int len = main->dataMembersStack.size;
-			if (len == 0){
+			if (main->onlyConst){
+				if ((specifiers &
+					data::SpecifierTypes::isConstexpr) == 0){
+					if (main->dataMembersStack.size == 0){
+						Parse::logErrorCString(main,
+							getSavedCursor(main, savedCursor),
+							"Referencing a non-constexpr data member "
+							"from a constif statement.");
+					} else {
+						Parse::logErrorCString(main,
+							getSavedCursor(main, savedCursor),
+							"Referencing a non-constexpr data member "
+							"from a constexpr data member.");
+					}
+					return false;
+				}
+			} else {
 				if ((specifiers & (
 					data::SpecifierTypes::isStatic |
 					data::SpecifierTypes::isConstexpr)) == 0){
@@ -2142,15 +2295,6 @@ class ParseBlock {
 							getSavedCursor(main, savedCursor), &error);
 						return false;
 					}
-				}
-			} else {
-				if ((specifiers &
-					data::SpecifierTypes::isConstexpr) == 0){
-					Parse::logErrorCString(main,
-						getSavedCursor(main, savedCursor),
-						"Referencing a non-constexpr data member "
-						"from a constexpr data member.");
-					return false;
 				}
 			}
 		}
@@ -2218,32 +2362,36 @@ class ParseBlock {
 			unsigned char specifiers =
 				getFunctionMemberSpecifiers(main, memberFunction);
 			if (main->compileError) {return false;}
-			unsigned int len = main->dataMembersStack.size;
-			if (len == 0){
-				if ((specifiers &
-					lexical::FunctionSpecifierTypes::isStatic) == 0){
-					lexical::MemberFunction* functionToParse =
-						getFunctionToParse(main);
-					if (functionToParse->isStatic()){
-						Parse::logErrorCString(main, compileCursor,
-							"Referencing a non-static function "
-							"from a static function.");
-						return false;
-					} else if (!isSubClass(functionToParse->parentClass,
-						memberFunction->parentClass)){
-						std::str::DString error;
-						error.addCString("Non-static function '");
-						error.addString(&memberFunction->name);
-						error.addCString("' referenced outside of its class.");
-						Parse::logError(main, 0, &error);
-						return false;
-					}
+			if (main->onlyConst){
+				if (main->dataMembersStack.size == 0){
+					Parse::logErrorCString(main, compileCursor,
+						"Referencing a function "
+						"from a constif statement.");
+				} else {
+					Parse::logErrorCString(main, compileCursor,
+						"Referencing a function "
+						"from a constexpr data member.");
 				}
-			} else {
-				Parse::logErrorCString(main, compileCursor,
-					"Referencing a function "
-					"from a constexpr data member.");
 				return false;
+			}
+			if ((specifiers &
+				lexical::FunctionSpecifierTypes::isStatic) == 0){
+				lexical::MemberFunction* functionToParse =
+					getFunctionToParse(main);
+				if (functionToParse->isStatic()){
+					Parse::logErrorCString(main, compileCursor,
+						"Referencing a non-static function "
+						"from a static function.");
+					return false;
+				} else if (!isSubClass(functionToParse->parentClass,
+					memberFunction->parentClass)){
+					std::str::DString error;
+					error.addCString("Non-static function '");
+					error.addString(&memberFunction->name);
+					error.addCString("' referenced outside of its class.");
+					Parse::logError(main, 0, &error);
+					return false;
+				}
 			}
 		}
 		if (memberFunction->dataType == nullptr){
@@ -2288,33 +2436,33 @@ class ParseBlock {
 		if (compileCursor + 2 > code->length ||
 			code->data[compileCursor] != ':' ||
 			code->data[compileCursor + 1] != ':'){
-			/* Find in local variables. */
-			unsigned int i = main->expressionStack->size - 1;
-			lexical::Type*[] expressions = (lexical::Type*[])
-				(main->expressionStack->data);
-			while (i >= 0){
-				if (expressions[i]->type == lexical::Types::block){
-					lexical::LocalVariable* variable =
-						((lexical::BlockStatement*)
-							(expressions[i]))->getVariable(token);
-					if (variable != nullptr){
-						checkMaybeCast(main);
-						if (!putValueIntoExpression(
-							main, variable)){
-							std::str::DString error;
-							error.addCString("Local variable '");
-							error.addView(token);
-							error.addCString("' at invalid place.");
-							Parse::logError(main, 0, &error);
-							return false;
+			if (!main->onlyConst){
+				/* Find in local variables. */
+				unsigned int i = main->expressionStack->size - 1;
+				lexical::Type*[] expressions = (lexical::Type*[])
+					(main->expressionStack->data);
+				while (i >= 0){
+					if (expressions[i]->type == lexical::Types::block){
+						lexical::LocalVariable* variable =
+							((lexical::BlockStatement*)
+								(expressions[i]))->getVariable(token);
+						if (variable != nullptr){
+							checkMaybeCast(main);
+							if (!putValueIntoExpression(
+								main, variable)){
+								std::str::DString error;
+								error.addCString("Local variable '");
+								error.addView(token);
+								error.addCString("' at invalid place.");
+								Parse::logError(main, 0, &error);
+								return false;
+							}
+							main->compileCursor = compileCursor;
+							return true;
 						}
-						main->compileCursor = compileCursor;
-						return true;
 					}
+					i = i - 1;
 				}
-				i = i - 1;
-			}
-			if (main->dataMembersStack.size == 0){
 				/* Find in parameters. */
 				lexical::MemberFunction* functionToParse =
 					getFunctionToParse(main);
@@ -2505,6 +2653,7 @@ class ParseBlock {
 			case lexical::Types::constwriteStatement:
 			case lexical::Types::returnStatement:
 			case lexical::Types::caseLabel:
+			case lexical::Types::constifStatement:
 				return &(lexical::UnaryOperator*)
 					expression->operand;
 			case lexical::Types::cast:
@@ -2771,6 +2920,7 @@ class ParseBlock {
 				case lexical::Types::whileStatement:
 				case lexical::Types::switchStatement:
 				case lexical::Types::newArray:
+				case lexical::Types::constifStatement:
 					{
 						lexical::Type** operatorOperand =
 							getOperand(operator);
