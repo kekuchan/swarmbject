@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -69,19 +69,24 @@ SUCH DAMAGE.
 */
 async class ApplicationInstance {
 
-	std::fs::FileSystem fileSystem;
 	Main main;
+	std::fs::FileSystem fileSystem;
 	
 	async void run(){
-		main.main(this);
+		constif(
+			Compile::platform <= 
+				std::cmpl::Platforms::web &&
+			Compile::threads <= 0xFF &&
+			Compile::verbosity <=
+				std::cmpl::Verbosity::debug){
+			main.main(this);
+		}
 	}
-
-	/* Public member functions. */
-
+	
 	void getWindow(std::bom::Window* appWindow){
 		void* jsObject;
 		constwrite "	jsObject = window;\n";
 		appWindow->jsObject.setJsObject(jsObject);
 	}
-
+	
 }
