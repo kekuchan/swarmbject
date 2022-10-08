@@ -248,16 +248,26 @@ from the string, containing the full length of its
 data, and it is appended to the body of the document,
 for the browser to display it.
 
+Save the file, and create "Compile.scf"
+in "src", with the code:
+
+```
+class Compile : std::cmpl::Default {
+
+	unsigned char constexpr threads = 2;
+
+}
+```
+
+This sets the number of additional threads 
+to use (besides the first thread) to 2, while 
+leaving the other compiler settings as default.
+
 Save the file, and in the menu, choose "Compile",
 "/", "..", "/tut/", "Select". Use "Compile" under
-the selected path, and wait until it finishes. Set
-the number of threads to use from the default 
-1 to 2, with "Cancel", "Browse", "html/",
-"compiled.html", and almost at the bottom 
-change "_run(1)" to "_run(2)". Save the file in 
-the menu and choose "Compile" and "Run" at the 
-bottom. This requires a popup, and the 
-browser might ask you to allow it.
+the selected path, and wait until it finishes. 
+Then choose "Run" at the bottom. This requires 
+a popup, and the browser might ask you to allow it.
 
 # Backups
 
@@ -1902,6 +1912,12 @@ of an operator, it can be parenthesized.
 ## BOM (bom) reference:
 
 * [/docs/std/bom/Window.md](std/bom/Window.md)
+
+## Compile (cmpl) reference:
+
+* [/docs/std/color/Default.md](std/color/Default.md)
+* [/docs/std/color/Platforms.md](std/color/Platforms.md)
+* [/docs/std/color/Verbosity.md](std/color/Verbosity.md)
 
 ## Color (color) reference:
 
