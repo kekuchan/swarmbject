@@ -444,7 +444,10 @@ class Compile {
 					"}\n"
 					"</script>\n"
 				"</head>\n"
-				"<body onload=\"_run(1);\">\n"
+				"<body onload=\"_run(");
+						code->addUint(main->threads,
+							std::NumberBases::decimal);
+						code->addCString(");\">\n"
 				"</body>\n"
 			"</html>\n");
 		openedFile->write(code->data, 0, code->length);

@@ -157,7 +157,29 @@ class ParseBlock {
 				"has to have no parameters.");
 			return;
 		}
-		js::Compile::compileToJs(app);
+		name.setCString("Compile");
+		data::ClassType* compileClass =
+			main->rootNamespace->getClass(&name);
+		name.setCString("platform");
+		main->platform = 
+			(lexical::IntegerLiteral*)
+				(getDataMember(compileClass, 
+					&name)->value)->number;
+		name.setCString("threads");
+		main->threads = 
+			(lexical::IntegerLiteral*)
+				(getDataMember(compileClass, 
+					&name)->value)->number;
+		name.setCString("verbosity");
+		main->verbosity = 
+			(lexical::IntegerLiteral*)
+				(getDataMember(compileClass, 
+					&name)->value)->number;
+		switch (main->platform){
+			case std::cmpl::Platforms::web:
+				js::Compile::compileToJs(app);
+				break;
+		}
 	}
 	
 	static void debugTypes(Main* main){
@@ -1108,7 +1130,6 @@ class ParseBlock {
 										expression->operand;
 									delete expression;
 								}
-								main->onlyConst = false;
 								while (true){
 									compileCursor = Lexical::getNextToken(main,
 										classType, compileCursor);
@@ -1591,6 +1612,7 @@ class ParseBlock {
 											*operand;
 										main->currentExpression = *operand;
 										main->statementEnd = true;
+										main->onlyConst = false;
 										break;
 									}
 								default:

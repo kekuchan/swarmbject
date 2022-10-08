@@ -149,6 +149,10 @@ class Main {
 	data::Type* floatType;
 	data::Type* doubleType;
 
+	unsigned char platform;
+	unsigned char threads;
+	unsigned char verbosity;
+	
 	std::str::DString compiledCode;
 	bool compileMemory;
 	std::ds::PtrDArray classesStack;
