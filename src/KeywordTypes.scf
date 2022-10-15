@@ -79,6 +79,7 @@ enum KeywordTypes {
 	charT,
 	classT,
 	constT,
+	consterrorT,
 	constexprT,
 	constifT,
 	constwriteT,

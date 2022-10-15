@@ -73,14 +73,21 @@ async class ApplicationInstance {
 	std::fs::FileSystem fileSystem;
 	
 	async void run(){
-		constif(
-			Compile::platform <= 
-				std::cmpl::Platforms::web &&
-			Compile::threads <= 0xFF &&
-			Compile::verbosity <=
-				std::cmpl::Verbosity::debug){
-			main.main(this);
+		constif (Compile::platform >
+			std::cmpl::Platforms::web){
+			consterror "Currently only the "
+				"web platform is supported.";
 		}
+		constif (Compile::threads > 0xFF){
+			consterror "Currently only 255 "
+				"additional threads are supported.";
+		}
+		constif (Compile::verbosity >
+			std::cmpl::Verbosity::debug){
+			consterror "Currently only the "
+				"debug verbosity is supported.";
+		}
+		main.main(this);
 	}
 	
 	void getWindow(std::bom::Window* appWindow){

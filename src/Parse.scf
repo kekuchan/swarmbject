@@ -151,7 +151,7 @@ class Parse {
 			data[KeywordTypes::caseT] = "case";
 			data[KeywordTypes::charT] = "char";
 			data[KeywordTypes::classT] = "class";
-			data[KeywordTypes::constT] = "const";
+			data[KeywordTypes::consterrorT] = "consterror";
 			data[KeywordTypes::constexprT] = "constexpr";
 			data[KeywordTypes::constifT] = "constif";
 			data[KeywordTypes::constwriteT] = "constwrite";

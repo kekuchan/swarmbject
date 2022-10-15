@@ -190,6 +190,10 @@ class Lexical {
 				return "case";
 			case lexical::Types::defaultLabel:
 				return "default";
+			case lexical::Types::constifStatement:
+				return "constif";
+			case lexical::Types::consterrorStatement:
+				return "consterror";
 		}
 	}
 	
@@ -1020,7 +1024,7 @@ class Lexical {
 				}
 				break;
 			case lexical::Types::returnStatement:
-				{	
+				{
 					data::Type* dataType = dataTypeFromExpression(
 						main, expression, classType);
 					if (dataType == nullptr ||
@@ -1028,6 +1032,28 @@ class Lexical {
 							getFunctionToParse(main)->dataType,
 							dataType, classType)) {return false;}
 				}
+				break;
+			case lexical::Types::consterrorStatement:
+				{
+					lexical::Type* operand =
+						(lexical::UnaryOperator*)
+							expression->operand;
+					switch (operand->type){
+						case lexical::Types::stringLiteral:
+							Parse::logErrorCString(main,
+								main->compileCursor, 
+								(lexical::StringLiteral*)
+									operand->string.data);
+							break;
+						default:
+							Parse::logErrorCString(main,
+								main->compileCursor,
+								"A string literal has to be given "
+								"for the consterror statement.");
+							break;
+					}
+				}
+				return false;
 		}
 		lexical::Type* currentExpression =
 			(lexical::Type*)(main->expressionStack->getBack());
@@ -1169,6 +1195,7 @@ class Lexical {
 					break;
 				}
 			case lexical::Types::constwriteStatement:
+			case lexical::Types::consterrorStatement:
 				{
 					lexical::UnaryOperator* expression =
 						(lexical::UnaryOperator*)lexicalType;
@@ -1626,6 +1653,12 @@ class Lexical {
 			case TokenTypes::defaultKeyword:
 				string->addCString("default");
 				break;
+			case TokenTypes::constifKeyword:
+				string->addCString("constif");
+				break;
+			case TokenTypes::consterrorKeyword:
+				string->addCString("consterror");
+				break;
 			case TokenTypes::identifier:
 				string->addCString("identifier");
 				break;
@@ -2012,8 +2045,8 @@ class Lexical {
 			case KeywordTypes::classT :
 				tokenType = TokenTypes::classKeyword;
 				break;
-			case KeywordTypes::constT :
-				tokenType = TokenTypes::constKeyword;
+			case KeywordTypes::consterrorT :
+				tokenType = TokenTypes::consterrorKeyword;
 				break;
 			case KeywordTypes::constexprT :
 				tokenType = TokenTypes::constexprKeyword;
