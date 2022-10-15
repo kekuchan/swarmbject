@@ -127,5 +127,6 @@ enum Types {
 	switchStatement,
 	caseLabel,
 	defaultLabel,
-	constifStatement 
+	constifStatement,
+	consterrorStatement 
 }
