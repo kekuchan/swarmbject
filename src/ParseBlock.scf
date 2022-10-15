@@ -725,6 +725,7 @@ class ParseBlock {
 						while (i > 0){
 							switch (expressions[i-1]->type){
 								case lexical::Types::constwriteStatement:
+								case lexical::Types::consterrorStatement:
 									/* Not inserting it into the stringLiterals. */
 									expression = new lexical::StringLiteral;
 									expression->string.move(&string);
@@ -1579,6 +1580,7 @@ class ParseBlock {
 												delete expression;
 												doContinue = true;
 												main->statementEnd = true;
+												main->onlyConst = false;
 												break;
 											}
 											compileCursor = 
@@ -1747,6 +1749,17 @@ class ParseBlock {
 					}
 					Parse::logErrorCString(main, compileCursor,
 						"'constif' has to be directly in a block.");
+					return false;
+				case TokenTypes::consterrorKeyword:
+					if (main->currentExpression->type ==
+							lexical::Types::block &&
+						putUnaryOperator(main,
+							lexical::UnaryOperator::create(
+								lexical::Types::consterrorStatement))){
+						break;
+					}
+					Parse::logErrorCString(main, compileCursor,
+						"'consterror' has to be directly in a block.");
 					return false;
 				default:
 					Parse::logErrorCString(main, compileCursor,
@@ -2676,6 +2689,7 @@ class ParseBlock {
 			case lexical::Types::returnStatement:
 			case lexical::Types::caseLabel:
 			case lexical::Types::constifStatement:
+			case lexical::Types::consterrorStatement:
 				return &(lexical::UnaryOperator*)
 					expression->operand;
 			case lexical::Types::cast:
@@ -2943,6 +2957,7 @@ class ParseBlock {
 				case lexical::Types::switchStatement:
 				case lexical::Types::newArray:
 				case lexical::Types::constifStatement:
+				case lexical::Types::consterrorStatement:
 					{
 						lexical::Type** operatorOperand =
 							getOperand(operator);
