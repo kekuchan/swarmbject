@@ -1401,7 +1401,7 @@ developers, having to write platform dependent
 code, as it simply compiles the operand as 
 unprocessed code.
 
-## constif statement 
+## constif statement:
 
 When the "constif" expression is true, then the 
 statements of its block are compiled, but if 
@@ -1419,6 +1419,18 @@ constif (compile){
 	/*This block is compiled. */
 } else {
 	/*This block is ignored. */
+}
+```
+
+## consterror statement:
+
+Stops the compiler and logs a 
+string literal as an error.
+
+```
+/*In some function:*/
+constif (compile){
+	consterror "error";
 }
 ```
 
