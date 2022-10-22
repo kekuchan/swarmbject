@@ -48,24 +48,6 @@ unsigned char compare = std::arr::Int::compareRange(
 /*std::Compare::less as -20212021 < -20202020.*/
 ```
 
-## "compareValue" static function:
-
-Compares two int values.
-
-Parameters:
-* The first int value.
-* The second int value.
-
-Returns: an std::Compare value.
-
-```
-unsigned char compare = 
-	std::arr::Int::compareValue(
-		-20202020, -20212021);
-/*std::Compare::greater, as 
-	-20202020 > -20212021.*/
-```
-
 ## "copy" static function:
 
 Copy ints from an array to another.
@@ -404,23 +386,6 @@ years[1] = -20212021;
 unsigned char compare = std::arr::Int::starts(
 	years, 0, 2, years, 0, 1);
 /*std::Compare::equal.*/
-```
-	
-## "switchValue" static function:
-
-Switch the value of two int constructs.
-	
-Parameters:
-* A pointer to the first int construct.
-* A pointer to the second int construct.
-
-Returns: void.
-
-```
-int first = -20212021;
-int second = -20202020;
-std::arr::Int::switchValue(&first, &second);
-/*-20202020,-20212021.*/
 ```
 
 # Software license

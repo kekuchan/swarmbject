@@ -80,13 +80,13 @@ class CharacterLiteral : lexical::Type {
 	}
 
 	static unsigned char cmp(void* i, void* j){
-		return std::arr::Uint::compareValue(
+		return std::val::Uint::compare(
 			((lexical::CharacterLiteral*)i)->character,
 			((lexical::CharacterLiteral*)j)->character);
 	}
 
 	static unsigned char cmpUint(void* i, void* j){
-		return std::arr::Uint::compareValue(
+		return std::val::Uint::compare(
 			(lexical::CharacterLiteral*)i->character,
 			*(unsigned int*)j);
 	}

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -67,26 +67,64 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class IntegerLiteral : lexical::Type {
-	int number;
+class Int {
+
+	/*To optimize for browsers it is 1 bit less. */
+	int constexpr maximum = 1073741823;
+	int constexpr minimum = -1073741824;
+
+	/* Public member functions. */
+
+	static unsigned char compare(
+		int src, int dst){
+		if (src < dst) {return std::Compare::less;}
+		else if (src == dst) {return std::Compare::equal;}
+		return std::Compare::greater;
+	}
+
+	static int max(int src, int dst){
+		constif (Compile::platform ==
+			std::cmpl::Platforms::web){
+			constwrite 
+				"	return Math.max(src, dst);\n";
+		} else {
+			consterror "Currently only the "
+				"web platform is supported.";
+		}
+	}
+
+	static int min(int src, int dst){
+		constif (Compile::platform ==
+			std::cmpl::Platforms::web){
+			constwrite 
+				"	return Math.min(src, dst);\n";
+		} else {
+			consterror "Currently only the "
+				"web platform is supported.";
+		}
+	}
 	
-	static lexical::IntegerLiteral* create(int i){
-		lexical::IntegerLiteral* integerLiteral =
-			new lexical::IntegerLiteral;
-		integerLiteral->type = lexical::Types::integerLiteral;
-		integerLiteral->number = i;
-		return integerLiteral;
+	static int rand(){
+		return minimum +
+			std::val::Uint::rand();
+	}
+	
+	static int randMax(unsigned int len){
+		return minimum +
+			std::val::Uint::randMax(len);
+	}
+	
+	static int randRange(
+		int i, unsigned int len){
+		return i +
+			std::val::Uint::randMax(len);
+	}
+	
+	static void swap(int* src,
+		int* dst){
+		int tmp = *src;
+		*src = *dst;
+		*dst = tmp;
 	}
 
-	static unsigned char cmp(void* i, void* j){
-		return std::val::Int::compare(
-			((lexical::IntegerLiteral*)i)->number,
-			((lexical::IntegerLiteral*)j)->number);
-	}
-
-	static unsigned char cmpInt(void* i, void* j){
-		return std::val::Int::compare(
-			(lexical::IntegerLiteral*)i->number,
-			*(int*)j);
-	}
 }

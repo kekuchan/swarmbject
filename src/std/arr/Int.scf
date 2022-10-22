@@ -106,13 +106,6 @@ class Int {
 		}
 		return cmp;
 	}
-	
-	static unsigned char compareValue(
-		int src, int dst){
-		if (src < dst) {return std::Compare::less;}
-		else if (src == dst) {return std::Compare::equal;}
-		return std::Compare::greater;
-	}
 
 	static void copy(int[] dst, unsigned int j,
 		int[] src, unsigned int i, unsigned int len){
@@ -377,13 +370,6 @@ class Int {
 		if (cmp == std::Compare::equal)
 			{return std::Compare::less;}
 		return cmp;
-	}
-	
-	static void switchValue(int* src,
-		int* dst){
-		int tmp = *src;
-		*src = *dst;
-		*dst = tmp;
 	}
 
 }

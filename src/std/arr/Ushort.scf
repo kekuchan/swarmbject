@@ -108,13 +108,6 @@ class Ushort {
 		return cmp;
 	}
 
-	static unsigned char compareValue(
-		unsigned short src, unsigned short dst){
-		if (src < dst) {return std::Compare::less;}
-		else if (src == dst) {return std::Compare::equal;}
-		return std::Compare::greater;
-	}
-
 	static void copy(unsigned short[] dst, 
 		unsigned int j, unsigned short[] src, 
 		unsigned int i, unsigned int len){
@@ -379,13 +372,6 @@ class Ushort {
 		if (cmp == std::Compare::equal)
 			{return std::Compare::less;}
 		return cmp;
-	}
-	
-	static void switchValue(unsigned short* src,
-		unsigned short* dst){
-		unsigned short tmp = *src;
-		*src = *dst;
-		*dst = tmp;
 	}
 
 }

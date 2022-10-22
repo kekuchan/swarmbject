@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -67,26 +67,15 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class IntegerLiteral : lexical::Type {
-	int number;
-	
-	static lexical::IntegerLiteral* create(int i){
-		lexical::IntegerLiteral* integerLiteral =
-			new lexical::IntegerLiteral;
-		integerLiteral->type = lexical::Types::integerLiteral;
-		integerLiteral->number = i;
-		return integerLiteral;
+class Ptr {
+
+	/* Public member functions. */
+
+	static void swap(void** src,
+		void** dst){
+		void* tmp = *src;
+		*src = *dst;
+		*dst = tmp;
 	}
 
-	static unsigned char cmp(void* i, void* j){
-		return std::val::Int::compare(
-			((lexical::IntegerLiteral*)i)->number,
-			((lexical::IntegerLiteral*)j)->number);
-	}
-
-	static unsigned char cmpInt(void* i, void* j){
-		return std::val::Int::compare(
-			(lexical::IntegerLiteral*)i->number,
-			*(int*)j);
-	}
 }

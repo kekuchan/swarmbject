@@ -48,22 +48,6 @@ unsigned char compare = std::arr::Float::compareRange(
 /*std::Compare::greater as 20.21 > 20.20.*/
 ```
 
-## "compareValue" static function:
-
-Compares two float values.
-	
-Parameters:
-* The first float value.
-* The second float value.
-
-Returns: an std::Compare value.
-
-```
-unsigned char compare = 
-	std::arr::Float::compareValue(20.20, 20.21);
-/*std::Compare::less, as 20.20 < 20.21.*/
-```
-
 ## "copy" static function:
 
 Copy floats from an array to another.
@@ -401,23 +385,6 @@ years[1] = 20.21;
 unsigned char compare = std::arr::Float::starts(
 	years, 0, 2, years, 0, 1);
 /*std::Compare::equal.*/
-```
-	
-## "switchValue" static function:
-
-Switch the value of two float constructs.
-	
-Parameters:
-* A pointer to the first float construct.
-* A pointer to the second float construct.
-
-Returns: void.
-
-```
-float first = 20.21;
-float second = 20.20;
-std::arr::Float::switchValue(&first, &second);
-/*20.20,20.21.*/
 ```
 
 # Software license

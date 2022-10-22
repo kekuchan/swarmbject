@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -67,26 +67,95 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class IntegerLiteral : lexical::Type {
-	int number;
+class Float {
+
+	/* Public member functions. */
 	
-	static lexical::IntegerLiteral* create(int i){
-		lexical::IntegerLiteral* integerLiteral =
-			new lexical::IntegerLiteral;
-		integerLiteral->type = lexical::Types::integerLiteral;
-		integerLiteral->number = i;
-		return integerLiteral;
+	static float ceil(float src){
+		constif (Compile::platform ==
+			std::cmpl::Platforms::web){
+			constwrite 
+				"	return Math.ceil(src);\n";
+		} else {
+			consterror "Currently only the "
+				"web platform is supported.";
+		}
+	}
+	
+	static unsigned char compare(
+		float src, float dst){
+		if (src < dst) {return std::Compare::less;}
+		else if (src == dst) {return std::Compare::equal;}
+		return std::Compare::greater;
+	}
+	
+	static float floor(float src){
+		constif (Compile::platform ==
+			std::cmpl::Platforms::web){
+			constwrite 
+				"	return Math.floor(src);\n";
+		} else {
+			consterror "Currently only the "
+				"web platform is supported.";
+		}
+	}
+	
+	static float max(float src, float dst){
+		constif (Compile::platform ==
+			std::cmpl::Platforms::web){
+			constwrite 
+				"	return Math.max(src, dst);\n";
+		} else {
+			consterror "Currently only the "
+				"web platform is supported.";
+		}
 	}
 
-	static unsigned char cmp(void* i, void* j){
-		return std::val::Int::compare(
-			((lexical::IntegerLiteral*)i)->number,
-			((lexical::IntegerLiteral*)j)->number);
+	static float min(float src, float dst){
+		constif (Compile::platform ==
+			std::cmpl::Platforms::web){
+			constwrite 
+				"	return Math.min(src, dst);\n";
+		} else {
+			consterror "Currently only the "
+				"web platform is supported.";
+		}
+	}
+	
+	static float rand(){
+		constif (Compile::platform ==
+			std::cmpl::Platforms::web){
+			constwrite 
+				"	return Math.random();\n";
+		} else {
+			consterror "Currently only the "
+				"web platform is supported.";
+		}
+	}
+	
+	static float randMax(){
+		return rand() * len;
+	}
+	
+	static float randRange(){
+		return i + rand() * len;
+	}
+	
+	static float round(float src){
+		constif (Compile::platform ==
+			std::cmpl::Platforms::web){
+				"	return Math.round(src);\n";
+		} else {
+			consterror "Currently only the "
+				"web platform is supported.";
+		}
+	}
+	
+	static void swap(float* src,
+		float* dst){
+		float tmp = *src;
+		*src = *dst;
+		*dst = tmp;
 	}
 
-	static unsigned char cmpInt(void* i, void* j){
-		return std::val::Int::compare(
-			(lexical::IntegerLiteral*)i->number,
-			*(int*)j);
-	}
 }

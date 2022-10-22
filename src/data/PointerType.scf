@@ -84,13 +84,13 @@ class PointerType : data::Type {
 	}
 
 	static unsigned char cmpPtr(void* i, void* j){
-		return std::arr::Uchar::compareValue(
+		return std::val::Uchar::compare(
 			(data::Type*)i->type,
 			data::Types::pointerT);
 	}
 
 	static unsigned char cmpArrayPtr(void* i, void* j){
-		return std::arr::Uchar::compareValue(
+		return std::val::Uchar::compare(
 			(data::Type*)i->type,
 			data::Types::arrayPointerT);
 	}

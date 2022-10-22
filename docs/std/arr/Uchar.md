@@ -44,22 +44,6 @@ unsigned char compare = std::arr::Uchar::compareRange(
 /*std::Compare::greater as 't' > 's'.*/
 ```
 
-## "compareValue" static function:
-
-Compares two unsigned char values.
-	
-Parameters:
-* The first unsigned char value.
-* The second unsigned char value.
-
-Returns: an std::Compare value.
-
-```
-unsigned char compare = 
-	std::arr::Uchar::compareValue('t', 's');
-/*std::Compare::greater as 't' > 's'.*/
-```
-
 ## "copy" static function:
 
 Copy unsigned chars from an array to another.
@@ -497,23 +481,6 @@ Returns: an std::Compare value.
 unsigned char compare = std::arr::Uchar::starts(
 	"2021", 0, 4, "20", 0, 2);
 /*std::Compare::equal.*/
-```
-	
-## "switchValue" static function:
-
-Switch the value of two unsigned char constructs.
-	
-Parameters:
-* A pointer to the first unsigned char construct.
-* A pointer to the second unsigned char construct.
-
-Returns: void.
-
-```
-unsigned char first = '2';
-unsigned char second = '1';
-std::arr::Uchar::switchValue(&first, &second);
-/*'1','2'*/
 ```
 
 # Software license

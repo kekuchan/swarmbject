@@ -137,12 +137,12 @@ class Specifiers : data::Type {
 
 	static unsigned char cmpUchar(void* i, void* j){
 		unsigned char compared =
-			std::arr::Uchar::compareValue(
+			std::val::Uchar::compare(
 				(data::Type*)i->type,
 				data::Types::specifiersT);
 		if (compared == std::Compare::equal){
 			compared =
-				std::arr::Uchar::compareValue(
+				std::val::Uchar::compare(
 					(data::Specifiers*)i->specifiers,
 					*(unsigned char*)j);
 		}
