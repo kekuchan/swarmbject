@@ -2009,6 +2009,17 @@ of an operator, it can be parenthesized.
 * [/docs/std/str/String.md](std/str/String.md)
 * [/docs/std/str/View.md](std/str/View.md)
 
+## Value (val) reference:
+
+* [/docs/std/val/Char.md](std/val/Char.md)
+* [/docs/std/val/Float.md](std/val/Float.md)
+* [/docs/std/val/Int.md](std/val/Int.md)
+* [/docs/std/val/Ptr.md](std/val/Ptr.md)
+* [/docs/std/val/Short.md](std/val/Short.md)
+* [/docs/std/val/Uchar.md](std/val/Uchar.md)
+* [/docs/std/val/Uint.md](std/val/Uint.md)
+* [/docs/std/val/Ushort.md](std/val/Ushort.md)
+
 # Software license
 
 Copyright (c) 2021-2022 SWARMBJECT contributors
