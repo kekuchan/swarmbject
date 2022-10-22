@@ -79,13 +79,13 @@ class IntegerLiteral : lexical::Type {
 	}
 
 	static unsigned char cmp(void* i, void* j){
-		return std::arr::Int::compareValue(
+		return std::val::Int::compare(
 			((lexical::IntegerLiteral*)i)->number,
 			((lexical::IntegerLiteral*)j)->number);
 	}
 
 	static unsigned char cmpInt(void* i, void* j){
-		return std::arr::Int::compareValue(
+		return std::val::Int::compare(
 			(lexical::IntegerLiteral*)i->number,
 			*(int*)j);
 	}
