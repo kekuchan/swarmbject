@@ -107,13 +107,6 @@ class Char {
 		return cmp;
 	}
 
-	static unsigned char compareValue(
-		char src, char dst){
-		if (src < dst) {return std::Compare::less;}
-		else if (src == dst) {return std::Compare::equal;}
-		return std::Compare::greater;
-	}
-
 	static void copy(char[] dst, unsigned int j,
 		char[] src, unsigned int i, unsigned int len){
 		if (i > j){
@@ -377,13 +370,6 @@ class Char {
 				if (i == max) {break;}
 			}
 		}
-	}
-	
-	static void switchValue(char* src,
-		char* dst){
-		char tmp = *src;
-		*src = *dst;
-		*dst = tmp;
 	}
 
 }

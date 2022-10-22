@@ -108,13 +108,6 @@ class Uint {
 		return cmp;
 	}
 
-	static unsigned char compareValue(
-		unsigned int src, unsigned int dst){
-		if (src < dst) {return std::Compare::less;}
-		else if (src == dst) {return std::Compare::equal;}
-		return std::Compare::greater;
-	}
-
 	static void copy(unsigned int[] dst, 
 		unsigned int j, unsigned int[] src, 
 		unsigned int i, unsigned int len){
@@ -379,13 +372,6 @@ class Uint {
 		if (cmp == std::Compare::equal)
 			{return std::Compare::less;}
 		return cmp;
-	}
-	
-	static void switchValue(unsigned int* src,
-		unsigned int* dst){
-		unsigned int tmp = *src;
-		*src = *dst;
-		*dst = tmp;
 	}
 
 }

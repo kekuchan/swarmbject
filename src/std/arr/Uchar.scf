@@ -107,13 +107,6 @@ class Uchar {
 		return cmp;
 	}
 
-	static unsigned char compareValue(
-		unsigned char src, unsigned char dst){
-		if (src < dst) {return std::Compare::less;}
-		else if (src == dst) {return std::Compare::equal;}
-		return std::Compare::greater;
-	}
-
 	/* Works even if overlapping. */
 	static void copy(unsigned char[] dst, unsigned int j,
 		unsigned char[] src, unsigned int i, unsigned int len){
@@ -437,13 +430,6 @@ class Uchar {
 		if (cmp == std::Compare::equal)
 			{return std::Compare::less;}
 		return cmp;
-	}
-	
-	static void switchValue(unsigned char* src,
-		unsigned char* dst){
-		unsigned char tmp = *src;
-		*src = *dst;
-		*dst = tmp;
 	}
 
 }
