@@ -172,7 +172,7 @@ class Compare {
 	
 	static unsigned char rangeCI(
 		std::str::Compare* cmp){
-		return std::arr::Uint::compareValue(
+		return std::val::Uint::compare(
 			downgrade(
 				std::str::CString::getChar(cmp->src, 
 					&cmp->srcStart, &cmp->srcEnd, 
@@ -228,7 +228,7 @@ class Compare {
 		if (srcDown < dstDown){
 			return std::Compare::less;
 		} else if (srcDown == dstDown){
-			return std::arr::Uint::compareValue(
+			return std::val::Uint::compare(
 				srcChar, dstChar);
 		}
 		return std::Compare::greater;
