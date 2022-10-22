@@ -48,22 +48,6 @@ unsigned char compare = std::arr::Ushort::compareRange(
 /*std::Compare::greater as 2021 > 2020.*/
 ```
 
-## "compareValue" static function:
-
-Compares two short unsigned values.
-
-Parameters:
-* The first short unsigned value.
-* The second short unsigned value.
-
-Returns: an std::Compare value.
-
-```
-unsigned char compare = 
-	std::arr::Ushort::compareValue(2020, 2021);
-/*std::Compare::less, as 2020 < 2021.*/
-```
-
 ## "copy" static function:
 
 Copy unsigned shorts from an array to another.
@@ -401,23 +385,6 @@ years[1] = 2021;
 unsigned char compare = std::arr::Ushort::starts(
 	years, 0, 2, years, 0, 1);
 /*std::Compare::equal.*/
-```
-	
-## "switchValue" static function:
-
-Switch the value of two unsigned short constructs.
-	
-Parameters:
-* A pointer to the first unsigned short construct.
-* A pointer to the second unsigned short construct.
-
-Returns: void.
-
-```
-unsigned short first = 2021;
-unsigned short second = 2020;
-std::arr::Ushort::switchValue(&first, &second);
-/*2020,2021.*/
 ```
 
 # Software license

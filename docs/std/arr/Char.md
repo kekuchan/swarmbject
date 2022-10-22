@@ -48,22 +48,6 @@ unsigned char compare = std::arr::Char::compareRange(
 /*std::Compare::less as -21 < -20.*/
 ```
 
-## "compareValue" static function:
-
-Compares two char values.
-
-Parameters:
-* The first char value.
-* The second char value.
-
-Returns: an std::Compare value.
-
-```
-unsigned char compare = 
-	std::arr::Char::compareValue(-20, -21);
-/*std::Compare::greater, as -20 > -21.*/
-```
-
 ## "copy" static function:
 
 Copy chars from an array to another.
@@ -401,23 +385,6 @@ years[1] = -21;
 unsigned char compare = std::arr::Char::starts(
 	years, 0, 2, years, 0, 1);
 /*std::Compare::equal.*/
-```
-
-## "switchValue" static function:
-
-Switch the value of two char constructs.
-	
-Parameters:
-* A pointer to the first char construct.
-* A pointer to the second char construct.
-
-Returns: void.
-
-```
-char first = -21;
-char second = -20;
-std::arr::Char::switchValue(&first, &second);
-/*-20,-21.*/
 ```
 
 # Software license
