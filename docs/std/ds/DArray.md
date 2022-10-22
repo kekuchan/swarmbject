@@ -18,14 +18,14 @@ class IntDArray : std::ds::DArray {
 	
 	static unsigned char compareElement(
 		void* years, unsigned int i, void* year){
-		return std::arr::Int::compareValue(
+		return std::val::Int::compare(
 			(int[])years[i], *(int*)year);
 	}
 	
 	static unsigned char compareElements(
 		void* first, unsigned int i,
 		void* second, unsigned int j){
-		return std::arr::Int::compareValue(
+		return std::val::Int::compare(
 			(int[])first[i], (int[])second[j]);
 	}
 	

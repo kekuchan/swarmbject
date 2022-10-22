@@ -132,7 +132,7 @@ Returns: an std::Compare value.
 ```
 static unsigned char compare(
 	void* value, void* element){
-	return std::arr::Int::compareValue(
+	return std::val::Int::compare(
 		*(int*)value, *(int*)element);
 }
 
@@ -429,7 +429,7 @@ index + 1 position of the element.
 ```
 static unsigned char compare(
 	void* element, void* find){
-	return std::arr::Int::compareValue(
+	return std::val::Int::compare(
 		*(int*)element, *(int*)find);
 }
 		
@@ -561,7 +561,7 @@ Returns: void.
 ```
 static unsigned char compare(
 	void* element, void* insert){
-	return std::arr::Int::compareValue(
+	return std::val::Int::compare(
 		*(int*)element, *(int*)insert);
 }
 		

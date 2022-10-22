@@ -18,14 +18,14 @@ class Year {
 	
 	static unsigned char compare(
 		void* element, void* year){
-		return std::arr::Int::compareValue(
+		return std::val::Int::compare(
 			(Year*)element->value,
 			(Year*)year->value);
 	}
 	
 	static unsigned char compareValue(
 		void* year, void* i){
-		return std::arr::Int::compareValue(
+		return std::val::Int::compare(
 			(Year*)year->value, *(int*)i);
 	}
 }
