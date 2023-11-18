@@ -113,7 +113,8 @@ function is called, with the reference to the
 "app" object, as the manager will need it later,
 to display the result.
 
-Open again the menu, and choose "Save opened file".
+Tap or click the top header bar ("/tut/src/Main.scf") 
+to open the menu again, and choose "Save opened file".
 Now create "Manager.scf" in "src", the same 
 way as "Main.scf", with the code:
 
@@ -2022,7 +2023,7 @@ of an operator, it can be parenthesized.
 
 # Software license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2023 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -2092,7 +2093,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2023 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
