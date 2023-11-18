@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2023 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -69,7 +69,7 @@ SUCH DAMAGE.
 */
 class Parse {
 
-	static void onClickOnDoCompile(std::dom::Event* e,
+	static void onClickDoCompile(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
 		main->compileError = false;
@@ -1944,20 +1944,20 @@ class Parse {
 		std::dom::Node div;
 		main->compileContainer.getFirstChild(&div);
 		std::dom::MouseEvent::setOnClick(
-			&div, Main::onClickOnCancelCompile);
+			&div, Main::onClickCancelCompile);
 		div.getNextSibling(&div);
 		std::dom::MouseEvent::setOnClick(
-			&div, Main::onClickOnCompilePath);
+			&div, Main::onClickCompilePath);
 		div.getNextSibling(&div);
 		std::dom::MouseEvent::setOnClick(
-			&div, onClickOnDoCompile);
+			&div, onClickDoCompile);
 		div.getNextSibling(&div);
 		std::dom::Element::setScrollTop(
 			&div, std::dom::Element::
 				getScrollHeight(&div));
 		div.getNextSibling(&div);
 		std::dom::MouseEvent::setOnClick(
-			&div, Main::onClickOnRun);
+			&div, Main::onClickRun);
 	}
 
 }
