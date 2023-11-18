@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2023 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -119,14 +119,16 @@ class String {
 			"		} else if (charCode < 0xD800 ||\n"
 			"			charCode > 0xDFFF){\n"
 			"			bytes += 3;\n"
-			"		} else if (++i < length && charCode <= 0xDBFF){\n"
-			"			var lowSurrogate = string.charCodeAt(i);\n"
-			"			if (lowSurrogate >= 0xDC00 &&\n"
-			"				lowSurrogate <= 0xDFFF){\n"
-			"				bytes += 4;\n"
+			"		} else if (++i < length){\n"
+			"			if (charCode <= 0xDBFF){\n"
+			"				var lowSurrogate = string.charCodeAt(i);\n"
+			"				if (lowSurrogate >= 0xDC00 &&\n"
+			"					lowSurrogate <= 0xDFFF){\n"
+			"					bytes += 4;\n"
+			"				}\n"
 			"			}\n"
-			"		}\n"
-			"		/* Values not allowed by the standard are ignored. */\n"
+			"			/* Values not allowed by the standard are ignored. */\n"
+			"		} else break;\n"
 			"	}\n"
 			"	return i - start;\n";
 	}
@@ -136,9 +138,9 @@ class String {
 		void* array, unsigned char* bytes){
 		constwrite 
 			"	var length = string.length;\n"
-			"	if (i >= length) len = 0;\n"
-			"	else if (length - i < len)\n"
-			"		len = length - i;\n"
+			"	if (i >= length) len = i;\n"
+			"	else if (length - i < len) len = length;\n"
+			"	else len += i;\n"
 			"	var start = bytes;\n"
 			"	for (; i < len; ++i){\n"
 			"		var charCode = string.charCodeAt(i);\n"
@@ -153,19 +155,21 @@ class String {
 			"			array[bytes++] = (charCode >> 12) | 0xE0;\n"
 			"			array[bytes++] = ((charCode >> 6) & 0x3F) | 0x80;\n"
 			"			array[bytes++] = (charCode & 0x3F) | 0x80;\n"
-			"		} else if (++i < length && charCode <= 0xDBFF){\n"
-			"			var lowSurrogate = string.charCodeAt(i);\n"
-			"			if (lowSurrogate >= 0xDC00 &&\n"
-			"				lowSurrogate <= 0xDFFF){\n"
-			"				var u = (charCode + 0x40);\n"
-			"				array[bytes++] = ((u >> 6) & 0x07) | 0xF0;\n"
-			"				array[bytes++] = ((u >> 2) & 0x3F) | 0x80;\n"
-			"				array[bytes++] = (((charCode << 4) & 0x3F) |\n"
-			"					((lowSurrogate >> 6) & 0x0F)) | 0x80;\n"
-			"				array[bytes++] = (charCode & 0x3F) | 0x80;\n"
+			"		} else if (++i < len){\n"
+			"			if (charCode <= 0xDBFF){\n"
+			"				var lowSurrogate = string.charCodeAt(i);\n"
+			"				if (lowSurrogate >= 0xDC00 &&\n"
+			"					lowSurrogate <= 0xDFFF){\n"
+			"					var u = (charCode + 0x40);\n"
+			"					array[bytes++] = ((u >> 6) & 0x07) | 0xF0;\n"
+			"					array[bytes++] = ((u >> 2) & 0x3F) | 0x80;\n"
+			"					array[bytes++] = (((charCode << 4) & 0x3F) |\n"
+			"						((lowSurrogate >> 6) & 0x0F)) | 0x80;\n"
+			"					array[bytes++] = (charCode & 0x3F) | 0x80;\n"
+			"				}\n"
 			"			}\n"
-			"		}\n"
-			"		/* Values not allowed by the standard are ignored. */\n"
+			"			/* Values not allowed by the standard are ignored. */\n"
+			"		} else break;\n"
 			"	}\n";
 			"	return bytes - start;\n";
 	}
@@ -175,8 +179,8 @@ class String {
 		constwrite 
 			"	var length = string.length;\n"
 			"	if (i >= length) len = 0;\n"
-			"	else if (length - i < len)\n"
-			"		len = length - i;\n"
+			"	else if (length - i < len) len = length;\n"
+			"	else len += i;\n"
 			"	var bytes = 0;\n"
 			"	for (; i < len; ++i){\n"
 			"		var charCode = string.charCodeAt(i);\n"
@@ -188,14 +192,16 @@ class String {
 			"		} else if (charCode < 0xD800 ||\n"
 			"			charCode > 0xDFFF){\n"
 			"			bytes += 3;\n"
-			"		} else if (++i < length && charCode <= 0xDBFF){\n"
-			"			var lowSurrogate = string.charCodeAt(i);\n"
-			"			if (lowSurrogate >= 0xDC00 &&\n"
-			"				lowSurrogate <= 0xDFFF){\n"
-			"				bytes += 4;\n"
+			"		} else if (++i < len){\n"
+			"			if (charCode <= 0xDBFF){\n"
+			"				var lowSurrogate = string.charCodeAt(i);\n"
+			"				if (lowSurrogate >= 0xDC00 &&\n"
+			"					lowSurrogate <= 0xDFFF){\n"
+			"					bytes += 4;\n"
+			"				}\n"
 			"			}\n"
-			"		}\n"
-			"		/* Values not allowed by the standard are ignored. */\n"
+			"			/* Values not allowed by the standard are ignored. */\n"
+			"		} else break;\n"
 			"	}\n"
 			"	return bytes;\n";
 	}
