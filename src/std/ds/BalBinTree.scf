@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2022 SWARMBJECT contributors
+Copyright (c) 2022-2023 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -134,7 +134,7 @@ class BalBinTree {
 		}
 		*node = element;
 		if (leftLevel == level){
-			std::arr::Ptr::switchValue(
+			std::val::Ptr::swap(
 				&tree->leftOrParent, &tree->parentOrLeft);
 		}
 		return level + 1;
@@ -806,7 +806,7 @@ class BalBinTree {
 						}
 					}
 					if (tree->parentOrLeft == parent){
-						std::arr::Ptr::switchValue(
+						std::val::Ptr::swap(
 							&tree->leftOrParent, 
 							&tree->parentOrLeft);
 						if (leftTree != nullptr &&
@@ -890,7 +890,7 @@ class BalBinTree {
 						} else {*root = node;}
 						break;
 					} else {
-						std::arr::Ptr::switchValue(
+						std::val::Ptr::swap(
 							&leftTree->leftOrParent, 
 							&leftTree->parentOrLeft);
 					}
@@ -908,7 +908,7 @@ class BalBinTree {
 						rightTree = nullptr;
 					}
 					if (tree->parentOrLeft == parent){
-						std::arr::Ptr::switchValue(
+						std::val::Ptr::swap(
 							&tree->leftOrParent, 
 							&tree->parentOrLeft);
 						if (rightTree != nullptr &&
@@ -990,7 +990,7 @@ class BalBinTree {
 						} else {*root = node;}
 						break;
 					} else {
-						std::arr::Ptr::switchValue(
+						std::val::Ptr::swap(
 							&rightTree->leftOrParent,
 							&rightTree->parentOrLeft);
 					}
