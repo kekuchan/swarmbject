@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2023 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -202,13 +202,13 @@ class Main {
 	void addMobileButtons(
 		std::dom::Node* element){
 		addButton(&document, element,
-			"Copy", &editorBar, onClickOnCopy);
+			"Copy", &editorBar, onClickCopy);
 		addButton(&document, element,
-			"Paste", &editorBar, onClickOnPaste);
+			"Paste", &editorBar, onClickPaste);
 		addButton(&document, element,
-			"Cut", &editorBar, onClickOnCut);
+			"Cut", &editorBar, onClickCut);
 		addButton(&document, element,
-			"|<-", &editorBar, onClickOnShiftTab);
+			"|<-", &editorBar, onClickShiftTab);
 
 		std::html::InputElement::create(
 			&document, element);
@@ -217,9 +217,9 @@ class Main {
 		findContainer.set(element);
 
 		addButton(&document, element,
-			"<", &editorBar, onClickOnFindUp);
+			"<", &editorBar, onClickFindUp);
 		addButton(&document, element,
-			">", &editorBar, onClickOnFindDown);
+			">", &editorBar, onClickFindDown);
 	}
 	
 	static void addLog(std::dom::Node* document,
@@ -359,7 +359,7 @@ class Main {
 			style.setMargin(&len);
 			addButton(&document, node,
 				currentClassPath.data, &editorBar,
-				onClickOnTitle);
+				onClickTitle);
 			if (mobileButtons){
 				addMobileButtons(node);
 			}
@@ -384,7 +384,7 @@ class Main {
 			style.setBorderBottomStyle(keyword.set(
 				std::css::BorderStyles::solid));
 			std::dom::MouseEvent::setOnClick(
-				&editorBar, onClickOnTitle);
+				&editorBar, onClickTitle);
 		}
 		editorContainer.appendChild(&editorBar);
 	}
@@ -524,7 +524,7 @@ class Main {
 
 	static unsigned char[] getLicense(){
 		return
-			"Copyright (c) 2021-2022 SWARMBJECT contributors\n"
+			"Copyright (c) 2021-2023 SWARMBJECT contributors\n"
 			"\n"
 			"Redistribution and use in source and binary forms,\n"
 			"with or without modification, are permitted\n"
@@ -631,19 +631,16 @@ class Main {
 		std::ApplicationInstance aexcl app,
 		std::fs::File* file){
 		Main* main = &app.main;
-		std::dom::Node* elementWithText = 
-			&main->elementWithText;
 		if (main->currentClassPath.length == 0){
-			std::dom::KeyboardEvent::setOnKeyDown(
-				elementWithText, onKeyDownOnPre);
-			std::dom::ClipboardEvent::setOnCut(
-				elementWithText, onCutOnPre);
-			std::dom::ClipboardEvent::setOnCopy(
-				elementWithText, onCopyOnPre);
-			std::dom::ClipboardEvent::setOnPaste(
-				elementWithText, onPasteOnPre);
-			std::html::Element::setContentEditable(
-				elementWithText, true);
+			std::dom::Node div;
+			std::css::Declaration style;
+			main->menuContainer.getFirstChild(&div);
+			std::html::Element::getStyle(&div, &style);
+			style.setDisplay(nullptr);
+			div.getNextSibling(&div);
+			div.getNextSibling(&div);
+			std::html::Element::getStyle(&div, &style);
+			style.setDisplay(nullptr);
 		}
 		main->currentClassPath.set(
 			file->path.data, 0, file->path.length);
@@ -656,36 +653,70 @@ class Main {
 		selection.getRangeAt(&range, 0);
 		selection.removeAllRanges();
 		std::html::Element::removeChildren(
-			elementWithText);
+			&main->elementWithText);
 		textToContainer(
-			&main->document, elementWithText, data, len);
+			&main->document, &main->elementWithText, 
+			data, len);
 		delete[] data;
 		main->fileSaved = true;
 		main->setTitle();
 		main->body.appendChild(&main->editorContainer);
 	}
-
-	static void onClickCancel(std::dom::Event* e,
+	
+	static void onClickAbout(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
-		if (e != nullptr){
-			main->body.replaceChild(
-				&main->editorContainer, &main->menuContainer);
-		} else {
-			main->body.appendChild(&main->editorContainer);
-		}
-		std::dom::Element::setScrollTop(
-			&main->elementWithText, main->savedScrollTop);
-	}
+		std::dom::Node* document = &main->document;
+		std::dom::Node container;
+		std::dom::Node div;
+		std::dom::Node textNode;
+		std::dom::Node element;
+		std::css::Declaration style;
+		std::css::Keyword keyword;
+		std::css::Short len;
+		
+		createContainer(document, &container, 
+			&style, &keyword, &len);
 
-	static void onClickOnBrowse(std::dom::Event* e,
+		addRowClick(document, &div, &textNode, 
+			"Menu", &container, &style, 
+			&keyword, &len, onClickCancel);
+		
+		addLog(document, &div, 
+			&container, &style, &len);
+			
+		unsigned char[] text =
+			"Welcome to the SWARMBJECT development environment!\n\n"
+			"License\n\n";
+		textToContainer(
+			document, &div, text,
+			std::str::CString::length(text, 0));
+		textToContainer(
+			document, &div, getLicense(),
+			std::str::CString::length(getLicense(), 0));
+			
+		main->body.replaceChild(&container,
+			&main->menuContainer);
+	}
+	
+	static void onClickBrowse(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
 		main->body.removeChild(&main->menuContainer);
-		app.fileSystem.gui.select(onClickOnOpenClass, true);
+		app.fileSystem.gui.select(onClickOpenClass, true);
 	}
-
-	static void onClickOnCancelCompile(std::dom::Event* e,
+	
+	static void onClickCancel(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		e->preventDefault();
+		std::dom::Node container;
+		Main* main = &app.main;
+		main->body.getLastChild(&container);
+		main->body.replaceChild(
+			&main->menuContainer, &container);
+	}
+	
+	static void onClickCancelCompile(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
 		main->logContainer.set(nullptr);
@@ -693,7 +724,22 @@ class Main {
 			&main->menuContainer, &main->compileContainer);
 	}
 	
-	static void onClickOnCompile(std::dom::Event* e,
+	static void onClickCancelMenu(std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		Main* main = &app.main;
+		if (e != nullptr){
+			main->body.replaceChild(
+				&main->editorContainer, &main->menuContainer);
+		} else if (main->currentClassPath.length != 0){
+			main->body.appendChild(&main->editorContainer);
+		} else {
+			main->body.appendChild(&main->menuContainer);
+		}
+		std::dom::Element::setScrollTop(
+			&main->elementWithText, main->savedScrollTop);
+	}
+	
+	static void onClickCompile(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
 		main->compileContainer.getLastChild(
@@ -704,7 +750,7 @@ class Main {
 			&main->compileContainer, &main->menuContainer);
 	}
 
-	static void onClickOnCompilePath(
+	static void onClickCompilePath(
 		std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
@@ -713,7 +759,7 @@ class Main {
 			onChangeCompilePath, false);
 	}
 
-	static void onClickOnCopy(std::dom::Event* e,
+	static void onClickCopy(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		e->preventDefault();
 		e->stopPropagation();
@@ -724,7 +770,7 @@ class Main {
 		getRangeToString(main, &range, string);
 	}
 	
-	static void onClickOnCut(std::dom::Event* e,
+	static void onClickCut(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		e->preventDefault();
 		e->stopPropagation();
@@ -737,32 +783,30 @@ class Main {
 		range.deleteContents();
 	}
 
-	static void onClickOnFindUp(std::dom::Event* e,
+	static void onClickFindUp(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		e->preventDefault();
 		e->stopPropagation();
 		app.main.find(false);
 	}
 
-	static void onClickOnFindDown(std::dom::Event* e,
+	static void onClickFindDown(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		e->preventDefault();
 		e->stopPropagation();
 		app.main.find(true);
 	}
 	
-	static void onClickOnOpenClass(
+	static void onClickOpenClass(
 		std::ApplicationInstance aexcl app,
 		std::str::DString* path){
 		if (path != nullptr){
 			app.fileSystem.openFile(path->data, onClassOpened,
 				std::fs::OpenFileModes::readBinary);
-		} else {
-			onClickCancel(nullptr, app);
-		}
+		} else {onClickCancelMenu(nullptr, app);}
 	}
 
-	static void onClickOnPaste(std::dom::Event* e,
+	static void onClickPaste(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		e->preventDefault();
 		e->stopPropagation();
@@ -770,7 +814,7 @@ class Main {
 		main->doPaste(&main->clipboard);
 	}
 	
-	static void onClickOnRun(std::dom::Event* e,
+	static void onClickRun(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		std::str::DString* classOrMemberPath =
 			&app.main.classOrMemberPath;
@@ -781,11 +825,11 @@ class Main {
 			std::fs::OpenFileModes::readBinary);
 	}
 
-	static void onClickOnSaveClass(std::dom::Event* e,
+	static void onClickSaveClass(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
 		if (main->fileSaved){
-			onClickCancel(e, app);
+			onClickCancelMenu(e, app);
 		} else {
 			main->body.removeChild(&main->menuContainer);
 			app.fileSystem.openFile(
@@ -794,7 +838,7 @@ class Main {
 		}
 	}
 	
-	static void onClickOnSaveSettings(
+	static void onClickSaveSettings(
 		std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
@@ -803,7 +847,7 @@ class Main {
 		main->saveSettings(&node);
 	}
 
-	static void onClickOnSettings(std::dom::Event* e,
+	static void onClickSettings(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		/* Unlike other menus, settings are not cached,
 			as it is expected to be accessed less. */
@@ -822,7 +866,7 @@ class Main {
 
 		addRowClick(document, &div, &textNode, 
 			"Save", &container, &style, 
-			&keyword, &len, onClickOnSaveSettings);
+			&keyword, &len, onClickSaveSettings);
 
 		addCheckbox(document, &div, &textNode,
 			"Bottom bar: ", &container,
@@ -850,7 +894,7 @@ class Main {
 			&container, &main->menuContainer);
 	}
 	
-	static void onClickOnShiftTab(std::dom::Event* e,
+	static void onClickShiftTab(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		e->preventDefault();
 		e->stopPropagation();
@@ -858,7 +902,7 @@ class Main {
 		onTabKey(main, true);
 	}
 
-	static void onClickOnTitle(std::dom::Event* e,
+	static void onClickTitle(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		e->preventDefault();
 		Main* main = &app.main;
@@ -867,7 +911,7 @@ class Main {
 		main->body.replaceChild(&main->menuContainer,
 			&main->editorContainer);
 	}
-
+	
 	static void onCopyOnPre(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		e->preventDefault();
@@ -1061,7 +1105,7 @@ class Main {
 		file->write(string.data, 0, string.length);
 		main->fileSaved = true;
 		main->setTitle();
-		onClickCancel(nullptr, app);
+		onClickCancelMenu(nullptr, app);
 	}
 	
 	static void onTabKey(Main* main,
@@ -1480,15 +1524,16 @@ class Main {
 			0, std::css::Units::px));
 		style.setMinHeight(len.set(
 			100, std::css::Units::px));
-		unsigned char[] text =
-			"Welcome to the SWARMBJECT development environment!\n\n"
-			"License\n\n";
-		textToContainer(
-			&document, &elementWithText, text,
-			std::str::CString::length(text, 0));
-		textToContainer(
-			&document, &elementWithText, getLicense(),
-			std::str::CString::length(getLicense(), 0));
+		std::dom::KeyboardEvent::setOnKeyDown(
+			&elementWithText, onKeyDownOnPre);
+		std::dom::ClipboardEvent::setOnCut(
+			&elementWithText, onCutOnPre);
+		std::dom::ClipboardEvent::setOnCopy(
+			&elementWithText, onCopyOnPre);
+		std::dom::ClipboardEvent::setOnPaste(
+			&elementWithText, onPasteOnPre);
+		std::html::Element::setContentEditable(
+			&elementWithText, true);
 		editorContainer.appendChild(&elementWithText);
 		
 		createContainer(&document, &menuContainer,
@@ -1496,41 +1541,49 @@ class Main {
 		
 		addRowClick(&document, &div, &textNode, 
 			"Cancel", &menuContainer, &style, 
-			&keyword, &len, onClickCancel);
+			&keyword, &len, onClickCancelMenu);
+		style.setDisplay(keyword.set(
+			std::css::DisplayTypes::none));
 		
 		addRowClick(&document, &div, &textNode, 
 			"Browse", &menuContainer, &style, 
-			&keyword, &len, onClickOnBrowse);
+			&keyword, &len, onClickBrowse);
 		
 		addRowClick(&document, &div, &textNode,
 			"Save opened file", &menuContainer, &style, 
-			&keyword, &len, onClickOnSaveClass);
+			&keyword, &len, onClickSaveClass);
+		style.setDisplay(keyword.set(
+			std::css::DisplayTypes::none));
 
 		addRowClick(&document, &div, &textNode,
 			"Settings", &menuContainer, &style, 
-			&keyword, &len, onClickOnSettings);
+			&keyword, &len, onClickSettings);
 		
 		addRowClick(&document, &div, &textNode,
 			"Compile", &menuContainer, &style, 
-			&keyword, &len, onClickOnCompile);
+			&keyword, &len, onClickCompile);
 		
+		addRowClick(&document, &div, &textNode,
+			"About", &menuContainer, &style, 
+			&keyword, &len, onClickAbout);
+			
 		createContainer(&document, &compileContainer,
 			&style, &keyword, &len);
 		
 		addRowClick(&document, &div, &textNode,
 			"Cancel", &compileContainer, &style, 
-			&keyword, &len, onClickOnCancelCompile);
+			&keyword, &len, onClickCancelCompile);
 		
 		addRowClick(&document, &div, &textNode,
 			"/", &compileContainer, &style, 
-			&keyword, &len, onClickOnCompilePath);
+			&keyword, &len, onClickCompilePath);
 		rootPath = 1;
 		classOrMemberPath.set("/", 0, 1);
 		
 		addRowClick(&document, &div, &textNode,
 			"Compile", &compileContainer, &style, 
-			&keyword, &len, Parse::onClickOnDoCompile);
-			
+			&keyword, &len, Parse::onClickDoCompile);
+		
 		addLog(&document, &div, 
 			&compileContainer, &style, &len);
 		style.setMarginBottom(&len);
@@ -1550,14 +1603,15 @@ class Main {
 		
 		addRowClick(&document, &div, &textNode,
 			"Run", &compileContainer, &style, 
-			&keyword, &len, onClickOnRun);
+			&keyword, &len, onClickRun);
 
 		std::html::Document::getBody(&document, &body);
 		std::html::Element::getStyle(&body, &style);
 		style.setMargin(len.set(
 			0, std::css::Units::px));
 		style.setPadding(&len);
-		body.appendChild(&editorContainer);
+		body.appendChild(&menuContainer);
+		onClickAbout(nullptr, app);
 	}
 
 	void main(std::ApplicationInstance aexcl app){

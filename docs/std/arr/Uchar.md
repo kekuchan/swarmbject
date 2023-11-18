@@ -257,12 +257,12 @@ Parameters:
 * The unsigned char array.
 * The index of the value in the array.
 
-Returns: unsigned short.
+Returns: unsigned int.
 
 ```
 unsigned char[] buffer = new unsigned char[4];
 std::arr::Uchar::setU32BE(buffer, 0, 20212021);
-unsigned short value =
+unsigned int value =
 	std::arr::Uchar::getU32BE(buffer, 0); /*20212021*/
 ```
 
@@ -276,12 +276,12 @@ Parameters:
 * The unsigned char array.
 * The index of the value in the array.
 
-Returns: unsigned short.
+Returns: unsigned int.
 
 ```
 unsigned char[] buffer = new unsigned char[4];
 std::arr::Uchar::setU32LE(buffer, 0, 20212021);
-unsigned short value =
+unsigned int value =
 	std::arr::Uchar::getU32LE(buffer, 0); /*20212021*/
 ```
 
@@ -485,7 +485,7 @@ unsigned char compare = std::arr::Uchar::starts(
 
 # Software license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2023 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -555,7 +555,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2023 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
