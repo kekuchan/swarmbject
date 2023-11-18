@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2023 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -75,9 +75,7 @@ class Malloc {
 	unsigned char constexpr sizeTBitsize =
 		sizeTSize << 3; /* 32 */
 	unsigned int constexpr maxSizeT =
-		/* In dlmalloc it would be (~0)>>>0, but to
-			optimize for browsers it is 1 bit less. */
-		0x7FFFFFFF;
+		std::val::Uint::maximum;
 	unsigned char constexpr sizeTZero = 0;
 	unsigned char constexpr sizeTOne = 1;
 	unsigned char constexpr sizeTTwo = 2;
