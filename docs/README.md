@@ -71,18 +71,18 @@ understandable way, and also with such an example.
 # Learning
 
 Read the SWARMBJECT manual at 
-[/docs/manual.md](manual.md) to learn 
+[manual.md](/docs/manual.md) to learn 
 about creating SWARMBJECT applications. 
 It includes an architectural overview, a 
 tutorial, the language and the API reference.
 
 # Change logs 
 
-[/docs/log/2023.md](2023).
+[2023](/docs/log/2023).
 
 # Contribute
 
-Read [/docs/CONTRIBUTE.md](CONTRIBUTE.md).
+Read [CONTRIBUTE.md](/docs/CONTRIBUTE.md).
 
 # Software license
 
