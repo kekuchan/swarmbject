@@ -76,6 +76,10 @@ about creating SWARMBJECT applications.
 It includes an architectural overview, a 
 tutorial, the language and the API reference.
 
+# Change logs 
+
+[/docs/log/2023.md](2023).
+
 # Contribute
 
 Read [/docs/CONTRIBUTE.md](CONTRIBUTE.md).
