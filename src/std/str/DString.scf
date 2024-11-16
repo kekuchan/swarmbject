@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -282,7 +282,7 @@ class DString {
 	}
 	
 	unsigned char compareDString(
-		std::str::DString* string, 
+		std::str::DString* str, 
 		std::str::Compare* cmp){
 		return std::str::CString::subcompareRange(
 			data, 0, length, 
