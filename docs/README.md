@@ -78,7 +78,7 @@ tutorial, the language and the API reference.
 
 # Change logs 
 
-[2023](/docs/log/2023).
+[2023](/docs/log/2023.md).
 
 # Contribute
 
