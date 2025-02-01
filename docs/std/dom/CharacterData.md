@@ -70,12 +70,12 @@ Returns: the length of the character data.
 
 ```
 /*In Main::main.*/
-std::str::DString string;
-string.shift(0, 
+unsigned int length = 
 	std::dom::CharacterData::getData(
-		&text, nullptr, 0));
+		&text, nullptr, 0);
+std::str::DString string;
 std::dom::CharacterData::getData(
-	&text, string.data, 0);
+	&text, string.create(length), 0);
 /*"2021"*/
 ```
 
@@ -181,12 +181,12 @@ Returns: the length of the substring.
 
 ```
 /*In Main::main.*/
-std::str::DString string;
-string.shift(0, 
+unsigned int length = 
 	std::dom::CharacterData::substringData(
-		&text, 2, 2, nullptr, 0));
+		&text, 2, 2, nullptr, 0);
+std::str::DString string;
 std::dom::CharacterData::substringData(
-	&text, 2, 2, string.data, 0);
+	&text, 2, 2, string.create(length), 0);
 /*"21"*/
 ```
 
@@ -214,7 +214,7 @@ std::dom::CharacterData::substringDataDString(
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -284,7 +284,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

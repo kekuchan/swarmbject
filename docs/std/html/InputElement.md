@@ -67,12 +67,12 @@ Returns: the length of the value.
 /*In Main::main.*/
 std::html::InputElement::setType(
 	&input, std::html::InputTypes::text);
-std::str::DString string;
-string.shift(0, 
+unsigned int length = 
 	std::html::InputElement::getValue(
-		&input, nullptr, 0));
+		&input, nullptr, 0);
+std::str::DString string;
 std::html::InputElement::getValue(
-	&input, string.data, 0);
+	&input, string.create(length), 0);
 
 ## "getValueDString" static function:
 
@@ -152,7 +152,7 @@ std::html::InputElement::setValue(
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -222,7 +222,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

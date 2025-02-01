@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -87,9 +87,8 @@ class ClipboardEvent {
 		std::dom::Event* event,
 		std::str::DString* string){
 		unsigned int start = string->length;
-		string->shift(start, 
-			getTextData(event, nullptr, 0));
-		getTextData(event, string->data, start);
+		getTextData(event, string->grow(
+			getTextData(event, nullptr, 0)), start);
 	}
 
 	static void setTextData(

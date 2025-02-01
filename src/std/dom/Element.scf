@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -158,9 +158,8 @@ class Element {
 		std::dom::Node* node, 
 		std::str::DString* string){
 		unsigned int start = string->length;
-		string->shift(start, getTagName(
-			node, nullptr, 0));
-		getTagName(node, string->data, start);
+		getTagName(node, string->grow(start, 
+			getTagName(node, nullptr, 0)), start);
 	}
 	
 	static void scrollIntoView(

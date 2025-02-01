@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -103,9 +103,8 @@ class InputElement {
 	static void getValueDString(std::dom::Node* node,
 		std::str::DString* string){
 		unsigned int start = string->length;
-		string->shift(start, 
-			getValue(node, nullptr, 0));
-		getValue(node, string->data, start);
+		getValue(node, string->grow(
+			getValue(node, nullptr, 0)), start);
 	}
 
 	static void setChecked(
