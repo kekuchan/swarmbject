@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -71,10 +71,9 @@ class Blob {
 
 	static void* create(unsigned char[] src,
 		unsigned int i, unsigned int len){
-		void* blob;
-		constwrite "	blob = new Blob([\n"
-			"new Uint8Array(_memory, src + i, len)]);\n";
-		return blob;
+		return std::js::Array::getBlob(
+			std::js::Array::memory(
+				src, i, len));
 	}
 
 }
