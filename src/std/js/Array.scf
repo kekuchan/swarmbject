@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -69,6 +69,48 @@ SUCH DAMAGE.
 */
 class Array {
 
+	static void* addSize(
+		void* array, unsigned int len){
+		unsigned int newSize = length(array) + len;
+		unsigned int newCapacity = length(array) * 2;
+		if (newCapacity < newSize)
+			{newCapacity = newSize;}
+		return create(createBuffer(newCapacity));
+	}
+	
+	static void* addSetRange(void* dst,
+		unsigned int dstStart, unsigned int len){
+		unsigned int dataLen = length(dst);
+		if (dstStart + len > dataLen){
+			void* previousData = dst;
+			dst = addSize(dst, 
+				dstStart + len - dataLen);
+			if (dstStart < dataLen)
+				{dataLen = dstStart;}
+			std::js::Array::copyRange(dst, 0, 
+				previousData, 0, dataLen);
+		}
+		return dst;
+	}
+
+	static void copyRange(void* dst, unsigned int j, 
+		void* src, unsigned int i, unsigned int len){
+		if (i > j){
+			len = i + len;
+			while (i < len){
+				constwrite "			dst[j] = src[i];\n";
+				i = i + 1;
+				j = j + 1;
+			}
+		} else {
+			while (len > 0){
+				len = len - 1;
+				constwrite "			dst[j + len] = "
+					"src[i + len];\n";
+			}
+		}
+	}
+
 	/* Compares array to submemory. */
 	static unsigned char compare(
 		void* array, unsigned char[] dst,
@@ -76,8 +118,7 @@ class Array {
 		unsigned char cmp = compareRange(
 			array, 0, dst, start, len);
 		if (cmp == std::Compare::equal){
-			unsigned int arrayLength;
-			constwrite "	arrayLength = array.byteLength;\n";
+			unsigned int arrayLength = length(array);
 			if (arrayLength != len){
 				if (arrayLength > len){
 					return std::Compare::greater;
@@ -91,8 +132,7 @@ class Array {
 	static unsigned char compareRange(void* array,
 		unsigned int arrayStart, unsigned char[] dst,
 		unsigned int dstStart, unsigned int len){
-		unsigned int arrayLength;
-		constwrite "	arrayLength = array.byteLength;\n";
+		unsigned int arrayLength = length(array);
 		if (arrayStart > arrayLength) 
 			{return std::Compare::less;}
 		arrayLength = arrayLength - arrayStart;
@@ -102,8 +142,8 @@ class Array {
 		} else {minLength = arrayLength;}
 		unsigned int i = 0;
 		while (i < minLength){
-			unsigned char arrayChar;
-			constwrite "		arrayChar = array[arrayStart + i];\n";
+			unsigned char arrayChar = 
+				getU8(array, arrayStart + i);
 			unsigned char memoryChar = dst[dstStart + i];
 			if (arrayChar != memoryChar){
 				if (arrayChar > memoryChar) 
@@ -117,16 +157,16 @@ class Array {
 		return std::Compare::less;
 	}
 
-	static void* create(unsigned char[] src,
-		unsigned int i, unsigned int len){
+	static void* create(void* buffer){
 		void* array;
-		constwrite "	array = new Uint8Array(new ArrayBuffer(len));\n";
-		while (len > 0){
-			len = len - 1;
-			unsigned char memoryChar = src[i + len];
-			constwrite "		array[len] = memoryChar;\n";
-		}
+		constwrite "	array = new Uint8Array(buffer);\n";
 		return array;
+	}
+	
+	static void* createBuffer(unsigned int len){
+		void* buffer;
+		constwrite "	buffer = new ArrayBuffer(len);\n";
+		return buffer;
 	}
 
 	static void get(void* src,
@@ -134,20 +174,64 @@ class Array {
 		unsigned int dstStart, unsigned int len){
 		while (len > 0){
 			len = len - 1;
-			unsigned char srcChar;
-			constwrite "		srcChar = src[srcStart + len];\n";
-			dst[dstStart + len] = srcChar;
+			dst[dstStart + len] = 
+				getU8(src, srcStart + len);
 		}
 	}
+	
+	static void* getBlob(void* array){
+		void* blob;
+		constwrite 
+			"	if (array !== null)\n"
+			"		blob = new Blob([array]);\n"
+			"	else blob = new Blob([]);\n";
+		return blob;
+	}
+	
+	static unsigned char getU8(void* src,
+		unsigned int start){
+		unsigned char srcChar;
+		constwrite "	srcChar = src[start];\n";
+		return srcChar;
+	}
+	
+	static unsigned int length(void* array){
+		unsigned int len;
+		constwrite "	len = array.byteLength;\n";
+		return len;
+	}
+	
+	static void* memory(unsigned char[] src, 
+		unsigned int i, unsigned int len){
+		void* array;
+		constwrite "	array = "
+			"new Uint8Array(_memory, src + i, len);\n";
+		return array;
+	}
 
-	static void set(unsigned char[] src,
-		unsigned int srcStart, void* dst,
+	static void set(unsigned char[] src, 
+		unsigned int srcStart, void* dst, 
 		unsigned int dstStart, unsigned int len){
 		while (len > 0){
 			len = len - 1;
-			unsigned char memoryChar = src[srcStart + len];
-			constwrite "		dst[dstStart + len] = memoryChar;\n";
+			setU8(dst, dstStart + len, 
+				src[srcStart + len]);
 		}
+	}
+	
+	static void* setRange(unsigned char[] src, 
+		unsigned int srcStart, void* dst, 
+		unsigned int dstStart, unsigned int len){
+		std::js::Array::set(src, srcStart, 
+			addSetRange(dst, dstStart, len), 
+			dstStart, len);
+		return dst;
+	}
+	
+	static void setU8(void* dst, 
+		unsigned int start, 
+		unsigned char setChar){
+		constwrite "	dst[start] = setChar;\n";
 	}
 
 }

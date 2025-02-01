@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -75,8 +75,7 @@ class DataView {
 		unsigned char cmp = compareRange(
 			view, 0, dst, start, len);
 		if (cmp == std::Compare::equal){
-			unsigned int viewLength;
-			constwrite "	viewLength = view.byteLength;\n";
+			unsigned int viewLength = length(view);
 			if (viewLength != len){
 				if (viewLength > len){
 					return std::Compare::greater;
@@ -88,11 +87,10 @@ class DataView {
 	}
 
 	/* Compares view to submemory. */
-	static unsigned char compareRange(void* view,
-		unsigned int viewStart, unsigned char[] dst,
+	static unsigned char compareRange(void* view, 
+		unsigned int viewStart, unsigned char[] dst, 
 		unsigned int dstStart, unsigned int len){
-		unsigned int viewLength;
-		constwrite "	viewLength = view.byteLength;\n";
+		unsigned int viewLength = length(view);
 		if (viewStart > viewLength) 
 			{return std::Compare::less;}
 		viewLength = viewLength - viewStart;
@@ -102,8 +100,8 @@ class DataView {
 		} else {minLength = viewLength;}
 		unsigned int i = 0;
 		while (i < minLength){
-			unsigned char viewChar;
-			constwrite "		viewChar = view.getUint8(viewStart + i);\n";
+			unsigned char viewChar = getU8(
+				view, viewStart + i);
 			unsigned char memoryChar = dst[dstStart + i];
 			if (viewChar != memoryChar){
 				if (viewChar > memoryChar) 
@@ -112,7 +110,8 @@ class DataView {
 			}
 			i = i + 1;
 		}
-		if (len == minLength) {return std::Compare::equal;}
+		if (len == minLength) 
+			{return std::Compare::equal;}
 		return std::Compare::less;
 	}
 	
@@ -127,29 +126,55 @@ class DataView {
 			i = i + 1;
 		}
 	}
+	
+	static void* create(void* buffer){
+		void* view;
+		constwrite "	view = new DataView(buffer);\n";
+		return view;
+	}
 
 	static void get(void* src,
 		unsigned int srcStart, unsigned char[] dst,
 		unsigned int dstStart, unsigned int len){
 		while (len > 0){
 			len = len - 1;
-			unsigned char srcChar;
-			constwrite "		srcChar = src.getUint8(srcStart + len);\n";
-			dst[dstStart + len] = srcChar;
+			dst[dstStart + len] = 
+				 getU8(src, srcStart + len);
 		}
+	}
+	
+	static unsigned char getU8(void* src,
+		unsigned int start){
+		unsigned char srcChar;
+		constwrite "	srcChar = src.getUint8(start);\n";
+		return srcChar;
+	}
+	
+	static unsigned int getU32LE(void* src,
+		unsigned int start){
+		unsigned int srcInt;
+		constwrite 
+			"	srcInt = src.getUint32(start, true);\n";
+		return srcInt;
 	}
 	
 	static void* getUint8SubArray(void* src,
 		unsigned int start, unsigned int len){
-		void* array;
-		constwrite "	array = new Uint8Array(\n"
-			"		new ArrayBuffer(len));\n";
+		void* array = std::js::Array::create(
+			std::js::Array::createBuffer(len));
 		unsigned int i = 0;
 		while (i < len){
-			constwrite "		array[i] = src.getUint8(start + i);\n";
+			std::js::Array::setU8(array, i, 
+				getU8(src, start + i));
 			i = i + 1;
 		}
 		return array;
+	}
+	
+	static unsigned int length(void* view){
+		unsigned int len;
+		constwrite "	len = view.byteLength;\n";
+		return len;
 	}
 
 	static void set(unsigned char[] src,
@@ -157,9 +182,15 @@ class DataView {
 		unsigned int dstStart, unsigned int len){
 		while (len > 0){
 			len = len - 1;
-			unsigned char memoryChar = src[srcStart + len];
-			constwrite "		dst.setUint8(dstStart + len, memoryChar);\n";
+			setU8(dst, dstStart + len, 
+				src[srcStart + len]);
 		}
+	}
+	
+	static void setU8(void* dst, 
+		unsigned int start, 
+		unsigned char setChar){
+		constwrite "	dst.setUint8(start, setChar);\n";
 	}
 
 }
