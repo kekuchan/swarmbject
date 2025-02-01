@@ -1554,7 +1554,7 @@ class Main {
 			&keyword, &len, onClickSaveClass);
 		style.setDisplay(keyword.set(
 			std::css::DisplayTypes::none));
-
+		
 		addRowClick(&document, &div, &textNode,
 			"Settings", &menuContainer, &style, 
 			&keyword, &len, onClickSettings);
@@ -1604,7 +1604,7 @@ class Main {
 		addRowClick(&document, &div, &textNode,
 			"Run", &compileContainer, &style, 
 			&keyword, &len, onClickRun);
-
+		
 		std::html::Document::getBody(&document, &body);
 		std::html::Element::getStyle(&body, &style);
 		style.setMargin(len.set(

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2023 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -1885,6 +1885,23 @@ class ParseBlock {
 		return true;
 	}
 
+	static lexical::Type* getClassMember(
+		data::ClassType* classType,
+		std::str::View* name){
+		lexical::DataMember* dataMember;
+		lexical::MemberFunction* memberFunction;
+		while (classType != nullptr){
+			dataMember = classType->getDataMember(name);
+			if (dataMember != nullptr) 
+				{return dataMember;}
+			memberFunction = classType->getFunction(name);
+			if (memberFunction != nullptr) 
+				{return memberFunction;}
+			classType = classType->base;
+		}
+		return nullptr;
+	}
+	
 	static lexical::DataMember* getDataMember(
 		data::ClassType* classType,
 		std::str::View* name){
@@ -1915,25 +1932,26 @@ class ParseBlock {
 		std::str::View* name,
 		unsigned int compileCursor){
 		Main* main = &app.main;
-		lexical::DataMember* dataMember =
-			getDataMember(classType, name);
-		if (dataMember != nullptr){
-			return dataMemberToExpression(
-				app, dataMember, compileCursor);
-		} else {
-			lexical::MemberFunction* functionMember =
-				getMemberFunction(classType, name);
-			if (functionMember != nullptr){
-				return functionMemberToExpression(
-					app, functionMember, compileCursor);
+		lexical::Type* classMember =
+			getClassMember(classType, name);
+		if (classMember != nullptr){
+			if (classMember->type == 
+				lexical::Types::dataMember){
+				return dataMemberToExpression(app, 
+					(lexical::DataMember*)classMember, 
+					compileCursor);
 			} else {
-				std::str::DString error;
-				error.addCString("Class member '");
-				error.addView(name);
-				error.addCString("' not found.");
-				Parse::logError(main, compileCursor, &error);
-				return false;
+				return functionMemberToExpression(app, 
+					(lexical::MemberFunction*)classMember, 
+					compileCursor);
 			}
+		} else {
+			std::str::DString error;
+			error.addCString("Class member '");
+			error.addView(name);
+			error.addCString("' not found.");
+			Parse::logError(main, compileCursor, &error);
+			return false;
 		}
 	}
 
@@ -2518,21 +2536,21 @@ class ParseBlock {
 					return true;
 				}
 			}
-			/* Find in current class data members. */
-			lexical::DataMember* dataMember =
-				getDataMember(classType, token);
-			if (dataMember != nullptr){
+			/* Find in current class members. */
+			lexical::Type* classMember =
+				getClassMember(classType, token);
+			if (classMember != nullptr){
 				checkMaybeCast(main);
-				return dataMemberToExpression(
-					app, dataMember, compileCursor);
-			}
-			/* Find in current class function members. */
-			lexical::MemberFunction* functionMember =
-				getMemberFunction(classType, token);
-			if (functionMember != nullptr){
-				checkMaybeCast(main);
-				return functionMemberToExpression(
-					app, functionMember, compileCursor);
+				if (classMember->type == 
+					lexical::Types::dataMember){
+					return dataMemberToExpression(app, 
+						(lexical::DataMember*)classMember, 
+						compileCursor);
+				} else {
+					return functionMemberToExpression(app, 
+						(lexical::MemberFunction*)classMember, 
+						compileCursor);
+				}
 			}
 		}
 		/* Find in namespaces. */
@@ -2576,19 +2594,20 @@ class ParseBlock {
 								"after the :: operator.");
 							return false;
 						}
-						lexical::DataMember* dataMember =
-							getDataMember(classDataType, token);
-						if (dataMember != nullptr){
+						lexical::Type* classMember =
+							getClassMember(classDataType, token);
+						if (classMember != nullptr){
 							checkMaybeCast(main);
-							return dataMemberToExpression(
-								app, dataMember, compileCursor);
-						}
-						lexical::MemberFunction* functionMember =
-							getMemberFunction(classDataType, token);
-						if (functionMember != nullptr){
-							checkMaybeCast(main);
-							return functionMemberToExpression(
-								app, functionMember, compileCursor);
+							if (classMember->type == 
+								lexical::Types::dataMember){
+								return dataMemberToExpression(app, 
+									(lexical::DataMember*)classMember, 
+									compileCursor);
+							} else {
+								return functionMemberToExpression(app, 
+									(lexical::MemberFunction*)classMember, 
+									compileCursor);
+							}
 						} else {
 							std::str::DString error;
 							error.addCString("Not found: '");
