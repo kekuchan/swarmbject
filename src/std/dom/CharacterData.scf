@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -108,9 +108,8 @@ class CharacterData {
 		std::dom::Node* node, 
 		std::str::DString* string){
 		unsigned int start = string->length;
-		string->shift(start, 
-			getData(node, nullptr, 0));
-		getData(node, string->data, start);
+		getData(node, string->grow(
+			getData(node, nullptr, 0)), start);
 	}
 
 	static unsigned int getLength(std::dom::Node* node){
@@ -169,10 +168,9 @@ class CharacterData {
 		std::str::DString* string, 
 		unsigned int offset, unsigned int len){
 		unsigned int start = string->length;
-		string->shift(start, substringData(
-			node, offset, len, nullptr, 0));
 		substringData(node, offset, len, 
-			string->data, start);
+			string->grow(substringData(node, offset, 
+				len, nullptr, 0)), start);
 	}
 
 }
