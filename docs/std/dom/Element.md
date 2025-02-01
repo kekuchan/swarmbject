@@ -160,12 +160,12 @@ Returns: the length of the tag name.
 
 ```
 /*In Main::main.*/
-std::str::DString string;
-string.shift(0, 
+unsigned int length = 
 	std::dom::Element::getTagName(
 		&div, nullptr, 0));
+std::str::DString string;
 std::dom::Element::getTagName(
-	&div, string.data, 0);
+	&div, string.create(length), 0);
 /*"DIV"*/
 ```
 
@@ -236,7 +236,7 @@ std::dom::Element::setScrollTop(
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -306,7 +306,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

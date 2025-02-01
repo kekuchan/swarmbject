@@ -35,12 +35,12 @@ Returns: the length of the text data.
 /*In Main.*/
 static void onPaste(std::dom::Event* e,
 	std::ApplicationInstance aexcl app){
-	std::str::DString string;
-	string.shift(0, 
+	unsigned int length = 
 		std::dom::ClipboardEvent::getTextData(
-			e, nullptr, 0));
+			e, nullptr, 0);
+	std::str::DString string;
 	std::dom::ClipboardEvent::getTextData(
-		e, string.data, 0);
+		e, string.create(length), 0);
 }
 /*In Main::main.*/
 std::dom::ClipboardEvent::setOnPaste(
@@ -169,7 +169,7 @@ std::dom::ClipboardEvent::setOnPaste(
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -239,7 +239,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
