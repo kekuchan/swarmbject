@@ -330,15 +330,15 @@ index + 1 position of the starting character.
 
 ```
 std::str::String first;
-first.setCString("YEAR");
+first.setCString("YEAR YEAR");
 unsigned char const[] second = "year";
 
-unsigned int position = first.findLast(
+unsigned int position = first.find(
 	second, 0, 4, 0, nullptr); /*0*/
 
 std::str::Compare cmp;
 cmp.compare = std::str::Compare::equalsCI;
-position = first.findLast(
+position = first.find(
 	second, 0, 4, 0, &cmp); /*1*/
 ```
 
@@ -364,7 +364,7 @@ index + 1 position of the character.
 
 ```
 std::str::String first;
-first.setCString("YEAR");
+first.setCString("YEAR YEAR");
 unsigned char second = 'y';
 
 unsigned int position = first.findChar(
@@ -400,7 +400,7 @@ index + 1 position of the starting character.
 
 ```
 std::str::String first;
-first.setCString("YEAR");
+first.setCString("YEAR YEAR");
 unsigned char const[] second = "year";
 
 unsigned int position = first.findLast(
@@ -409,7 +409,7 @@ unsigned int position = first.findLast(
 std::str::Compare cmp;
 cmp.compare = std::str::Compare::equalsCI;
 position = first.findLast(
-	second, 0, 4, first.length, &cmp); /*1*/
+	second, 0, 4, first.length, &cmp); /*6*/
 ```
 
 ## "findLastChar" member function:
@@ -435,7 +435,7 @@ index + 1 position of the character.
 
 ```
 std::str::String first;
-first.setCString("YEAR");
+first.setCString("YEAR YEAR");
 unsigned char second = 'y';
 
 unsigned int position = first.findLastChar(
@@ -444,7 +444,7 @@ unsigned int position = first.findLastChar(
 std::str::Compare cmp;
 cmp.compare = std::str::Compare::equalsCharCI;
 position = first.findLastChar(
-	second, first.length, &cmp); /*1*/
+	second, first.length, &cmp); /*6*/
 ```
 
 ## "grow" member function:
@@ -687,7 +687,8 @@ string.trim(2);
 
 # Software license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -757,7 +758,8 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

@@ -1,8 +1,7 @@
 # "std::str::View" class:
 
-Used to create a const view of a substring, thus 
-it only points to the substring, instead of making 
-a copy of it.
+Points to a substring, thus it creates only a view 
+of a string, instead of making a copy of it.
 
 ## "data" data member:
 
@@ -14,7 +13,7 @@ string.set("2021", 2, 2);
 unsigned char const[] data = string.data;
 /*The view is only '2','1', but the data is "2021".*/
 ```
-	
+
 ## "length" data member:
 
 The number of unsigned chars of the substring.
@@ -228,7 +227,7 @@ Parameters:
 to point to.
 * The starting index of the substring 
 to point to in its array.
-* The length of the substring to copy to point to.
+* The length of the substring to point to.
 
 Returns: void.
 
@@ -310,7 +309,8 @@ string.setView(&year);
 
 # Software license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2024-2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -380,7 +380,8 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2024-2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
