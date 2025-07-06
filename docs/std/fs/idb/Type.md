@@ -1,15 +1,29 @@
-# "std::fs::FileSystem" class:
+# "std::fs::idb::Type" class:
 
-Used for file system operations.
-	
-## "gui" data member:
+A file system type using the browser's IndexedDB 
+mechanism for permanent storage (unless it gets 
+cleared so be sure to make backups).
 
-Used to show a graphical user interface. Its 
-members will be detailed at "std::fs::GUI".
+## "mount" member function:
+
+Makes the idb file system available to be used.
+
+Parameters:
+The std::ApplicationInstance aexcl object.
+
+Returns: void.
+
+```
+class Main {
+	void main(std::ApplicationInstance aexcl app){
+		std::fs::idb::Type::mount(app);
+	}
+}
+```
 
 # Software license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -79,7 +93,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

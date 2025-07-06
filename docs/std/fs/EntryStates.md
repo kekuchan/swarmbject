@@ -1,15 +1,24 @@
-# "std::fs::FileSystem" class:
+# "std::fs::EntryStates" enum:
 
-Used for file system operations.
-	
-## "gui" data member:
+## "none" constexpr data member:
 
-Used to show a graphical user interface. Its 
-members will be detailed at "std::fs::GUI".
+Indicates that the entry is closed.
+
+## "opening" constexpr data member:
+
+Indicates that the entry is opening.
+
+## "open" constexpr data member:
+
+Indicates that the entry is open.
+
+## "close" constexpr data member:
+
+Indicates that the entry is closing.
 
 # Software license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -79,7 +88,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

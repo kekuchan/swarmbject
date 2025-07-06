@@ -1,15 +1,127 @@
-# "std::fs::FileSystem" class:
+# "std::fs::FolderModes" enum:
 
-Used for file system operations.
-	
-## "gui" data member:
+## "create" constexpr data member:
 
-Used to show a graphical user interface. Its 
-members will be detailed at "std::fs::GUI".
+Indicates a create a folder mode.
+
+```
+class Main {
+	std::fs::Entry folder;
+	void main(std::ApplicationInstance aexcl app){
+		/*Assuming that "tmp://" already exists.*/
+		folder.set("tmp://tut/", 0, 10, 
+			std::fs::FolderModes::create, 
+			onCreated, 0, nullptr);
+		folder.open(app);
+	}
+	static void onCreated(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* folder,
+		unsigned int error){
+	}
+}
+```
+
+## "each" constexpr data member:
+
+Indicates an iterate over all the entries 
+in the folder mode.
+
+```
+class Main {
+	std::fs::Entry folder;
+	void main(std::ApplicationInstance aexcl app){
+		/*Assuming that "tmp://" already exists.*/
+		folder.set("tmp://tut/", 0, 10, 
+			std::fs::FolderModes::each,
+			onOpened, 0, nullptr);
+		folder.open(app);
+	}
+	static void onOpened(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* folder,
+		unsigned int error){
+		if (folder->state == 
+			std::fs::FolderStates::none){
+			/*Iterated over all the entries.*/
+			return;
+		}
+	}
+}
+```
+
+## "erase" constexpr data member:
+
+Indicates an erase the folder mode.
+
+```
+class Main {
+	std::fs::Entry folder;
+	void main(std::ApplicationInstance aexcl app){
+		/*Assuming that "tmp://" already exists.*/
+		folder.set("tmp://tut/", 0, 10, 
+			std::fs::FolderModes::erase,
+			onErased, 0, nullptr);
+		folder.open(app);
+	}
+	static void onErased(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* folder,
+		unsigned int error){
+	}
+}
+```
+
+## "gui" constexpr data member:
+
+Indicates a show a gui for the folder mode.
+
+## "move" constexpr data member:
+
+Indicates a move the folder mode with the folder 
+path to move to as an std::str::DString parameter.
+
+```
+class Main {
+	std::fs::Entry folder;
+	std::str::DString parameters;
+	void main(std::ApplicationInstance aexcl app){
+		/*Assuming that "tmp://" already exists.*/
+		parameters.setCString("tmp://tutorial/");
+		folder.set("tmp://tut/", 0, 10, 
+			std::fs::FolderModes::move, 
+			onMoved, 0, &parameters);
+		folder.open(app);
+	}
+	static void onMoved(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* folder,
+		unsigned int error){
+	}
+}
+```
+
+## "next" constexpr data member:
+
+Indicates an iterate over all the entries 
+in the containing folder, starting from 
+the next entry after the contained folder mode.
+
+```
+/*Change "each" to "next" in the 
+	"each" constexpr data member example 
+	to iterate over all the entries in "tmp://" 
+	starting from the next entry after "tut/".*/
+```
+
+## "none" constexpr data member:
+
+Indicates no mode.
 
 # Software license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2021, 2024-2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -79,7 +191,8 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2021, 2024-2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

@@ -1,15 +1,198 @@
-# "std::fs::FileSystem" class:
+# "std::fs::FileModes" enum:
 
-Used for file system operations.
+## "append" constexpr data member:
+
+Indicates a write-only and append-only mode. 
+The file is created if it does not exists.
+
+## "appendUpdate" constexpr data member:
+
+Indicates a read and append-only write mode. 
+The file is created if it does not exists.
+
+## "erase" constexpr data member:
+
+Indicates an erase the file mode.
+
+```
+class Main {
+	std::fs::Entry file;
+	void main(std::ApplicationInstance aexcl app){
+		/*Assuming that "tmp://" already exists.*/
+		file.set("tmp://tut/Year.md", 0, 17, 
+			std::fs::FileModes::erase,
+			onErased, 0, nullptr);
+		file.open(app);
+	}
+	static void onErased(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+	}
+}
+```
+
+## "gui" constexpr data member:
+
+Indicates a show a gui for the file mode.
+
+## "move" constexpr data member:
+
+Indicates a move the file mode with the file's 
+path to move to as an std::str::DString parameter.
+
+```
+class Main {
+	std::fs::Entry file;
+	std::str::DString parameters;
+	void main(std::ApplicationInstance aexcl app){
+		/*Assuming that "tmp://" already exists.*/
+		parameters.setCString(
+			"tmp://tutorial/Year.md");
+		file.set("tmp://tut/Year.md", 0, 17, 
+			std::fs::FileModes::move, 
+			onMoved, 0, &parameters);
+		file.open(app);
+	}
+	static void onMoved(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+	}
+}
+```
+
+## "next" constexpr data member:
+
+Indicates an iterate over all the entries 
+in the containing folder, starting from 
+the next entry after the contained file mode.
+
+```
+class Main {
+	std::fs::Entry entry;
+	void main(std::ApplicationInstance aexcl app){
+		/*Assuming that "tmp://" already exists.*/
+		entry.set("tmp://tut/Year.md", 0, 17, 
+			std::fs::FileModes::next, 
+			onOpened, 0, nullptr);
+		entry.open(app);
+	}
+	static void onOpened(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* folder, 
+		unsigned int error){
+		folder->path; /* "tmp://tut/" */
+		if (folder->state == 
+			std::fs::FolderStates::none){
+			/*No more entries.*/
+			return;
+		}
+		/*Iterate over all the entries in 
+			"tmp://tut/" starting from the 
+			next entry after "Year.md".*/
+	}
+}
+```
+
+## "none" constexpr data member:
+
+Indicates no mode.
+
+## "read" constexpr data member:
+
+Indicates a read-only mode. The file is 
+not created if it does not exists.
+
+```
+class Main {
 	
-## "gui" data member:
+	std::fs::Entry file;
+	std::ds::BufferView parameters;
+	std::str::String string;
+	
+	void main(std::ApplicationInstance aexcl app){
+		app.main.parameters.data = 
+			app.main.string.create(4);
+		app.main.parameters.size = 4;
+		/*Assuming that "tmp://" already exists.*/
+		file.set("tmp://tut/Year.md", 0, 17, 
+			std::fs::FileModes::read,
+			onOpened, 0, &parameters);
+		file.open(app);
+	}
+	
+	static void onOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		app.main.string; /*"2025"*/
+		file->callback = onClosed;
+		file->close(app);
+	}
+	
+	static void onClosed(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+	}
+	
+}
+```
+## "readUpdate" constexpr data member:
 
-Used to show a graphical user interface. Its 
-members will be detailed at "std::fs::GUI".
+Indicates a read-write mode. The file is 
+not created if it does not exists.
+
+## "write" constexpr data member:
+
+Indicates a write-only mode. The file is 
+created if it does not exists. If the file 
+exists, an empty file is used instead.
+
+```
+class Main {
+	
+	std::fs::Entry file;
+	std::ds::BufferView parameters;
+	
+	void main(std::ApplicationInstance aexcl app){
+		app.main.parameters.data = "2025";
+		app.main.parameters.size = 4;
+		/*Assuming that "tmp://" already exists.*/
+		file.set("tmp://tut/Year.md", 0, 17, 
+			std::fs::FileModes::write, 
+			onOpened, 0, &parameters);
+		file.open(app);
+	}
+	
+	static void onOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		file->callback = onClosed;
+		file->close(app);
+	}
+	
+	static void onClosed(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+	}
+	
+}
+```
+
+## "writeUpdate" constexpr data member:
+
+Indicates a read-write mode. The file is 
+created if it does not exists. If the file 
+exists, an empty file is used instead.
 
 # Software license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2021, 2024-2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -79,7 +262,8 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2021, 2024-2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

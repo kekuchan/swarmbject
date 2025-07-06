@@ -1,15 +1,47 @@
-# "std::fs::FileSystem" class:
+# "std::fs::FileStates" enum:
 
-Used for file system operations.
-	
-## "gui" data member:
+## "none" constexpr data member:
 
-Used to show a graphical user interface. Its 
-members will be detailed at "std::fs::GUI".
+Indicates that the file is closed.
+
+## "opening" constexpr data member:
+
+Indicates that the file is opening.
+
+## "open" constexpr data member:
+
+Indicates that the file is open.
+
+## "close" constexpr data member:
+
+Indicates that the file is closing.
+
+## "read" constexpr data member:
+
+Indicates that the file is being read.
+
+## "readCall" constexpr data member:
+
+Indicates that the file is being read 
+with readCall.
+
+## "write" constexpr data member:
+
+Indicates that the file is being written.
+
+## "writeCall" constexpr data member:
+
+Indicates that the file is being written 
+with writeCall.
+
+## "writeMove" constexpr data member:
+
+Indicates that the file is being written 
+with writeMove.
 
 # Software license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -79,7 +111,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

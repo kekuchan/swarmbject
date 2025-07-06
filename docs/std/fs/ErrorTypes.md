@@ -1,15 +1,24 @@
-# "std::fs::FileSystem" class:
+# "std::fs::ErrorTypes" enum:
 
-Used for file system operations.
-	
-## "gui" data member:
+## "none" constexpr data member:
 
-Used to show a graphical user interface. Its 
-members will be detailed at "std::fs::GUI".
+Indicates that there were no errors.
+
+## "notOpen" constexpr data member:
+
+Indicates that the entry could not be opened.
+
+## "open" constexpr data member:
+
+Indicates that the entry is still open.
+
+## "unsupported" constexpr data member:
+
+Indicates that the operation is unsupported.
 
 # Software license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -79,7 +88,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

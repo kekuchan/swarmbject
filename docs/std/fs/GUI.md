@@ -30,15 +30,16 @@ class Main {
 	static void onSelect(
 		std::ApplicationInstance aexcl app,
 		std::str::DString* path){
-		/*The path is "/tut/Year.md" 
-			if that was selected.*/
+		/*The path is "tmp://tut/Year.md" 
+			if that was selected, assuming 
+			that "tmp://" already exists.*/
 	}
 }
 ```
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -108,7 +109,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
