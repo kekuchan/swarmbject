@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021-2023 SWARMBJECT contributors
+Copyright (c) 2021-2023, 2025
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -2185,25 +2186,26 @@ class ParseBlock {
 		main->compileCursor = compileCursor;
 		return true;
 	}
-
-	static void parseClassOrMember(
+	
+	static void classOrMemberOpened(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* openedFile){
+		std::fs::Entry* file,
+		unsigned int error){
 		Main* main = &app.main;
 		unsigned int compileCursor = main->compileCursor;
-		std::str::DString* classOrMemberPath =
-			&main->classOrMemberPath;
+		std::str::DString* path =
+			&main->file.path;
 		std::str::DString* classMemberName =
 			&main->classMemberName;
-		unsigned int rootPath = main->rootPath;
-		unsigned int len = classOrMemberPath->length;
+		unsigned int rootPath = main->rootPath.length;
+		unsigned int len = path->length - 4; /*.scf"*/
 		unsigned int nameLen = classMemberName->length;
 		unsigned int i;
-		if (openedFile == nullptr){
+		if (error != std::fs::ErrorTypes::none){
 			if (nameLen != 0){
 				std::str::DString error;
 				error.addCString("Identifier '");
-				error.addSubReplace(classOrMemberPath->data,
+				error.addSubReplace(path->data,
 					rootPath + 4, len - rootPath - 4, "/", 0, 1,
 					"::", 0, 2);
 				error.addCString("::");
@@ -2213,10 +2215,9 @@ class ParseBlock {
 				return;
 			}
 			i = std::arr::Uchar::findLast(
-				classOrMemberPath->data, 0, len, '/') - 1;
-			classMemberName->set(
-				classOrMemberPath->data, i + 1,
-				len - i - 1);
+				path->data, 0, len, '/') - 1;
+			classMemberName->set(path->data, 
+				i + 1, len - i - 1);
 			if (i == rootPath + 3){
 				std::str::DString error;
 				error.addCString("Identifier '");
@@ -2225,12 +2226,9 @@ class ParseBlock {
 				Parse::logError(main, compileCursor, &error);
 				return;
 			}
-			classOrMemberPath->trim(i);
-			classOrMemberPath->addCString(".scf");
-			app.fileSystem.openFile(
-				classOrMemberPath->data, parseClassOrMember,
-				std::fs::OpenFileModes::readBinary);
-			classOrMemberPath->trim(i);
+			path->trim(i);
+			path->addCString(".scf");
+			Main::nextRead(app, classOrMemberOpened);
 			return;
 		}
 		i = rootPath + 4;
@@ -2240,12 +2238,12 @@ class ParseBlock {
 		std::str::View name;
 		while (true){
 			j = std::arr::Uchar::find(
-				classOrMemberPath->data, j, len - j, '/');
+				path->data, j, len - j, '/');
 			if (j == 0){
 				j = len + 1;
 			}
 			j = j - 1;
-			name.set(classOrMemberPath->data, i, j - i);
+			name.set(path->data, i, j - i);
 			if (j < len){
 				Namespace* nextNameSpace =
 					compileNamespace->getNamespace(&name);
@@ -2265,29 +2263,36 @@ class ParseBlock {
 			}
 		}
 		main->currentParseClass = classType;
-		continueParseClassOrMember(app, openedFile);
+		classOrBaseOpened(app, file, error);
+	}
+	
+	static void classOrBaseOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		Parse::doReadExists(app, 
+			classOrBaseRead, error);
 	}
 
-	static void continueParseClassOrMember(
+	static void classOrBaseRead(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* openedFile){
+		std::fs::Entry* file,
+		unsigned int error){
+		Main::closeFile(app, parseClassOrBase, error);
+	}
+	
+	static void parseClassOrBase(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
 		Main* main = &app.main;
-		data::ClassType* classType = main->currentParseClass;
-		if (openedFile == nullptr){
-			std::str::DString error;
-			error.addCString("Class: ");
-			error.addString(&classType->name);
-			error.addCString(" does not exists.");
-			Parse::logError(main, 0, &error);
-			return;
-		}
-		unsigned int len = openedFile->getSize();
-		std::str::String* code = &classType->code;
-		openedFile->read(code->create(len), 0, len);
+		data::ClassType* classType = 
+			main->currentParseClass;
 		Parse::parseClass(app, classType,
-			continueParseClassOrMember);
-		if (main->compileError) {return;}
-		if (main->currentParseClass == classType->base) {return;}
+			classOrBaseOpened);
+		if (main->compileError || 
+			main->currentParseClass == classType->base) 
+				{return;}
 		main->currentParseClass = nullptr;
 		parseExpressionStacks(app);
 	}
@@ -2555,7 +2560,7 @@ class ParseBlock {
 		}
 		/* Find in namespaces. */
 		Namespace* compileNamespace = main->rootNamespace;
-		std::str::DString* path = &main->classOrMemberPath;
+		std::str::DString* path = &main->file.path;
 		while (true){
 			Namespace* nextNameSpace =
 				compileNamespace->getNamespace(token);
@@ -2564,7 +2569,8 @@ class ParseBlock {
 					compileNamespace->getClass(token);
 				if (classDataType == nullptr){
 					main->classMemberName.clear();
-					path->trim(main->rootPath + 3/*src*/);
+					path->trim(main->rootPath.length + 
+						3/*src*/);
 					compileNamespace->getPath(path);
 					path->addView(token);
 					break;
@@ -2678,12 +2684,8 @@ class ParseBlock {
 				path->addView(token);
 				continue;
 			}
-			unsigned int len = path->length;
 			path->addCString(".scf");
-			app.fileSystem.openFile(
-				path->data, parseClassOrMember,
-				std::fs::OpenFileModes::readBinary);
-			path->trim(len);
+			Main::nextRead(app, classOrMemberOpened);
 			saveCursor(main, savedCursor,
 				main->dataMembersStack.size);
 			/* Still used if error. */
