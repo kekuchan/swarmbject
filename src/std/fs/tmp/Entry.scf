@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023-2025 SWARMBJECT contributors
+Copyright (c) 2023-2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -67,87 +67,69 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class FileSystem {
+class Entry {
 
-	std::ds::PtrArray types;
-	std::fs::Entry* queueEnd;
-	std::fs::Entry* queueStart;
+	std::fs::tmp::Folder* folder;
+	std::str::String name;
+	unsigned char references;
+	unsigned char type;
+	std::ds::BalBinTree tree;
 	
-	/* Public data members */
-	std::fs::GUI gui;
-	
-	FileSystem(){
-		queueEnd = nullptr;
-		queueStart = nullptr;
+	void addReference(){
+		references = references + 1;
 	}
 	
-	std::fs::Type* getType(std::str::View* string){
-		unsigned int i = types.findSorted(
-			string, std::fs::Type::cmpString);
-		if (i != 0){
-			return (std::fs::Type*)(types.data[i - 1]);
-		}
-		return nullptr;
-	}
-	
-	bool mount(std::fs::Type* type){
-		unsigned int i = types.findSorted(
-			type, std::fs::Type::cmpName);
-		if (i == 0){
-			types.insertSorted(type, 
-				std::fs::Type::cmpName);
-			return true;
-		}
-		return false;
-	}
-	
-	static async void run(
-		std::ApplicationInstance aexcl app){
-		std::fs::FileSystem* fileSystem =
-			&app.fileSystem;
-		std::fs::Entry* entry = fileSystem->queueStart;
-		if (entry != nullptr){
-			fileSystem->next(app, 
-				entry->fileSystem->run(app, entry));
+	static void addReferences(
+		std::fs::tmp::Entry* entry){
+		while (entry != nullptr){
+			entry->addReference();
+			entry = entry->folder;
 		}
 	}
 	
-	void next(std::ApplicationInstance aexcl app, 
-		unsigned int error){
-		std::fs::Entry* entry;
-		switch (error){
-			case std::fs::ErrorTypes::noPop:
+	static unsigned char compare(
+		void* src, void* dst){
+		return (std::fs::tmp::Entry*)
+			src->name.compareString(
+				&((std::fs::tmp::Entry*)dst->name), 
+				nullptr);
+	}
+	
+	static unsigned char compareView(
+		void* entry, void* name){
+		return (std::fs::tmp::Entry*)entry->
+			name.compareView((std::str::View*)name, 
+				nullptr);
+	}
+	
+	static void erase(void* entry){
+		switch ((std::fs::tmp::Entry*)entry->type){
+			case std::fs::tmp::EntryTypes::file:
+			case std::fs::tmp::EntryTypes::jsFile:
+				delete (std::fs::tmp::File*)entry;
 				break;
-			case std::fs::ErrorTypes::noCall:
-				popFromfileSystemQueue(app);
-				break;
-			default:
-				entry = queueStart;
-				popFromfileSystemQueue(app);
-				if (entry->callback != nullptr){
-					entry->callback(app, entry, error);
-				}
+			case std::fs::tmp::EntryTypes::folder:
+				delete (std::fs::tmp::Folder*)entry;
 				break;
 		}
 	}
 	
-	void popFromfileSystemQueue(
-		std::ApplicationInstance aexcl app){
-		std::ds::SLList::popFront(
-			(void**)&queueStart,
-			(void**)&queueEnd,
-			std::fs::Entry::getList);
-		if (queueStart != nullptr) {run(app);}
+	void eraseReference(){
+		references = references - 1;
 	}
 	
-	void pushTofileSystemQueue(
-		std::ApplicationInstance aexcl app,
-		std::fs::Entry* back){
-		std::ds::SLList::pushBack((void*)back,
-			(void**)&queueStart,
-			(void**)&queueEnd,
-			std::fs::Entry::getList);
-		if (queueStart == back) {run(app);}
+	static void eraseReferences(
+		std::fs::tmp::Entry* entry){
+		while (entry != nullptr){
+			entry->eraseReference();
+			entry = entry->folder;
+		}
+	}
+	
+	static std::ds::BalBinTree* getTree(
+		void* entry){
+		return &(std::fs::tmp::Entry*)
+			entry->tree;
 	}
 	
 }

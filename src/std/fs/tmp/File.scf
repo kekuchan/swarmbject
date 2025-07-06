@@ -1,0 +1,275 @@
+/*
+Copyright (c) 2021-2025 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class File : std::fs::tmp::Entry {
+
+	void* content;
+	
+	~File(){
+		switch (type){
+			case std::fs::tmp::EntryTypes::file:
+				delete (std::ds::DBuffer*)content;
+				break;
+			case std::fs::tmp::EntryTypes::jsFile:
+				delete (std::fs::tmp::JSContent*)content;
+				break;
+		}
+	}
+	
+	void clear(){
+		(std::ds::DBuffer*)content->clear();
+	}
+	
+	void clearJs(){
+		(std::fs::tmp::JSContent*)content->size = 0;
+	}
+	
+	static std::fs::tmp::File* create(
+		std::str::View* name){
+		std::fs::tmp::File* entry = 
+			new std::fs::tmp::File;
+		entry->name.setView(name);
+		entry->references = 0;
+		return entry;
+	}
+	
+	static std::fs::tmp::File* createFile(
+		std::str::View* name){
+		std::fs::tmp::File* entry = create(name);
+		entry->type = std::fs::tmp::EntryTypes::file;
+		entry->content = new std::ds::DBuffer;
+		return entry;
+	}
+	
+	static std::fs::tmp::File* createJs(
+		std::str::View* name){
+		std::fs::tmp::File* entry = create(name);
+		entry->type = std::fs::tmp::EntryTypes::jsFile;
+		entry->content = new std::fs::tmp::JSContent;
+		return entry;
+	}
+	
+	void* getJsObject(){
+		return (std::fs::tmp::JSContent*)
+			content->getJsObject();
+	}
+	
+	unsigned int getSize(){
+		return (std::ds::DBuffer*)content->size;
+	}
+	
+	unsigned int getSizeJs(){
+		return (std::fs::tmp::JSContent*)
+			content->size;
+	}
+	
+	/*size <= cursor + len*/
+	void read(unsigned char[] data, 
+		unsigned int i, unsigned int len, 
+		unsigned int cursor){
+		switch (type){
+			case std::fs::tmp::EntryTypes::file:
+				std::arr::Uchar::copy(data, i, 
+					(std::ds::DBuffer*)content->data, 
+					cursor, len);
+				break;
+			case std::fs::tmp::EntryTypes::jsFile:
+				std::js::Array::get(getJsObject(),
+					cursor, data, i, len);
+				break;
+		}
+	}
+	
+	/*size <= cursor + len*/
+	void readCall(
+		std::fs::Call* parameters, 
+		unsigned int len, 
+		unsigned int cursor){
+		if (parameters->call == nullptr) {return;}
+		unsigned int i = 0;
+		void(std::fs::Call*, unsigned int, 
+			unsigned char) call = (void(std::fs::Call*, 
+				unsigned int, unsigned char))
+					(parameters->call);
+		switch (type){
+			case std::fs::tmp::EntryTypes::file:
+				{
+					unsigned char[] src =
+						(std::ds::DBuffer*)content->data;
+					while (i < len){
+						call(parameters, i, src[cursor]);
+						i = i + 1;
+						cursor = cursor + 1;
+					}
+				}
+				break;
+			case std::fs::tmp::EntryTypes::jsFile:
+				{
+					void* src = getJsObject();
+					while (i < len){
+						call(parameters, i, 
+							std::js::Array::getU8(src, cursor));
+						i = i + 1;
+						cursor = cursor + 1;
+					}
+				}
+				break;
+		}
+	}
+	
+	/*size <= cursor*/
+	unsigned int write(
+		std::ds::BufferView* parameters, 
+		unsigned int cursor){
+		unsigned int len = parameters->size;
+		if (parameters->data != nullptr){
+			switch (type){
+				case std::fs::tmp::EntryTypes::file:
+					(std::ds::DBuffer*)content->
+						copyRange(cursor, parameters->data,
+							parameters->start, len);
+					break;
+				case std::fs::tmp::EntryTypes::jsFile:
+					(std::fs::tmp::JSContent*)content->
+						write(cursor, parameters->data,
+							parameters->start, len);
+					break;
+			}
+		}
+		return len;
+	}
+	
+	/*size <= cursor*/
+	unsigned int writeCall(
+		std::fs::Call* parameters, 
+		unsigned int cursor){
+		unsigned int len = parameters->size;
+		if (parameters->call != nullptr){
+			unsigned char(std::fs::Call*, 
+				unsigned int) call = (unsigned char(
+					std::fs::Call*, unsigned int))
+						(parameters->call);
+			switch (type){
+				case std::fs::tmp::EntryTypes::file:
+					{
+						std::ds::DBuffer* buffer = 
+							(std::ds::DBuffer*)content;
+						unsigned char[] dst;
+						if (cursor + len > buffer->size){
+							dst = buffer->grow(cursor + len - 
+								buffer->size);
+						} else {
+							dst = buffer->data;
+						}
+						unsigned int i = 0;
+						while (i < len){
+							dst[cursor] = call(parameters, i);
+							i = i + 1;
+							cursor = cursor + 1;
+						}
+					}
+					break;
+				case std::fs::tmp::EntryTypes::jsFile:
+					(std::fs::tmp::JSContent*)content->
+						writeCall(parameters, cursor);
+					break;
+			}
+		}
+		return len;
+	}
+	
+	/*size <= cursor*/
+	unsigned int writeMove(
+		std::ds::Buffer* parameters, 
+		unsigned int cursor){
+		unsigned int len = parameters->size;
+		if (parameters->data != nullptr){
+			std::ds::DBuffer* buffer;
+			switch (type){
+				case std::fs::tmp::EntryTypes::file:
+					buffer = (std::ds::DBuffer*)content;
+					if (cursor == 0){
+						if (buffer->size <= len){
+							buffer->moveBuffer(parameters);
+							break;
+						}
+					}
+					buffer->copyRange(cursor, parameters->data,
+						0, len);
+					break;
+				case std::fs::tmp::EntryTypes::jsFile:
+					(std::fs::tmp::JSContent*)content->
+						write(cursor, parameters->data, 0, len);
+					break;
+			}
+		}
+		return len;
+	}
+	
+}

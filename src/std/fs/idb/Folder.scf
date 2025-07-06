@@ -1,0 +1,305 @@
+/*
+Copyright (c) 2021-2022, 2025 
+SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Folder {
+	
+	unsigned char constexpr idOffset = 0;
+	unsigned char constexpr typeOffset = 4;
+	unsigned char constexpr nameOffset = typeOffset + 1;
+
+	static void debugContent(void* content){
+		constwrite
+			"	var entries = content.getUint32(0);\n"
+			"	var string = 'Entries: ' + entries;\n"
+			"	for (var i = 4; i <= (entries * 4); i += 4){\n"
+			"		var offset = content.getUint32(i);\n"
+			"		string += '\\nOffset: ' + offset +\n"
+			"			' id: ' + content.getUint32(offset) + ' ' +\n"
+			"			' type: ' + content.getUint8(offset + ";
+								constwrite typeOffset;
+							constwrite ") + ' ';\n"
+			"		offset += ";
+						constwrite nameOffset;
+						constwrite ";\n"
+			"		while (true){\n"
+			"			var nameChar = content.getUint8(offset);\n"
+			"			if (nameChar === 0) break;\n"
+			"			string += String.fromCharCode(nameChar);\n"
+			"			++offset;\n"
+			"		}\n"
+			"	}\n"
+			"	alert(string);\n";
+	}
+
+	static void* deleteEntry(void* folderContent, 
+		unsigned int offset, unsigned int len){
+		unsigned int entries = 
+			std::fs::idb::Folder::entries(folderContent);
+		if (entries == 1){
+			return std::js::Object::getNull();
+		}
+		unsigned int contentLen = 
+			std::js::DataView::length(folderContent);
+		void* newContent = 
+			std::js::DataView::create(
+				std::js::Array::createBuffer(
+					contentLen - 4 - nameOffset - len - 1));
+		std::js::DataView::setU32LE(newContent, 
+			0, entries - 1);
+		unsigned int deletedOffset = offset;
+		unsigned int deleteOffset = 4;
+		unsigned int j = entries * 4;
+		while (j >= 4){
+			offset = std::js::DataView::getU32LE(
+				folderContent, j);
+			if (offset > deletedOffset){
+				std::js::DataView::setU32LE(
+					newContent, j - deleteOffset, 
+					offset - 4 - nameOffset - len - 1);
+			} else if (offset < deletedOffset){
+				std::js::DataView::setU32LE(newContent, 
+					j - deleteOffset, offset - 4);
+			} else {
+				deleteOffset = 0;
+			}
+			j = j - 4;
+		}
+		unsigned int i = entries * 4 + 4;
+		std::js::DataView::copyViews(folderContent, newContent,
+			i, i - 4, deletedOffset - i);
+		offset = deletedOffset + nameOffset + len + 1;
+		std::js::DataView::copyViews(folderContent, newContent,
+			offset, deletedOffset - 4, contentLen - offset);
+		return newContent;
+	}
+	
+	static unsigned int entries(void* folderContent){
+		if (std::js::Object::isNullObject(folderContent))
+			{return 0;}
+		return std::js::DataView::getU32LE(
+			folderContent, 0);
+	}
+
+	static unsigned int getEntryId(void* folderContent,
+		unsigned int offset){
+		return std::js::DataView::getU32LE(
+			folderContent, offset + idOffset);
+	}
+
+	static unsigned int getEntryCursor(
+		void* folderContent, unsigned char[] string,
+		unsigned int start, unsigned int len){
+		unsigned int i = 1;
+		unsigned int offset;
+		unsigned int max = std::fs::idb::Folder::
+			entries(folderContent);
+		unsigned int mid;
+		while (max >= i){
+			mid = (max + i) >> 1;
+			offset = std::js::DataView::getU32LE(
+				folderContent, mid * 4);
+			switch (
+				std::js::DataView::compareRange(
+					folderContent, offset + nameOffset,
+					string, start, len)){
+				case std::Compare::less:
+					i = mid + 1;
+					break;
+				case std::Compare::equal:
+					if (std::js::DataView::getU8(
+						folderContent, offset + 
+						nameOffset + len) == 0) {return mid;}
+					max = mid - 1;
+					break;
+				case std::Compare::greater:
+					max = mid - 1;
+					break;
+			}
+		}
+		return 0;
+	}
+	
+	static unsigned int getEntryOffset(
+		void* folderContent, unsigned char[] string,
+		unsigned int start, unsigned int len){
+		unsigned int i = getEntryCursor(
+			folderContent, string, start, len);
+		if (i != 0){
+			i = std::js::DataView::getU32LE(
+				folderContent, i * 4);
+		}
+		return i;
+	}
+
+	static unsigned char getEntryType(void* folderContent,
+		unsigned int offset){
+		return std::js::DataView::getU8(
+			folderContent, offset + typeOffset);
+	}
+	
+	static unsigned int getName(void* folderContent,
+		unsigned int i, unsigned char[] string,
+		unsigned int start){
+		unsigned int offset = 
+			std::js::DataView::getU32LE(
+				folderContent, 4 + i * 4) + nameOffset;
+		unsigned int j = 0;
+		if (string == nullptr){
+			while (std::js::DataView::getU8(
+				folderContent, offset + j) != 0){
+				j = j + 1;
+			}
+		} else {
+			unsigned char nameChar;
+			while (true){
+				nameChar = std::js::DataView::getU8(
+					folderContent, offset + j);
+				if (nameChar == 0) {break;}
+				string[start + j] = nameChar;
+				j = j + 1;
+			}
+		}
+		return j;
+	}
+	
+	static unsigned char getType(
+		void* folderContent, unsigned int i){
+		return getEntryType(folderContent,
+			std::js::DataView::getU32LE(
+				folderContent, 4 + i * 4));
+	}
+	
+	static void* insertEntry(
+		void* folderContent, unsigned char[] string,
+		unsigned int start, unsigned int len,
+		unsigned int id, unsigned char type){
+		unsigned int entries = 
+			std::fs::idb::Folder::entries(folderContent);
+		unsigned int i = 1;
+		unsigned int offset;
+		unsigned char nameChar;
+		unsigned int contentLen;
+		if (entries > 0){
+			unsigned int mid;
+			unsigned int max = entries;
+			while (true){
+				mid = (max + i) >> 1;
+				offset = std::js::DataView::getU32LE(
+					folderContent, mid * 4);
+				if (std::js::DataView::compareRange(
+						folderContent, offset + nameOffset,
+						string, start, len) ==
+					std::Compare::less){
+					i = mid + 1;
+				} else {max = mid - 1;}
+				if (i > max) {break;}
+			}
+			contentLen = 
+				std::js::DataView::length(folderContent);
+		} else {
+			contentLen = 4;
+		}
+		i = i * 4;
+		void* newContent = 
+			std::js::DataView::create(
+				std::js::Array::createBuffer(
+					contentLen + 4 + nameOffset + len + 1));
+		std::js::DataView::setU32LE(newContent, 
+			0, entries + 1);
+		std::js::DataView::setU32LE(newContent, 
+			i, contentLen + 4);
+		std::js::DataView::setU32LE(newContent, 
+			contentLen + 4 + idOffset, id);
+		std::js::DataView::setU8(newContent, 
+			contentLen + 4 + typeOffset, type);
+		if (entries > 0){
+			unsigned int j = entries * 4;
+			while (j >= i){
+				std::js::DataView::setU32LE(newContent, 
+					j + 4, std::js::DataView::getU32LE(
+						folderContent, j) + 4);
+				j = j - 4;
+			}
+			while (j >= 4){
+				std::js::DataView::setU32LE(newContent, 
+					j, std::js::DataView::getU32LE(
+						folderContent, j) + 4);
+				j = j - 4;
+			}
+			i = entries * 4 + 4;
+			std::js::DataView::copyViews(
+				folderContent, newContent, i, i + 4, contentLen - i);
+		}
+		std::js::DataView::set(string, start, newContent,
+			contentLen + 4 + nameOffset, len);
+		return newContent;
+	}
+
+}
