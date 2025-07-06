@@ -68,6 +68,91 @@ rgb.color.set(255, 255, 255);
 style.setBackgroundColor(&rgb);
 ```
 
+## "setBorderColor" member function:
+
+Sets the border color.
+
+Parameters:
+* Either nullptr to unset, or a pointer 
+to an std::css::RGB object.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::css::RGB rgb;
+rgb.color.set(255, 255, 255);
+style.setBorderColor(&rgb);
+```
+
+## "setBorderBottomColor" member function:
+
+Sets the border bottom color.
+
+Parameters:
+* Either nullptr to unset, or a pointer 
+to an std::css::RGB object.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::css::RGB rgb;
+rgb.color.set(255, 255, 255);
+style.setBorderBottomColor(&rgb);
+```
+
+## "setBorderLeftColor" member function:
+
+Sets the border left color.
+
+Parameters:
+* Either nullptr to unset, or a pointer 
+to an std::css::RGB object.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::css::RGB rgb;
+rgb.color.set(255, 255, 255);
+style.setBorderLeftColor(&rgb);
+```
+
+## "setBorderRightColor" member function:
+
+Sets the border right color.
+
+Parameters:
+* Either nullptr to unset, or a pointer 
+to an std::css::RGB object.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::css::RGB rgb;
+rgb.color.set(255, 255, 255);
+style.setBorderRightColor(&rgb);
+```
+
+## "setBorderTopColor" member function:
+
+Sets the border top color.
+
+Parameters:
+* Either nullptr to unset, or a pointer 
+to an std::css::RGB object.
+
+Returns: void.
+
+```
+/*In Main::main.*/
+std::css::RGB rgb;
+rgb.color.set(255, 255, 255);
+style.setBorderTopColor(&rgb);
+```
+
 ## "setBorderStyle" member function:
 
 Sets the border style.
@@ -241,6 +326,21 @@ Returns: void.
 std::css::Short len;
 style.setBorderTopWidth(len.set(
 	1, std::css::Units::px));
+```
+
+## "setColor" member function:
+
+Sets the font color.
+
+Parameters:
+* Either nullptr to unset, or a pointer 
+to an std::css::RGB object.
+
+```
+/*In Main::main.*/
+std::css::RGB rgb;
+rgb.color.set(255, 255, 255);
+style.setColor(&rgb);
 ```
 
 ## "setDisplay" member function:
@@ -601,7 +701,8 @@ style.setWidth(len.set(
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -671,7 +772,8 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
