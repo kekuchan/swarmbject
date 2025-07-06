@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021, 2024 SWARMBJECT contributors
+Copyright (c) 2021, 2024-2025
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -141,7 +142,7 @@ class InputElement {
 		unsigned int start, unsigned int len){
 		if (node->isNull()) {return;}
 		void* valueObject = std::js::String::decode(
-			&value[start], len);
+			value, start, len);
 		void* nodeObject = node->jsObject.getJsObject();
 		constwrite "	nodeObject.value = valueObject;\n";
 	}

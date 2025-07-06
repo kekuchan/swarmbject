@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2025
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -87,7 +88,7 @@ class AElement {
 		if (node->isNull()) {return;}
 		void* nodeObject = node->jsObject.getJsObject();
 		void* textObject = std::js::String::decode(
-			&text[start], len);
+			text, start, len);
 		constwrite "	nodeObject.download = textObject;\n";
 	}
 
