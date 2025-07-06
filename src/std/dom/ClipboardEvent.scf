@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021, 2024 SWARMBJECT contributors
+Copyright (c) 2021, 2024-2025
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -96,8 +97,8 @@ class ClipboardEvent {
 		unsigned int start, unsigned int len){
 		if (event->jsObject.isNull()) {return;}
 		void* eventObject = event->jsObject.getJsObject();
-		void* textObject = std::js::String::decode(&text[start],
-			len);
+		void* textObject = std::js::String::decode(
+			text, start, len);
 		constwrite "	eventObject.clipboardData.setData(\n"
 			"		'text/plain', textObject);\n";
 	}
