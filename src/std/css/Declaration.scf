@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -85,6 +85,19 @@ class Declaration {
 		return textObject;
 	}
 
+	void* getColorText(
+		std::css::Value* value){
+		void* textObject;
+		if (value != nullptr && value->type ==
+			std::css::ValueTypes::color){
+			textObject = 
+				(std::css::RGB*)value->getJsString();
+		} else {
+			constwrite "		textObject = '';\n";
+		}
+		return textObject;
+	}
+	
 	void* getLengthText(
 		std::css::Value* value){
 		void* textObject;
@@ -144,15 +157,43 @@ class Declaration {
 	void setBackgroundColor(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
-		void* textObject;
-		if (value != nullptr && value->type ==
-			std::css::ValueTypes::color){
-			textObject = 
-				(std::css::RGB*)value->getJsString();
-		} else {
-			constwrite "		textObject = '';\n";
-		}
-		constwrite "	style.backgroundColor = textObject;\n";
+		void* textObject = getColorText(value);
+		constwrite 
+			"	style.backgroundColor = textObject;\n";
+	}
+	
+	void setBorderColor(std::css::Value* value){
+		void* style = jsObject.getJsObject();
+		void* textObject = getColorText(value);
+		constwrite "	style.borderColor = textObject;\n";
+	}
+	
+	void setBorderBottomColor(std::css::Value* value){
+		void* style = jsObject.getJsObject();
+		void* textObject = getColorText(value);
+		constwrite 
+			"	style.borderBottomColor = textObject;\n";
+	}
+	
+	void setBorderLeftColor(std::css::Value* value){
+		void* style = jsObject.getJsObject();
+		void* textObject = getColorText(value);
+		constwrite 
+			"	style.borderLeftColor = textObject;\n";
+	}
+	
+	void setBorderRightColor(std::css::Value* value){
+		void* style = jsObject.getJsObject();
+		void* textObject = getColorText(value);
+		constwrite 
+			"	style.borderRightColor = textObject;\n";
+	}
+	
+	void setBorderTopColor(std::css::Value* value){
+		void* style = jsObject.getJsObject();
+		void* textObject = getColorText(value);
+		constwrite 
+			"	style.borderTopColor = textObject;\n";
 	}
 	
 	void setBorderStyle(std::css::Value* value){
@@ -166,65 +207,81 @@ class Declaration {
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
 		void* textObject = getBorderStyle(value);
-		constwrite "	style.borderBottomStyle = textObject;\n";
+		constwrite 
+			"	style.borderBottomStyle = textObject;\n";
 	}
 	
 	void setBorderLeftStyle(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
 		void* textObject = getBorderStyle(value);
-		constwrite "	style.borderLeftStyle = textObject;\n";
+		constwrite 
+			"	style.borderLeftStyle = textObject;\n";
 	}
 	
 	void setBorderRightStyle(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
 		void* textObject = getBorderStyle(value);
-		constwrite "	style.borderRightStyle = textObject;\n";
+		constwrite 
+			"	style.borderRightStyle = textObject;\n";
 	}
 	
 	void setBorderTopStyle(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
 		void* textObject = getBorderStyle(value);
-		constwrite "	style.borderTopStyle = textObject;\n";
+		constwrite 
+			"	style.borderTopStyle = textObject;\n";
 	}
 
 	void setBorderWidth(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
 		void* textObject = getLengthText(value);
-		constwrite "	style.borderWidth = textObject;\n";
+		constwrite 
+			"	style.borderWidth = textObject;\n";
 	}
 
 	void setBorderBottomWidth(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
 		void* textObject = getLengthText(value);
-		constwrite "	style.borderBottomWidth = textObject;\n";
+		constwrite 
+			"	style.borderBottomWidth = textObject;\n";
 	}
 
 	void setBorderLeftWidth(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
 		void* textObject = getLengthText(value);
-		constwrite "	style.borderLeftWidth = textObject;\n";
+		constwrite 
+			"	style.borderLeftWidth = textObject;\n";
 	}
 
 	void setBorderRightWidth(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
 		void* textObject = getLengthText(value);
-		constwrite "	style.borderRightWidth = textObject;\n";
+		constwrite 
+			"	style.borderRightWidth = textObject;\n";
 	}
 
 	void setBorderTopWidth(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
 		void* textObject = getLengthText(value);
-		constwrite "	style.borderTopWidth = textObject;\n";
+		constwrite 
+			"	style.borderTopWidth = textObject;\n";
 	}
 	
+	void setColor(std::css::Value* value){
+		if (isNull()) {return;}
+		void* style = jsObject.getJsObject();
+		void* textObject = getColorText(value);
+		constwrite "	style.color = textObject;\n";
+	}
+		
 	void setDisplay(std::css::Value* value){
 		if (isNull()) {return;}
 		void* style = jsObject.getJsObject();
