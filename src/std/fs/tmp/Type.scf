@@ -1,0 +1,856 @@
+/*
+Copyright (c) 2021, 2023-2025 
+SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Type : std::fs::Type {
+	std::fs::tmp::Folder root;
+	
+	Type(){
+		(std::fs::Type*)this->info = 
+			std::fs::tmp::Type::info;
+		name.set("tmp", 0, 3);
+		(std::fs::Type*)this->run = 
+			std::fs::tmp::Type::run;
+		/*To make sure, that it can not be deleted.*/
+		root.folder = nullptr;
+		root.references = 1;
+	}
+	
+	static void close(
+		std::fs::Entry* entry){
+		std::fs::tmp::Entry::eraseReferences(
+			(std::fs::tmp::Entry*)
+			(entry->entryObject));
+		entry->entryObject = nullptr;
+		entry->fileSystem = nullptr;
+		entry->state =
+			std::fs::EntryStates::none;
+	}
+	
+	static unsigned int createFolder(
+		std::fs::Entry* entry, 
+		std::fs::tmp::Folder* i, 
+		std::str::View* name){
+		unsigned int error;
+		if (i != nullptr){
+			if (i->find(name) == nullptr){
+				i->insert(std::fs::tmp::
+					Folder::create(name));
+				error = std::fs::ErrorTypes::none;
+			} else {
+				error = std::fs::ErrorTypes::notOpen;
+			}
+		} else {
+			error = std::fs::ErrorTypes::notOpen;
+		}
+		entry->state =
+			std::fs::FolderStates::none;
+		return error;
+	}
+	
+	static unsigned int each(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry, 
+		std::fs::tmp::Folder* i){
+		unsigned int error;
+		entry->cursor = 0;
+		if (entry->entryObject != nullptr){
+			error = std::fs::ErrorTypes::noPop;
+			app.fileSystem.
+				popFromfileSystemQueue(app);
+			entry->state =
+				std::fs::FolderStates::open;
+			std::fs::tmp::Entry* entryObject;
+			if (i == nullptr){
+				i = (std::fs::tmp::Folder*)
+					(entry->entryObject);
+				entryObject = (std::fs::tmp::Entry*)
+					(std::ds::BalBinTree::first(i->entries, 
+						std::fs::tmp::Entry::getTree));
+			} else {
+				entryObject = (std::fs::tmp::Entry*)
+					(std::ds::BalBinTree::next(
+						entry->entryObject, 
+						std::fs::tmp::Entry::getTree, 
+						std::fs::tmp::Entry::compare));
+			}
+			std::fs::tmp::Entry::addReferences(i);
+			while (entryObject != nullptr){
+				entryObject->addReference();
+				entry->entryObject = entryObject;
+				entry->callback(app, entry, 
+					std::fs::ErrorTypes::none);
+				if (entry->state !=
+					std::fs::FolderStates::open)
+					{return std::fs::ErrorTypes::noPop;}
+				entryObject->eraseReference();
+				entryObject = (std::fs::tmp::Entry*)
+					(std::ds::BalBinTree::next(
+						entry->entryObject, 
+						std::fs::tmp::Entry::getTree, 
+						std::fs::tmp::Entry::compare));
+				entry->cursor = entry->cursor + 1;
+			}
+			entry->entryObject = i;
+			close(entry);
+			entry->callback(app, entry, 
+				std::fs::ErrorTypes::none);
+		} else {
+			error = std::fs::ErrorTypes::notOpen;
+			entry->state =
+				std::fs::FolderStates::none;
+		}
+		return error;
+	}
+	
+	static unsigned int erase(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry, 
+		std::str::View* name){
+		unsigned int error;
+		std::fs::tmp::Folder* i = 
+			getFolder(entry, name, false);
+		if (i != nullptr){
+			std::fs::tmp::Entry* entryObject = 
+				i->find(name);
+			if (entryObject != nullptr){
+				if (entryObject->references == 0){
+					i->erase(entryObject);
+					std::fs::tmp::Entry::erase(entryObject);
+					error = std::fs::ErrorTypes::none;
+				} else {
+					error = std::fs::ErrorTypes::open;
+				}
+			} else {
+				error = std::fs::ErrorTypes::notOpen;
+			}
+		} else {
+			error = std::fs::ErrorTypes::notOpen;
+		}
+		entry->state =
+			std::fs::EntryStates::none;
+		return error;
+	}
+	
+	static std::fs::tmp::Folder* getFolder(
+		std::fs::Entry* entry, 
+		std::str::View* name, 
+		bool create){
+		std::fs::tmp::Type* type =
+			(std::fs::tmp::Type*)
+			(entry->fileSystem);
+		std::str::View next;
+		next.set(entry->path.data, 0, 5);
+		entry->nextPathEntry(&next);
+		if (next.length == 0) {return nullptr;}
+		std::fs::tmp::Folder* i;
+		std::fs::tmp::Entry* j = &type->root;
+		while (true){
+			name->setView(&next);
+			entry->nextPathEntry(&next);
+			i = (std::fs::tmp::Folder*)j;
+			if (next.length == 0) {break;}
+			j = i->find(name);
+			if (j != nullptr){
+				switch (j->type){
+					case std::fs::tmp::EntryTypes::folder:
+						continue;
+				}
+				i = nullptr;
+				break;
+			} else {
+				if (!create){
+					i = nullptr;
+					break;
+				} else {
+					j = std::fs::tmp::Folder::create(name);
+					i->insert(j);
+				}
+			}
+		}
+		return i;
+	}
+	
+	static unsigned int getSize(
+		std::fs::tmp::Entry* entryObject){
+		unsigned int size;
+		void* jsObject;
+		switch (entryObject->type){
+			case std::fs::tmp::EntryTypes::file:
+				size = (std::fs::tmp::File*)
+					entryObject->getSize();
+				break;
+			case std::fs::tmp::EntryTypes::jsFile:
+				size = (std::fs::tmp::File*)
+					entryObject->getSizeJs();
+				break;
+		}
+		return size;
+	}
+	
+	static unsigned int gui(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry){
+		std::fs::tmp::Entry* entryObject = 
+			(std::fs::tmp::Entry*)
+			(entry->entryObject);
+		unsigned int error;
+		if (entryObject != nullptr){
+			std::fs::GUI* gui = &app.fileSystem.gui;
+			std::bom::Window appWindow;
+			app.getWindow(&appWindow);
+			std::dom::Node document;
+			appWindow.getDocumentNode(&document);
+			std::dom::Node element;
+			std::dom::Node textNode;
+			switch (entryObject->type){
+				case std::fs::tmp::EntryTypes::file:
+				case std::fs::tmp::EntryTypes::jsFile:
+					gui->addSelect(&document, &element, 
+						&textNode, true);
+					gui->addMove(&document, 
+						&element, &textNode);
+					/*
+					gui->addDownloadFile(&document, 
+						&element, &textNode);
+					*/
+					gui->addRow(&document, &element, 
+						&textNode, "Download", 8);
+					std::dom::MouseEvent::setOnClick(
+						&element, onClickDownloadFile);
+					gui->addDelete(&document, 
+						&element, &textNode);
+					break;
+				case std::fs::tmp::EntryTypes::folder:
+					gui->addSelect(&document, &element, 
+						&textNode, false);
+					gui->addNewFolder(&document, 
+						&element, &textNode);
+					gui->addNewFile(&document, 
+						&element, &textNode);
+					/*
+					gui->addUploadFile(&document, 
+						&element, &textNode);
+					*/
+					gui->addRow(&document, &element, 
+						&textNode, "Upload file", 11);
+					std::dom::MouseEvent::setOnClick(
+						&element, onClickUploadFile);
+					if (!isRoot(entry)){
+						gui->addDelete(&document, 
+							&element, &textNode);
+						gui->addMove(&document, 
+							&element, &textNode);
+					}
+					gui->addDownloadFolder(&document, 
+						&element, &textNode);
+					gui->addUploadFolder(&document, 
+						&element, &textNode);
+					break;
+			}
+			error = std::fs::ErrorTypes::none;
+		} else {
+			error = std::fs::ErrorTypes::notOpen;
+		}
+		entry->state =
+			std::fs::EntryStates::none;
+		return error;
+	}
+	
+	static unsigned int info(
+		std::fs::Entry* entry, unsigned char[] str,
+		unsigned int i, unsigned char mode){
+		unsigned int j;
+		if (entry->isFolder()){
+			std::fs::tmp::Entry* entryObject = 
+				(std::fs::tmp::Entry*)
+				(entry->entryObject);
+			switch (mode){
+				case std::fs::InfoModes::name:
+					j = entryObject->name.length;
+					if (str != nullptr){
+						std::arr::Uchar::copy(str, i, 
+							entryObject->name.data, 0, j);
+					}
+					if (entryObject->type == 
+						std::fs::tmp::EntryTypes::folder){
+						if (str != nullptr) {str[j] = '/';}
+						j = j + 1;
+					}
+					break;
+			}
+		}
+		return j;
+	}
+	
+	static bool isRoot(
+		std::fs::Entry* entry){
+		return entry->path.length == 6;
+	}
+	
+	static void mount(
+		std::ApplicationInstance aexcl app){
+		std::fs::tmp::Type* type =
+			new std::fs::tmp::Type;
+		if (!app.fileSystem.mount(type))
+			{delete type;}
+	}
+	
+	static unsigned int next(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry, 
+		std::str::View* name){
+		std::fs::tmp::Folder* i = 
+			getFolder(entry, name, false);
+		if (i != nullptr){
+			entry->entryObject = i->find(name);
+			entry->path.trim(name->start);
+		} else {entry->entryObject = nullptr;}
+		return each(app, entry, i);
+	}
+	
+	static void onClickDownloadFile(
+		std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & 
+			std::fs::GUI::operationPending) == 0){
+			std::fs::Entry* entry = &gui->entry;
+			/*
+			std::fs::tmp::Type* type = 
+				(std::fs::tmp::Type*)
+				(entry->fileSystem);
+			*/
+			std::str::View name;
+			setFile(entry, getFolder(
+					entry, &name, false), 
+				&name, false, false);
+			std::fs::tmp::File* entryObject = 
+				(std::fs::tmp::File*)
+				(entry->entryObject);
+			std::dom::Node element;
+			gui->setDownload(app, &element);
+			std::html::AElement::setDownload(&element,
+				name.data, name.start, name.length);
+			gui->folderCursor = 0;
+			gui->browseContainer.appendChild(&element);
+			void* blobObject;
+			switch (entryObject->type){
+				case std::fs::tmp::EntryTypes::file:
+					blobObject = (std::ds::DBuffer*)
+						(entryObject->content)->getJsBlob();
+					break;
+				case std::fs::tmp::EntryTypes::jsFile:
+					blobObject = (std::fs::tmp::JSContent*)
+						(entryObject->content)->getJsBlob();
+					break;
+			}
+			gui->setDownloadLink(blobObject);
+			gui->bools = 0;
+		}
+	}
+	
+	static void onClickUploadFile(
+		std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		app.fileSystem.gui.onClickUpload(
+			app, onChangeFileUpload);
+	}
+	
+	static void onChangeFileUpload(
+		std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		app.fileSystem.gui.onChangeUpload(
+			e, setLoadFile);
+	}
+	
+	static void setLoadFile(void* fileReader){
+		constwrite 
+			"				fileReader.onload = ";
+		constwrite onLoadFileUpload;
+		constwrite ";\n";
+	}
+	
+	static void onLoadFileUpload(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n"
+			"	var callStart = _objectsToCallStart;\n";
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		std::fs::Entry* entry = &gui->entry;
+		gui->setFileUploadPath();
+		std::str::View name;
+		std::fs::tmp::Folder* i = 
+			getFolder(entry, &name, false);
+		if (i != nullptr){
+			if (i->find(&name) == nullptr){
+				std::fs::tmp::File* entryObject = 
+					std::fs::tmp::File::createJs(&name);
+				i->insert(entryObject);
+				void* jsObject;
+				constwrite "			jsObject = e.target.result;\n";
+				std::fs::tmp::JSContent* content = 
+					(std::fs::tmp::JSContent*)
+					(entryObject->content);
+				void* array = 
+					std::js::Array::create(jsObject);
+				content->setJsObject(array);
+				content->size = 
+					std::js::Array::length(array);
+			}
+		}
+		gui->cancelPath(app);
+		constwrite "	if (callStart === 0) _callObjects();\n";
+	}
+	
+	static void swapPath(
+		std::fs::Entry* entry, 
+		std::str::DString* str){
+		std::str::DString string;
+		string.move(&entry->path);
+		entry->path.move(str);
+		str->move(&string);
+	}
+	
+	static unsigned int move(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry, 
+		std::str::View* name){
+		std::str::DString* dstString = 
+			(std::str::DString*)(entry->parameters);
+		if (std::arr::Uchar::starts(
+			dstString->data, 0, dstString->length, 
+			"tmp://", 0, 6) != std::Compare::equal){
+			entry->state = std::fs::EntryStates::none;
+			return std::fs::ErrorTypes::unsupported;
+		}
+		std::fs::tmp::Folder* i;
+		if (entry->isFolder() ==
+			std::fs::Entry::isFolderPath(dstString)){
+			i = getFolder(entry, name, false);
+		} else {i = nullptr;}
+		std::fs::tmp::Entry* src;
+		if (i != nullptr){
+			src = i->find(name);
+			if (src != nullptr){
+				if (src->references != 0){
+					entry->state = std::fs::EntryStates::none;
+					return std::fs::ErrorTypes::open;
+				}
+			} else {
+				entry->state = std::fs::EntryStates::none;
+				return std::fs::ErrorTypes::notOpen;
+			}
+		} else {
+			entry->state = std::fs::EntryStates::none;
+			return std::fs::ErrorTypes::notOpen;
+		}
+		swapPath(entry, dstString);
+		i = getFolder(entry, name, true);
+		std::fs::tmp::Entry* dst;
+		if (i != nullptr){
+			dst = i->find(name);
+			if (dst != nullptr){
+				swapPath(entry, dstString);
+				entry->state = std::fs::EntryStates::none;
+				return std::fs::ErrorTypes::notOpen;
+			}
+		} else {
+			swapPath(entry, dstString);
+			entry->state = std::fs::EntryStates::none;
+			return std::fs::ErrorTypes::notOpen;
+		}
+		if (src->type == 
+			std::fs::tmp::EntryTypes::folder){
+			std::fs::tmp::Folder* j = i;
+			while (j != nullptr){
+				if (j == src){
+					swapPath(entry, dstString);
+					entry->state = std::fs::EntryStates::none;
+					return std::fs::ErrorTypes::notOpen;
+				}
+				j = j->folder;
+			}
+		}
+		src->folder->erase(src);
+		src->name.setView(name);
+		i->insert(src);
+		entry->state = std::fs::EntryStates::none;
+		return std::fs::ErrorTypes::none;
+	}
+	
+	static unsigned int read(
+		std::fs::Entry* entry){
+		unsigned int error;
+		std::fs::tmp::File* entryObject = 
+			(std::fs::tmp::File*)(entry->entryObject);
+		void* data;
+		unsigned int start;
+		unsigned int* len;
+		void(void*, unsigned int, unsigned char) call;
+		switch (entry->state){
+			case std::fs::FileStates::read:
+				{
+					std::ds::BufferView* parameters = 
+						(std::ds::BufferView*)
+							(entry->parameters);
+					data = (void*)(parameters->data);
+					start = parameters->start;
+					len = &(parameters->size);
+				}
+				break;
+			case std::fs::FileStates::readCall:
+				{
+					std::fs::Call* parameters = 
+						(std::fs::Call*)(entry->parameters);
+					len = &(parameters->size);
+					call = (void(void*, unsigned int, 
+						unsigned char))(parameters->call);
+				}
+				break;
+		}
+		if (entryObject != nullptr){
+			unsigned int size = getSize(entryObject);
+			unsigned int cursor = entry->cursor;
+			if (cursor > size) {cursor = size;}
+			if (size - cursor < *len){
+				*len = size - cursor;
+			}
+			void* jsObject;
+			switch (entry->state){
+				case std::fs::FileStates::read:
+					if (data != nullptr){
+						entryObject->read((unsigned char[])
+							data, start, *len, cursor);
+					}
+					break;
+				case std::fs::FileStates::readCall:
+					if (call != nullptr){
+						entryObject->readCall(
+							(std::fs::Call*)(entry->parameters), 
+							*len, cursor);
+					}
+					break;
+			}
+			entry->cursor = cursor + *len;
+			error = std::fs::ErrorTypes::none;
+			entry->state =
+				std::fs::FileStates::open;
+		} else {
+			entry->cursor = 0;
+			*len = 0;
+			error = std::fs::ErrorTypes::notOpen;
+			entry->state =
+				std::fs::FileStates::none;
+		}
+		return error;
+	}
+	
+	static unsigned int run(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry){
+		std::str::View name;
+		unsigned int error;
+		if (entry->isFile()){
+			while (true){
+				switch (entry->state){
+					case std::fs::FileStates::opening:
+						switch (entry->mode){
+							case std::fs::FileModes::read:
+							case std::fs::FileModes::readUpdate:
+								setFile(entry, getFolder(
+										entry, &name, false), 
+									&name, false, false);
+								std::fs::tmp::Entry::addReferences(
+									(std::fs::tmp::Entry*)
+										(entry->entryObject));
+								entry->state =
+									std::fs::FileStates::read;
+								continue;
+							case std::fs::FileModes::write:
+							case std::fs::FileModes::writeUpdate:
+								setFile(entry, getFolder(
+										entry, &name, true), 
+									&name, true, true);
+								std::fs::tmp::Entry::addReferences(
+									(std::fs::tmp::Entry*)
+										(entry->entryObject));
+								entry->state =
+									std::fs::FileStates::write;
+								continue;
+							case std::fs::FileModes::append:
+							case std::fs::FileModes::appendUpdate:
+								setFile(entry, getFolder(
+										entry, &name, true), 
+									&name, true, false);
+								std::fs::tmp::Entry::addReferences(
+									(std::fs::tmp::Entry*)
+										(entry->entryObject));
+								if (entry->mode == 
+									std::fs::FileModes::append){
+									entry->state =
+										std::fs::FileStates::write;
+								} else {
+									entry->state =
+										std::fs::FileStates::read;
+								}
+								continue;
+							case std::fs::FileModes::next:
+								error = next(app, entry, &name);
+								break;
+							case std::fs::FileModes::gui:
+								setFile(entry, getFolder(
+										entry, &name, false), 
+									&name, false, false);
+								error = gui(app, entry);
+								break;
+							case std::fs::FileModes::erase:
+								error = erase(app, entry, &name);
+								break;
+							case std::fs::FileModes::move:
+								error = move(app, entry, &name);
+								break;
+						}
+						break;
+					case std::fs::FileStates::close:
+						close(entry);
+						error = std::fs::ErrorTypes::none;
+						break;
+					case std::fs::FileStates::read:
+					case std::fs::FileStates::readCall:
+						error = read(entry);
+						break;
+					case std::fs::FileStates::write:
+					case std::fs::FileStates::writeCall:
+					case std::fs::FileStates::writeMove:
+						error = write(entry);
+						break;
+				}
+				break;
+			}
+		} else {
+			while (true){
+				switch (entry->state){
+					case std::fs::FolderStates::opening:
+						switch (entry->mode){
+							case std::fs::FolderModes::create:
+								error = createFolder(entry, 
+										getFolder(entry, &name, true), 
+									&name);
+								break;
+							case std::fs::FolderModes::each:
+								setFolder(entry, getFolder(
+										entry, &name, false), 
+									&name, false);
+								error = each(app, entry, nullptr);
+								break;
+							case std::fs::FolderModes::next:
+								error = next(app, entry, &name);
+								break;
+							case std::fs::FolderModes::gui:
+								setFolder(entry, getFolder(
+										entry, &name, false), 
+									&name, false);
+								error = gui(app, entry);
+								break;
+							case std::fs::FolderModes::erase:
+								error = erase(app, entry, &name);
+								break;
+							case std::fs::FolderModes::move:
+								error = move(app, entry, &name);
+								break;
+						}
+						break;
+					case std::fs::FolderStates::close:
+						close(entry);
+						error = std::fs::ErrorTypes::none;
+						break;
+				}
+				break;
+			}
+		}
+		return error;
+	}
+	
+	static void seek(
+		std::fs::Entry* entry){
+		std::fs::tmp::Entry* entryObject = 
+			entry->entryObject;
+		unsigned int size = getSize(entryObject);
+		if (entryObject != nullptr){
+			if (entry->cursor > size)
+				{entry->cursor = size;}
+		} else {entry->cursor = 0;}
+	}
+	
+	static void setFile(
+		std::fs::Entry* entry, 
+		std::fs::tmp::Folder* i, 
+		std::str::View* name, 
+		bool create, 
+		bool clear){
+		std::fs::tmp::Entry* j;
+		if (i != nullptr){
+			j = i->find(name);
+			if (j != nullptr){
+				switch (j->type){
+					case std::fs::tmp::EntryTypes::file:
+						if (clear){
+							(std::fs::tmp::File*)j->clear();
+						}
+						break;
+					case std::fs::tmp::EntryTypes::jsFile:
+						if (clear){
+							(std::fs::tmp::File*)j->clearJs();
+						}
+						break;
+					default:
+						j = nullptr;
+						break;
+				}
+			} else if (create){
+				j = std::fs::tmp::File::createFile(name);
+				i->insert(j);
+			}
+		} else {j = nullptr;}
+		entry->entryObject = j;
+	}
+	
+	static void setFolder(
+		std::fs::Entry* entry, 
+		std::fs::tmp::Folder* i, 
+		std::str::View* name, 
+		bool create){
+		std::fs::tmp::Entry* j;
+		if (i != nullptr){
+			j = i->find(name);
+			if (j != nullptr){
+				switch (j->type){
+					case std::fs::tmp::EntryTypes::folder:
+						break;
+					default:
+						j = nullptr;
+						break;
+				}
+			} else if (create){
+				j = std::fs::tmp::Folder::create(name);
+				i->insert(j);
+			}
+		} else if (isRoot(entry)){
+			j = &(std::fs::tmp::Type*)
+				(entry->fileSystem)->root;
+		} else {j = nullptr;}
+		entry->entryObject = j;
+	}
+
+	static unsigned int write(
+		std::fs::Entry* entry){
+		unsigned int error;
+		std::fs::tmp::File* entryObject = 
+			(std::fs::tmp::File*)(entry->entryObject);
+		if (entryObject != nullptr){
+			unsigned int size = getSize(entryObject);
+			unsigned int cursor;
+			if (entry->isAppend()){
+				cursor = size;
+			} else {
+				cursor = entry->cursor;
+				if (cursor > size) {cursor = size;}
+			}
+			unsigned int len;
+			switch (entry->state){
+				case std::fs::FileStates::write:
+					len = entryObject->write(
+						(std::ds::BufferView*)
+							(entry->parameters), cursor);
+					break;
+				case std::fs::FileStates::writeCall:
+					len = entryObject->writeCall(
+						(std::fs::Call*)(entry->parameters), 
+						cursor);
+					break;
+				case std::fs::FileStates::writeMove:
+					len = entryObject->writeMove(
+						(std::ds::Buffer*)(entry->parameters), 
+						cursor);
+					break;
+			}
+			entry->cursor = cursor + len;
+			error = std::fs::ErrorTypes::none;
+			entry->state =
+				std::fs::FileStates::open;
+		} else {
+			entry->cursor = 0;
+			error = std::fs::ErrorTypes::notOpen;
+			entry->state =
+				std::fs::FileStates::none;
+		}
+		return error;
+	}
+	
+}

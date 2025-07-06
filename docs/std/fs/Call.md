@@ -1,15 +1,21 @@
-# "std::fs::FileSystem" class:
+# "std::fs::Call" class:
 
-Used for file system operations.
-	
-## "gui" data member:
+Used to be called during std::fs::Entry's 
+readCall or writeCall.
 
-Used to show a graphical user interface. Its 
-members will be detailed at "std::fs::GUI".
+## "call" data member:
+
+The function to call to read or write 
+a sequence of unsigned char values.
+
+## "size" data member:
+
+The number of unsigned char values 
+to read or write.
 
 # Software license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -79,7 +85,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

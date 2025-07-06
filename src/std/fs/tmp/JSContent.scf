@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023-2025 SWARMBJECT contributors
+Copyright (c) 2021, 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -67,87 +67,61 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class FileSystem {
+class JSContent : std::js::Object {
 
-	std::ds::PtrArray types;
-	std::fs::Entry* queueEnd;
-	std::fs::Entry* queueStart;
+	unsigned int size;
 	
-	/* Public data members */
-	std::fs::GUI gui;
-	
-	FileSystem(){
-		queueEnd = nullptr;
-		queueStart = nullptr;
+	JSContent(){
+		size = 0;
 	}
 	
-	std::fs::Type* getType(std::str::View* string){
-		unsigned int i = types.findSorted(
-			string, std::fs::Type::cmpString);
-		if (i != 0){
-			return (std::fs::Type*)(types.data[i - 1]);
+	void* getJsBlob(){
+		void* array;
+		if (size != 0){
+			array = std::js::Array::sub(
+				std::js::Array::getBuffer(
+					getJsObject()), 0, size);
+		} else {
+			array = std::js::Object::getNull();
 		}
-		return nullptr;
+		return std::js::Array::getBlob(array);
 	}
 	
-	bool mount(std::fs::Type* type){
-		unsigned int i = types.findSorted(
-			type, std::fs::Type::cmpName);
-		if (i == 0){
-			types.insertSorted(type, 
-				std::fs::Type::cmpName);
-			return true;
-		}
-		return false;
-	}
-	
-	static async void run(
-		std::ApplicationInstance aexcl app){
-		std::fs::FileSystem* fileSystem =
-			&app.fileSystem;
-		std::fs::Entry* entry = fileSystem->queueStart;
-		if (entry != nullptr){
-			fileSystem->next(app, 
-				entry->fileSystem->run(app, entry));
+	void write(unsigned int cursor,
+		unsigned char[] data,
+		unsigned int start, 
+		unsigned int len){
+		void* jsObject = getJsObject();
+		void* dst = std::js::Array::setRange(
+			data, start, jsObject, cursor, len);
+		if (cursor + len > size){
+			if (jsObject != dst) {setJsObject(dst);}
+			size = cursor + len;
 		}
 	}
 	
-	void next(std::ApplicationInstance aexcl app, 
-		unsigned int error){
-		std::fs::Entry* entry;
-		switch (error){
-			case std::fs::ErrorTypes::noPop:
-				break;
-			case std::fs::ErrorTypes::noCall:
-				popFromfileSystemQueue(app);
-				break;
-			default:
-				entry = queueStart;
-				popFromfileSystemQueue(app);
-				if (entry->callback != nullptr){
-					entry->callback(app, entry, error);
-				}
-				break;
+	void writeCall(
+		std::fs::Call* parameters, 
+		unsigned int cursor){
+		unsigned int len = parameters->size;
+		void* jsObject = getJsObject();
+		void* dst = std::js::Array::addSetRange(
+			jsObject, cursor, len);
+		unsigned char(std::fs::Call*, 
+			unsigned int) call = (unsigned char(
+				std::fs::Call*, unsigned int))
+					(parameters->call);
+		unsigned int i = 0;
+		while (i < len){
+			std::js::Array::setU8(dst, cursor, 
+				call(parameters, i));
+			i = i + 1;
+			cursor = cursor + 1;
 		}
-	}
-	
-	void popFromfileSystemQueue(
-		std::ApplicationInstance aexcl app){
-		std::ds::SLList::popFront(
-			(void**)&queueStart,
-			(void**)&queueEnd,
-			std::fs::Entry::getList);
-		if (queueStart != nullptr) {run(app);}
-	}
-	
-	void pushTofileSystemQueue(
-		std::ApplicationInstance aexcl app,
-		std::fs::Entry* back){
-		std::ds::SLList::pushBack((void*)back,
-			(void**)&queueStart,
-			(void**)&queueEnd,
-			std::fs::Entry::getList);
-		if (queueStart == back) {run(app);}
+		if (cursor > size){
+			if (jsObject != dst) {setJsObject(dst);}
+			size = cursor;
+		}
 	}
 	
 }

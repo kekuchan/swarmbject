@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2025
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -68,21 +69,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class Compile {
-
-	static void compileToJs(
-		std::ApplicationInstance aexcl app){
-		Main* main = &app.main;
-		main->compileMemory = true;
-		if (!setSizeofsInNamespace(main,
-			main->rootNamespace)) {return;}
-		main->classOrMemberPath.trim(main->rootPath);
-		main->classOrMemberPath.addCString(
-			"html/compiled.js");
-		app.fileSystem.openFile(
-			main->classOrMemberPath.data,
-			compiledJsOpened,
-			std::fs::OpenFileModes::writeBinary);
-	}
 
 	static bool setSizeofsInNamespace(Main* main,
 		Namespace* compileNamespace){
@@ -374,10 +360,11 @@ class Compile {
 			"are under the license:\n");
 		code->addCString(Main::getLicense());
 	}
-
-	static void compiledHtmlOpened(
+	
+	static void onCompiledJsSaved(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* openedFile){
+		std::fs::Entry* file,
+		unsigned int error){
 		Main* main = &app.main;
 		std::str::View name;
 		name.setCString("std");
@@ -386,7 +373,7 @@ class Compile {
 		name.setCString("ApplicationInstance");
 		data::ClassType* appClass =
 			stdNamespace->getClass(&name);
-		std::str::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->fileContent;
 		code->setCString(
 			"<!DOCTYPE HTML>"
 			"<html>\n"
@@ -450,11 +437,26 @@ class Compile {
 						code->addCString(");\">\n"
 				"</body>\n"
 			"</html>\n");
-		openedFile->write(code->data, 0, code->length);
-		onCompiledHtmlSaved(main);
+		main->file.path.trim(
+			main->rootPath.length + 5/*html/*/);
+		main->file.path.addCString("compiled.html");
+		Main::nextWrite(app, compiledHtmlOpened,
+			code->data, code->length);
 	}
 
-	static void onCompiledHtmlSaved(Main* main){
+	static void compiledHtmlOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		Main::closeFile(app, 
+			onCompiledHtmlSaved, error);
+	}
+	
+	static void onCompiledHtmlSaved(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		Main* main = &app.main;
 		Parse::logInfoCString(main, "finished compiling", 1);
 		Parse::scrollLog(main);
 	}
@@ -467,7 +469,7 @@ class Compile {
 	static void addTabs(Main* main){
 		unsigned int i = main->nestedBlocks;
 		main->charsInLine = main->charsInLine + i;
-		std::str::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->fileContent;
 		while (i > 0){
 			code->push('\t');
 			i = i - 1;
@@ -493,14 +495,14 @@ class Compile {
 	static void add(Main* main,
 		unsigned char[] string, unsigned int len){
 		splitIfLongLine(main, len);
-		main->compiledCode.add(string, 0, len);
+		main->fileContent.add(string, 0, len);
 	}
 
 	unsigned int constexpr maxLineLength = 50;
 
 	static void splitIfLongLine(Main* main,
 		unsigned int len){
-		std::str::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->fileContent;
 		unsigned int lineLength =
 			main->charsInLine + len;
 		if (lineLength <= maxLineLength){
@@ -518,7 +520,7 @@ class Compile {
 		unsigned int len = std::str::CString::uintLength(
 			i, std::NumberBases::decimal);
 		splitIfLongLine(main, len);
-		std::str::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->fileContent;
 		std::str::CString::setUintEnd(
 			code->grow(len), code->length - 1, i,
 			std::NumberBases::decimal);
@@ -531,7 +533,7 @@ class Compile {
 	static void addChar(Main* main,
 		unsigned char c){
 		splitIfLongLine(main, 1);
-		main->compiledCode.push(c);
+		main->fileContent.push(c);
 	}
 	
 	static unsigned int encodeString(Main* main,
@@ -649,7 +651,7 @@ class Compile {
 	}
 
 	static unsigned int compileGlobals(Main* main){
-		std::str::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->fileContent;
 		code->addCString(
 			"function _setGlobals(){\n\t");
 		main->charsInLine = 0;
@@ -697,12 +699,14 @@ class Compile {
 		code->addCString("\n}\n");
 		return offset;
 	}
-		
-	static void compiledJsOpened(
-		std::ApplicationInstance aexcl app,
-		std::fs::File* openedFile){
+	
+	static void compileToJs(
+		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
-		std::str::DString* code = &main->compiledCode;
+		main->compileMemory = true;
+		if (!setSizeofsInNamespace(main,
+			main->rootNamespace)) {return;}
+		std::str::DString* code = &main->fileContent;
 		unsigned int* nestedBlocks = &main->nestedBlocks;
 		Namespace* rootNamespace = main->rootNamespace;
 		code->setCString("/*\n");
@@ -1522,8 +1526,18 @@ class Compile {
 	
 		*nestedBlocks = 0;
 		doCompileNamespace(main, rootNamespace);
-		openedFile->write(code->data, 0, code->length);
-		onCompiledJsSaved(app);
+		main->file.path.trim(main->rootPath.length);
+		main->file.path.addCString("html/compiled.js");
+		Main::startWrite(app, compiledJsOpened,
+			code->data, code->length);
+	}
+	
+	static void compiledJsOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		Main::closeFile(app, 
+			onCompiledJsSaved, error);
 	}
 
 	static unsigned int compileGetFunctionById(Main* main,
@@ -1541,7 +1555,7 @@ class Compile {
 			(compileNamespace->classes.data);
 		len = compileNamespace->classes.size;
 		if (len > 0){
-			std::str::DString* code = &main->compiledCode;
+			std::str::DString* code = &main->fileContent;
 			i = 0;
 			while (i < len){
 				data::ClassType* classType = classes[i];
@@ -1589,7 +1603,7 @@ class Compile {
 		data::ClassType*[] classes = (data::ClassType*[])
 			(compileNamespace->classes.data);
 		len = compileNamespace->classes.size;
-		std::str::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->fileContent;
 		i = 0;
 		while (i < len){
 			data::ClassType* classType = classes[i];
@@ -1668,7 +1682,7 @@ class Compile {
 		data::ClassType*[] classes = (data::ClassType*[])
 			(compileNamespace->classes.data);
 		len = compileNamespace->classes.size;
-		std::str::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->fileContent;
 		i = 0;
 		while (i < len){
 			data::ClassType* classType = classes[i];
@@ -1782,7 +1796,7 @@ class Compile {
 		data::ClassType*[] classes = (data::ClassType*[])
 			(compileNamespace->classes.data);
 		len = compileNamespace->classes.size;
-		std::str::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->fileContent;
 		i = 0;
 		while (i < len){
 			data::ClassType* classType = classes[i];
@@ -1799,19 +1813,6 @@ class Compile {
 			i = i + 1;
 		}
 		return classId;
-	}
-
-	static void onCompiledJsSaved(
-		std::ApplicationInstance aexcl app){
-		Main* main = &app.main;
-		main->classOrMemberPath.trim(
-			main->rootPath + 5/*html/*/);
-		main->classOrMemberPath.addCString(
-			"compiled.html");
-		app.fileSystem.openFile(
-			main->classOrMemberPath.data,
-			compiledHtmlOpened,
-			std::fs::OpenFileModes::writeBinary);
 	}
 
 	static void getNamespacePrefix(std::str::DString* code,
@@ -1878,7 +1879,7 @@ class Compile {
 			compileClass->name.length + 1 +
 			memberFunction->name.length;
 		splitIfLongLine(main, len);
-		getFunctionName(&main->compiledCode, memberFunction);
+		getFunctionName(&main->fileContent, memberFunction);
 	}
 
 	static unsigned char getDataType(
@@ -1927,7 +1928,7 @@ class Compile {
 
 	static void doCompileNamespace(Main* main,
 		Namespace* compileNamespace){
-		std::str::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->fileContent;
 		code->addCString("//start of namespace: ");
 		code->addString(&compileNamespace->name);
 		code->addCString("\n\n");
@@ -2722,7 +2723,7 @@ class Compile {
 						string->data, 0, string->length,
 						"/", 0, 1, 2);
 					splitIfLongLine(main, strLen);
-					std::str::DString* code = &main->compiledCode;
+					std::str::DString* code = &main->fileContent;
 					unsigned int len = code->length;
 					std::arr::Uchar::setReplace(
 						code->grow(strLen), len,
@@ -3077,7 +3078,7 @@ class Compile {
 				break;
 			case lexical::Types::block:
 				blockToJs(main, (lexical::BlockStatement*)expression);
-				main->compiledCode.push('\n');
+				main->fileContent.push('\n');
 				break;
 			case lexical::Types::variableDeclaration:
 				variableDeclarationToJs(main,
@@ -3089,7 +3090,7 @@ class Compile {
 						((lexical::UnaryOperator*)expression)->operand;
 					switch (operand->type){
 						case lexical::Types::stringLiteral:
-							main->compiledCode.addString(
+							main->fileContent.addString(
 								&((lexical::StringLiteral*)operand)->string);
 							break;
 						case lexical::Types::memberFunction:
@@ -3151,7 +3152,7 @@ class Compile {
 						addCString(main, " else ");
 						compileExpression(main, statement->operand3);
 					} else {
-						main->compiledCode.push('\n');
+						main->fileContent.push('\n');
 					}
 					break;
 				}
@@ -3237,10 +3238,10 @@ class Compile {
 									lastStackVariable->dataType);
 						}
 						addTabs(main);
-						main->compiledCode.addCString("_stackEnd = _sp + ");
-						main->compiledCode.addUint(size,
+						main->fileContent.addCString("_stackEnd = _sp + ");
+						main->fileContent.addUint(size,
 							std::NumberBases::decimal);
-						main->compiledCode.addCString(";\n");
+						main->fileContent.addCString(";\n");
 						main->charsInLine = 0;
 					}
 					expression = savedExpression;
@@ -3331,7 +3332,7 @@ class Compile {
 				classType->parentNamespace) +
 			classType->name.length + std::str::CString::length(string, 0);
 		splitIfLongLine(main, len);
-		getCall(&main->compiledCode, classType, string);
+		getCall(&main->fileContent, classType, string);
 	}
 
 	static void functionEndCallDestructors(Main* main){
@@ -3416,7 +3417,7 @@ class Compile {
 			functionEndCallDestructors(main);
 			main->charsInLine = 0;
 			addTabs(main);
-			std::str::DString* code = &main->compiledCode;
+			std::str::DString* code = &main->fileContent;
 			code->addCString("_stackEnd = _savedStackEnd;\n");
 			main->charsInLine = 0;
 			addTabs(main);
@@ -3431,7 +3432,7 @@ class Compile {
 				addCString(main, "return ");
 				compileExpression(main, operand);
 			} else {
-				main->compiledCode.addCString("return");
+				main->fileContent.addCString("return");
 			}
 		}
 	}
@@ -3439,7 +3440,7 @@ class Compile {
 	static void variableDeclarationToJs(Main* main,
 		lexical::VariableDeclaration* expression, bool assignment){
 		lexical::LocalVariable* variable = expression->variable;
-		std::str::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->fileContent;
 		data::Type* dataType = variable->dataType->
 			withoutSpecifiers();
 		int offset = variable->offset;
@@ -3496,7 +3497,7 @@ class Compile {
 		std::ds::PtrDArray* expressionStack =
 			main->expressionStack;
 		expressionStack->push(block);
-		std::str::DString* code = &main->compiledCode;
+		std::str::DString* code = &main->fileContent;
 		code->addCString("{\n");
 		unsigned int* nestedBlocks = &main->nestedBlocks;
 		*nestedBlocks = *nestedBlocks + 1;

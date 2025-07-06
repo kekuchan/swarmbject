@@ -1,111 +1,127 @@
-# "std::fs::Folder" class:
+# "std::fs::FolderModes" enum:
 
-Used to point to an opened folder, and 
-iterate over its contained entries. When 
-opened it points to the first entry.
+## "create" constexpr data member:
+
+Indicates a create a folder mode.
 
 ```
 class Main {
+	std::fs::Entry folder;
 	void main(std::ApplicationInstance aexcl app){
-		app.fileSystem.openFolder(
-			"/tut/", onOpened, true);
+		/*Assuming that "tmp://" already exists.*/
+		folder.set("tmp://tut/", 0, 10, 
+			std::fs::FolderModes::create, 
+			onCreated, 0, nullptr);
+		folder.open(app);
 	}
-	
-	static void onOpened(
+	static void onCreated(
 		std::ApplicationInstance aexcl app,
-		std::fs::Folder* folder){
+		std::fs::Entry* folder,
+		unsigned int error){
 	}
 }
 ```
 
-## "path" data member:
+## "each" constexpr data member:
 
-The folder's path as std::str::String.
-It should not be modified.
-
-```
-/*In Main::onOpened.*/
-std::str::String* path = &folder->path;
-/*"/tut/"*/
-```
-
-## "entries" member function:
-
-Gets the number of entries in the folder.
-
-Returns: unsigned int.
+Indicates an iterate over all the entries 
+in the folder mode.
 
 ```
-/*In Main::onOpened.*/
-unsigned int entries = folder->entries();
-/*1, if it contains only "Year.md".*/
+class Main {
+	std::fs::Entry folder;
+	void main(std::ApplicationInstance aexcl app){
+		/*Assuming that "tmp://" already exists.*/
+		folder.set("tmp://tut/", 0, 10, 
+			std::fs::FolderModes::each,
+			onOpened, 0, nullptr);
+		folder.open(app);
+	}
+	static void onOpened(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* folder,
+		unsigned int error){
+		if (folder->state == 
+			std::fs::FolderStates::none){
+			/*Iterated over all the entries.*/
+			return;
+		}
+	}
+}
 ```
 
-## "getName" member function:
+## "erase" constexpr data member:
 
-Inserts the currently pointed entry's 
-name to an std::str::DString's end.
-
-Parameters:
-* A pointer an std::str::DString.
-
-Returns: void.
+Indicates an erase the folder mode.
 
 ```
-/*In Main::main.*/
-std::str::DString string;
-folder->getName(&string);
-/*"Year.md".*/
+class Main {
+	std::fs::Entry folder;
+	void main(std::ApplicationInstance aexcl app){
+		/*Assuming that "tmp://" already exists.*/
+		folder.set("tmp://tut/", 0, 10, 
+			std::fs::FolderModes::erase,
+			onErased, 0, nullptr);
+		folder.open(app);
+	}
+	static void onErased(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* folder,
+		unsigned int error){
+	}
+}
 ```
 
-## "getType" member function:
+## "gui" constexpr data member:
 
-Gets the currently pointed entry's type, 
-as an std::fs::EntryTypes value.
+Indicates a show a gui for the folder mode.
 
-Returns: unsigned char.
+## "move" constexpr data member:
 
-```
-/*In Main::onOpened.*/
-unsigned char type = folder->getType();
-/*std::fs::EntryTypes::file.*/
-```
-
-## "next" member function:
-
-Changes the currently pointed 
-entry to the next entry.
-
-Returns: void.
+Indicates a move the folder mode with the folder 
+path to move to as an std::str::DString parameter.
 
 ```
-/*In Main::onOpened.*/
-folder->next();
-/*The currently pointed entry is 
-	now the entry after "Year.md".*/
-unsigned char type = folder->getType();
-/*std::fs::EntryTypes::none, 
-	as the are no more entries.*/
+class Main {
+	std::fs::Entry folder;
+	std::str::DString parameters;
+	void main(std::ApplicationInstance aexcl app){
+		/*Assuming that "tmp://" already exists.*/
+		parameters.setCString("tmp://tutorial/");
+		folder.set("tmp://tut/", 0, 10, 
+			std::fs::FolderModes::move, 
+			onMoved, 0, &parameters);
+		folder.open(app);
+	}
+	static void onMoved(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* folder,
+		unsigned int error){
+	}
+}
 ```
 
-## "start" member function:
+## "next" constexpr data member:
 
-Changes the currently pointed 
-entry back to the first entry.
-
-Returns: void.
+Indicates an iterate over all the entries 
+in the containing folder, starting from 
+the next entry after the contained folder mode.
 
 ```
-/*In Main::onOpened.*/
-folder->next();
-folder->start();
-/*The currently pointed entry 
-	is again "Year.md".*/
+/*Change "each" to "next" in the 
+	"each" constexpr data member example 
+	to iterate over all the entries in "tmp://" 
+	starting from the next entry after "tut/".*/
 ```
+
+## "none" constexpr data member:
+
+Indicates no mode.
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024-2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -175,7 +191,8 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024-2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

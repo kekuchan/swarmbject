@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023-2025 SWARMBJECT contributors
+Copyright (c) 2023-2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -67,87 +67,31 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class FileSystem {
+class Type {
 
-	std::ds::PtrArray types;
-	std::fs::Entry* queueEnd;
-	std::fs::Entry* queueStart;
-	
-	/* Public data members */
-	std::fs::GUI gui;
-	
-	FileSystem(){
-		queueEnd = nullptr;
-		queueStart = nullptr;
+	unsigned int(std::fs::Entry*, unsigned char[],
+		unsigned int, unsigned char) info;
+	std::str::String name;
+	unsigned int(std::ApplicationInstance, 
+		std::fs::Entry*) run;
+
+	static unsigned char cmpName(void* i, void* j){
+		std::str::String* src = 
+			&(std::fs::Type*)i->name;
+		std::str::String* dst = 
+			&(std::fs::Type*)j->name;
+		return std::arr::Uchar::compareRange(
+			src->data, 0, src->length,
+			dst->data, 0, dst->length);
 	}
-	
-	std::fs::Type* getType(std::str::View* string){
-		unsigned int i = types.findSorted(
-			string, std::fs::Type::cmpString);
-		if (i != 0){
-			return (std::fs::Type*)(types.data[i - 1]);
-		}
-		return nullptr;
+
+	static unsigned char cmpString(void* i, void* j){
+		std::str::String* src = 
+			&(std::fs::Type*)i->name;
+		std::str::View* dst = (std::str::View*)j;
+		return std::arr::Uchar::compareRange(
+			src->data, 0, src->length,
+			dst->data, dst->start, dst->length);
 	}
-	
-	bool mount(std::fs::Type* type){
-		unsigned int i = types.findSorted(
-			type, std::fs::Type::cmpName);
-		if (i == 0){
-			types.insertSorted(type, 
-				std::fs::Type::cmpName);
-			return true;
-		}
-		return false;
-	}
-	
-	static async void run(
-		std::ApplicationInstance aexcl app){
-		std::fs::FileSystem* fileSystem =
-			&app.fileSystem;
-		std::fs::Entry* entry = fileSystem->queueStart;
-		if (entry != nullptr){
-			fileSystem->next(app, 
-				entry->fileSystem->run(app, entry));
-		}
-	}
-	
-	void next(std::ApplicationInstance aexcl app, 
-		unsigned int error){
-		std::fs::Entry* entry;
-		switch (error){
-			case std::fs::ErrorTypes::noPop:
-				break;
-			case std::fs::ErrorTypes::noCall:
-				popFromfileSystemQueue(app);
-				break;
-			default:
-				entry = queueStart;
-				popFromfileSystemQueue(app);
-				if (entry->callback != nullptr){
-					entry->callback(app, entry, error);
-				}
-				break;
-		}
-	}
-	
-	void popFromfileSystemQueue(
-		std::ApplicationInstance aexcl app){
-		std::ds::SLList::popFront(
-			(void**)&queueStart,
-			(void**)&queueEnd,
-			std::fs::Entry::getList);
-		if (queueStart != nullptr) {run(app);}
-	}
-	
-	void pushTofileSystemQueue(
-		std::ApplicationInstance aexcl app,
-		std::fs::Entry* back){
-		std::ds::SLList::pushBack((void*)back,
-			(void**)&queueStart,
-			(void**)&queueEnd,
-			std::fs::Entry::getList);
-		if (queueStart == back) {run(app);}
-	}
-	
+
 }

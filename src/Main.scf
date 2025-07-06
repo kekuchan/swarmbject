@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021-2023 SWARMBJECT contributors
+Copyright (c) 2021-2023, 2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -122,9 +123,8 @@ class Main {
 	bool maybeCast;
 	lexical::Type* currentExpression;
 	bool isConstLiteral;
-	std::str::DString classOrMemberPath;
+	std::str::DString rootPath;
 	std::str::DString classMemberName;
-	unsigned int rootPath;
 	bool onlyConst;
 	bool savedOnlyConst;
 
@@ -159,6 +159,10 @@ class Main {
 	unsigned int nestedBlocks;
 	unsigned int charsInLine;
 	unsigned int stackEnd;
+	
+	std::fs::Entry file;
+	std::ds::BufferView parameters;
+	std::str::DString fileContent;
 	
 	static void addButton(std::dom::Node* document,
 		std::dom::Node* element,
@@ -341,6 +345,17 @@ class Main {
 		range->setEnd(&sibling, 0);
 	}
 
+	static void closeFile(
+		std::ApplicationInstance aexcl app,
+		void(std::ApplicationInstance aexcl,
+			std::fs::Entry*, unsigned int) callback,
+		unsigned int error){
+		std::fs::Entry* file = &app.main.file;
+		file->callback = callback;
+		if (!file->close(app))
+			{callback(app, file, error);}
+	}
+	
 	void createBar(std::dom::Node* node){
 		std::css::Declaration style;
 		std::css::Keyword keyword;
@@ -425,6 +440,20 @@ class Main {
 		style.setDisplay(keyword.set(
 			std::css::DisplayTypes::block));
 		selection.addRange(&range);
+	}
+	
+	static void doRead(
+		std::ApplicationInstance aexcl app,
+		void(std::ApplicationInstance aexcl,
+			std::fs::Entry*, unsigned int) callback,
+		unsigned int error){
+		Main* main = &app.main;
+		std::fs::Entry* file = &main->file;
+		main->parameters.size = file->cursor;
+		file->callback = callback;
+		file->cursor = 0;
+		if (!file->read(app))
+			{callback(app, file, error);}
 	}
 	
 	/* Gets the BR element before the row where the node is,
@@ -524,7 +553,7 @@ class Main {
 
 	static unsigned char[] getLicense(){
 		return
-			"Copyright (c) 2021-2023 SWARMBJECT contributors\n"
+			"Copyright (c) 2021-2025 SWARMBJECT contributors\n"
 			"\n"
 			"Redistribution and use in source and binary forms,\n"
 			"with or without modification, are permitted\n"
@@ -608,6 +637,33 @@ class Main {
 			&endContainer, range->getEndOffset());
 	}
 	
+	static void nextRead(
+		std::ApplicationInstance aexcl app,
+		void(std::ApplicationInstance aexcl,
+			std::fs::Entry*, unsigned int) callback){
+		Main* main = &app.main;
+		std::fs::Entry* file = &main->file;
+		file->callback = callback;
+		file->cursor = std::val::Uint::maximum;
+		main->parameters.clear();
+		file->open(app);
+	}
+	
+	static void nextWrite(
+		std::ApplicationInstance aexcl app,
+		void(std::ApplicationInstance aexcl,
+			std::fs::Entry*, unsigned int) callback,
+		unsigned char[] data,
+		unsigned int size){
+		Main* main = &app.main;
+		std::fs::Entry* file = &main->file;
+		file->callback = callback;
+		file->cursor = 0;
+		main->parameters.data = data;
+		main->parameters.size = size;
+		file->open(app);
+	}
+	
 	static void onChangeCompilePath(
 		std::ApplicationInstance aexcl app,
 		std::str::DString* path){
@@ -620,16 +676,32 @@ class Main {
 			unsigned int len = path->length;
 			std::dom::CharacterData::setData(
 				&node, path->data, 0, len);
-			main->classOrMemberPath.set(
+			main->rootPath.set(
 				path->data, 0, len);
-			main->rootPath = len;
 		}
 		main->body.appendChild(&main->compileContainer);
 	}
 	
 	static void onClassOpened(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* file){
+		std::fs::Entry* file,
+		unsigned int error){
+		app.main.parameters.data = 
+			app.main.fileContent.create(file->cursor);
+		doRead(app, onClassRead, error);
+	}
+	
+	static void onClassRead(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		closeFile(app, onClassClosed, error);
+	}
+	
+	static void onClassClosed(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
 		Main* main = &app.main;
 		if (main->currentClassPath.length == 0){
 			std::dom::Node div;
@@ -644,9 +716,6 @@ class Main {
 		}
 		main->currentClassPath.set(
 			file->path.data, 0, file->path.length);
-		unsigned int len = file->getSize();
-		unsigned char[] data = new unsigned char[len];
-		file->read(data, 0, len);
 		std::dom::Selection selection;
 		main->appWindow.getSelection(&selection);
 		std::dom::Range range;
@@ -656,8 +725,8 @@ class Main {
 			&main->elementWithText);
 		textToContainer(
 			&main->document, &main->elementWithText, 
-			data, len);
-		delete[] data;
+			main->fileContent.data, 
+			main->fileContent.length);
 		main->fileSaved = true;
 		main->setTitle();
 		main->body.appendChild(&main->editorContainer);
@@ -703,7 +772,8 @@ class Main {
 		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
 		main->body.removeChild(&main->menuContainer);
-		app.fileSystem.gui.select(onClickOpenClass, true);
+		app.fileSystem.gui.select(
+			onClickOpenClass, true);
 	}
 	
 	static void onClickCancel(std::dom::Event* e,
@@ -801,8 +871,10 @@ class Main {
 		std::ApplicationInstance aexcl app,
 		std::str::DString* path){
 		if (path != nullptr){
-			app.fileSystem.openFile(path->data, onClassOpened,
-				std::fs::OpenFileModes::readBinary);
+			Main* main = &app.main;
+			main->file.path.set(
+				path->data, 0, path->length);
+			startRead(app, onClassOpened);
 		} else {onClickCancelMenu(nullptr, app);}
 	}
 
@@ -816,15 +888,14 @@ class Main {
 	
 	static void onClickRun(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
-		std::str::DString* classOrMemberPath =
-			&app.main.classOrMemberPath;
-		classOrMemberPath->trim(app.main.rootPath);
-		classOrMemberPath->addCString("html/compiled.html");
-		app.fileSystem.openFile(
-			classOrMemberPath->data, onRunHtmlOpened,
-			std::fs::OpenFileModes::readBinary);
+		Main* main = &app.main;
+		main->file.path.setDString(
+			&main->rootPath);
+		main->file.path.addCString(
+			"html/compiled.html");
+		startRead(app, onRunHtmlOpened);
 	}
-
+	
 	static void onClickSaveClass(std::dom::Event* e,
 		std::ApplicationInstance aexcl app){
 		Main* main = &app.main;
@@ -832,9 +903,21 @@ class Main {
 			onClickCancelMenu(e, app);
 		} else {
 			main->body.removeChild(&main->menuContainer);
-			app.fileSystem.openFile(
-				main->currentClassPath.data, onSaveClass,
-				std::fs::OpenFileModes::writeBinary);
+			std::dom::Node startContainer;
+			startContainer.set(&main->elementWithText);
+			std::dom::Node endContainer;
+			endContainer.set(&startContainer);
+			std::str::DString* fileContent = 
+				&main->fileContent;
+			fileContent->clear();
+			rangeToString(fileContent, 
+				&startContainer, 0, &endContainer, 
+				startContainer.getChildNodesLength());
+			main->file.path.set(
+				main->currentClassPath.data, 
+				0, main->currentClassPath.length);
+			startWrite(app, onSaveClass, 
+				fileContent->data, fileContent->length);
 		}
 	}
 	
@@ -1034,33 +1117,66 @@ class Main {
 		std::ApplicationInstance aexcl app){
 		app.main.setTextHeight();
 	}
-
+	
 	static void onRunHtmlOpened(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* file){
-		if (file == nullptr) {return;}
-		void* content = file->fileObject.getJsObject();
-		void* stringObject;
-		constwrite
-			"	stringObject = _textDecoder.decode(content);\n";
+		std::fs::Entry* file,
+		unsigned int error){
+		if (error != std::fs::ErrorTypes::none)
+			{return;}
+		app.main.parameters.data = 
+			app.main.fileContent.create(file->cursor);
+		doRead(app, onRunHtmlRead, error);
+	}
+	
+	static void onRunHtmlRead(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		closeFile(app, onRunHtmlClosed, error);
+	}
+	
+	static void onRunHtmlClosed(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
 		Main* main = &app.main;
-		main->onRunHtml.setJsObject(stringObject);
-		main->classOrMemberPath.trim(main->rootPath);
-		main->classOrMemberPath.addCString("html/compiled.js");
-		app.fileSystem.openFile(
-			main->classOrMemberPath.data, onRunJsOpened,
-			std::fs::OpenFileModes::readBinary);
+		main->onRunHtml.setJsObject(
+			std::js::String::decode(
+				main->fileContent.data, 0,
+				main->fileContent.length));
+		main->file.path.trim(main->rootPath.length);
+		main->file.path.addCString("html/compiled.js");
+		nextRead(app, onRunJsOpened);
 	}
 	
 	static void onRunJsOpened(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* file){
-		if (file == nullptr) {return;}
-		void* content = file->fileObject.getJsObject();
-		void* js;
-		constwrite
-			"	js = _textDecoder.decode(content);\n";
-		void* html = app.main.onRunHtml.getJsObject();
+		std::fs::Entry* file,
+		unsigned int error){
+		if (error != std::fs::ErrorTypes::none)
+			{return;}
+		app.main.parameters.data = 
+			app.main.fileContent.create(file->cursor);
+		doRead(app, onRunJsRead, error);
+	}
+	
+	static void onRunJsRead(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		closeFile(app, onRunJsClosed, error);
+	}
+	
+	static void onRunJsClosed(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		Main* main = &app.main;
+		void* js = std::js::String::decode(
+			main->fileContent.data, 0,
+			main->fileContent.length);
+		void* html = main->onRunHtml.getJsObject();
 		constwrite
 			"	var compiledJs = ' src=\"compiled.js\">';\n"
 			"	var indexOf = html.indexOf(compiledJs);\n"
@@ -1087,22 +1203,21 @@ class Main {
 			"		popup.document.close();\n"
 			"	}\n";
 			"	html = null;\n";
-		app.main.onRunHtml.setJsObject(html);
+		main->onRunHtml.setJsObject(html);
 	}
-
+	
 	static void onSaveClass(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* file){
+		std::fs::Entry* file,
+		unsigned int error){
+		closeFile(app, onSaveClassClosed, error);
+	}
+	
+	static void onSaveClassClosed(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
 		Main* main = &app.main;
-		std::str::DString string;
-		std::dom::Node startContainer;
-		startContainer.set(&main->elementWithText);
-		std::dom::Node endContainer;
-		endContainer.set(&startContainer);
-		rangeToString(&string,
-			&startContainer, 0,
-			&endContainer, startContainer.getChildNodesLength());
-		file->write(string.data, 0, string.length);
 		main->fileSaved = true;
 		main->setTitle();
 		onClickCancelMenu(nullptr, app);
@@ -1365,6 +1480,28 @@ class Main {
 		style.setHeight(len.set(height,
 			std::css::Units::px));
 	}
+	
+	static void startRead(
+		std::ApplicationInstance aexcl app,
+		void(std::ApplicationInstance aexcl,
+			std::fs::Entry*, unsigned int) callback){
+		Main* main = &app.main;
+		main->file.mode = std::fs::FileModes::read;
+		main->file.parameters = &main->parameters;
+		nextRead(app, callback);
+	}
+	
+	static void startWrite(
+		std::ApplicationInstance aexcl app,
+		void(std::ApplicationInstance aexcl,
+			std::fs::Entry*, unsigned int) callback,
+		unsigned char[] data,
+		unsigned int size){
+		Main* main = &app.main;
+		main->file.mode = std::fs::FileModes::write;
+		main->file.parameters = &main->parameters;
+		nextWrite(app, callback, data, size);
+	}
 
 	static void stringToCaret(unsigned char[] string,
 		unsigned int start, unsigned int len,
@@ -1544,7 +1681,7 @@ class Main {
 			&keyword, &len, onClickCancelMenu);
 		style.setDisplay(keyword.set(
 			std::css::DisplayTypes::none));
-		
+
 		addRowClick(&document, &div, &textNode, 
 			"Browse", &menuContainer, &style, 
 			&keyword, &len, onClickBrowse);
@@ -1554,11 +1691,11 @@ class Main {
 			&keyword, &len, onClickSaveClass);
 		style.setDisplay(keyword.set(
 			std::css::DisplayTypes::none));
-		
+
 		addRowClick(&document, &div, &textNode,
 			"Settings", &menuContainer, &style, 
 			&keyword, &len, onClickSettings);
-		
+	
 		addRowClick(&document, &div, &textNode,
 			"Compile", &menuContainer, &style, 
 			&keyword, &len, onClickCompile);
@@ -1566,7 +1703,7 @@ class Main {
 		addRowClick(&document, &div, &textNode,
 			"About", &menuContainer, &style, 
 			&keyword, &len, onClickAbout);
-			
+
 		createContainer(&document, &compileContainer,
 			&style, &keyword, &len);
 		
@@ -1575,10 +1712,9 @@ class Main {
 			&keyword, &len, onClickCancelCompile);
 		
 		addRowClick(&document, &div, &textNode,
-			"/", &compileContainer, &style, 
+			"://", &compileContainer, &style, 
 			&keyword, &len, onClickCompilePath);
-		rootPath = 1;
-		classOrMemberPath.set("/", 0, 1);
+		rootPath.set("://", 0, 2);
 		
 		addRowClick(&document, &div, &textNode,
 			"Compile", &compileContainer, &style, 
@@ -1604,7 +1740,7 @@ class Main {
 		addRowClick(&document, &div, &textNode,
 			"Run", &compileContainer, &style, 
 			&keyword, &len, onClickRun);
-		
+
 		std::html::Document::getBody(&document, &body);
 		std::html::Element::getStyle(&body, &style);
 		style.setMargin(len.set(
@@ -1612,6 +1748,7 @@ class Main {
 		style.setPadding(&len);
 		body.appendChild(&menuContainer);
 		onClickAbout(nullptr, app);
+		std::fs::idb::Type::mount(app);
 	}
 
 	void main(std::ApplicationInstance aexcl app){

@@ -1,15 +1,29 @@
-# "std::fs::FileSystem" class:
+# "std::fs::tmp::Type" class:
 
-Used for file system operations.
-	
-## "gui" data member:
+A file system type for temporary storage (that 
+automatically gets cleared when closing the 
+application so be sure to make backups).
 
-Used to show a graphical user interface. Its 
-members will be detailed at "std::fs::GUI".
+## "mount" member function:
+
+Makes the tmp file system available to be used.
+
+Parameters:
+The std::ApplicationInstance aexcl object.
+
+Returns: void.
+		
+```
+class Main {
+	void main(std::ApplicationInstance aexcl app){
+		std::fs::tmp::Type::mount(app);
+	}
+}
+```
 
 # Software license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -79,7 +93,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021, 2025 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

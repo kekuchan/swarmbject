@@ -1,20 +1,47 @@
-# "std::fs::EntryTypes" enum:
-
-## "folder" constexpr data member:
-
-Indicates a folder.
-
-## "file" constexpr data member:
-
-Indicates a file.
+# "std::fs::FileStates" enum:
 
 ## "none" constexpr data member:
 
-Indicates a non-filesystem entry.
+Indicates that the file is closed.
+
+## "opening" constexpr data member:
+
+Indicates that the file is opening.
+
+## "open" constexpr data member:
+
+Indicates that the file is open.
+
+## "close" constexpr data member:
+
+Indicates that the file is closing.
+
+## "read" constexpr data member:
+
+Indicates that the file is being read.
+
+## "readCall" constexpr data member:
+
+Indicates that the file is being read 
+with readCall.
+
+## "write" constexpr data member:
+
+Indicates that the file is being written.
+
+## "writeCall" constexpr data member:
+
+Indicates that the file is being written 
+with writeCall.
+
+## "writeMove" constexpr data member:
+
+Indicates that the file is being written 
+with writeMove.
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -84,7 +111,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

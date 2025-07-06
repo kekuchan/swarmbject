@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2023-2025 SWARMBJECT contributors
+Copyright (c) 2023-2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -67,87 +67,54 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
-class FileSystem {
+class Folder : std::fs::tmp::Entry {
 
-	std::ds::PtrArray types;
-	std::fs::Entry* queueEnd;
-	std::fs::Entry* queueStart;
+	std::fs::tmp::Entry* entries;
 	
-	/* Public data members */
-	std::fs::GUI gui;
-	
-	FileSystem(){
-		queueEnd = nullptr;
-		queueStart = nullptr;
+	Folder(){
+		type = std::fs::tmp::EntryTypes::folder;
+		entries = nullptr;
 	}
 	
-	std::fs::Type* getType(std::str::View* string){
-		unsigned int i = types.findSorted(
-			string, std::fs::Type::cmpString);
-		if (i != 0){
-			return (std::fs::Type*)(types.data[i - 1]);
-		}
-		return nullptr;
+	~Folder(){
+		std::ds::BalBinTree::clear(entries, 
+			std::fs::tmp::Entry::getTree, 
+			std::fs::tmp::Entry::erase);
 	}
 	
-	bool mount(std::fs::Type* type){
-		unsigned int i = types.findSorted(
-			type, std::fs::Type::cmpName);
-		if (i == 0){
-			types.insertSorted(type, 
-				std::fs::Type::cmpName);
-			return true;
-		}
-		return false;
+	static std::fs::tmp::Folder* create(
+		std::str::View* name){
+		std::fs::tmp::Folder* entry = 
+			new std::fs::tmp::Folder;
+		entry->name.setView(name);
+		entry->references = 0;
+		return entry;
 	}
 	
-	static async void run(
-		std::ApplicationInstance aexcl app){
-		std::fs::FileSystem* fileSystem =
-			&app.fileSystem;
-		std::fs::Entry* entry = fileSystem->queueStart;
-		if (entry != nullptr){
-			fileSystem->next(app, 
-				entry->fileSystem->run(app, entry));
-		}
+	void erase(
+		std::fs::tmp::Entry* i){
+		std::ds::BalBinTree::erase(
+			&entries, i,
+			std::fs::tmp::Entry::getTree,
+			std::fs::tmp::Entry::compare);
 	}
 	
-	void next(std::ApplicationInstance aexcl app, 
-		unsigned int error){
-		std::fs::Entry* entry;
-		switch (error){
-			case std::fs::ErrorTypes::noPop:
-				break;
-			case std::fs::ErrorTypes::noCall:
-				popFromfileSystemQueue(app);
-				break;
-			default:
-				entry = queueStart;
-				popFromfileSystemQueue(app);
-				if (entry->callback != nullptr){
-					entry->callback(app, entry, error);
-				}
-				break;
-		}
+	std::fs::tmp::Entry* find(
+		std::str::View* name){
+		return (std::fs::tmp::Entry*)(
+			std::ds::BalBinTree::find(
+				entries, name,
+				std::fs::tmp::Entry::getTree,
+				std::fs::tmp::Entry::compareView));
 	}
 	
-	void popFromfileSystemQueue(
-		std::ApplicationInstance aexcl app){
-		std::ds::SLList::popFront(
-			(void**)&queueStart,
-			(void**)&queueEnd,
-			std::fs::Entry::getList);
-		if (queueStart != nullptr) {run(app);}
-	}
-	
-	void pushTofileSystemQueue(
-		std::ApplicationInstance aexcl app,
-		std::fs::Entry* back){
-		std::ds::SLList::pushBack((void*)back,
-			(void**)&queueStart,
-			(void**)&queueEnd,
-			std::fs::Entry::getList);
-		if (queueStart == back) {run(app);}
+	void insert(
+		std::fs::tmp::Entry* i){
+		i->folder = this;
+		std::ds::BalBinTree::insert(
+			&entries, i,
+			std::fs::tmp::Entry::getTree,
+			std::fs::tmp::Entry::compare);
 	}
 	
 }

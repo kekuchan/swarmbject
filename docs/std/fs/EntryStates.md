@@ -1,40 +1,24 @@
-# "std::fs::OpenFileModes" enum:
+# "std::fs::EntryStates" enum:
 
-## "readBinary" constexpr data member:
+## "none" constexpr data member:
 
-Indicates a read-only mode. The file is not 
-not created if it does not exists.
+Indicates that the entry is closed.
 
-## "writeBinary" constexpr data member:
+## "opening" constexpr data member:
 
-Indicates a write-only mode. The file is 
-created if it does not exists. If the file 
-exists, an empty file is used instead.
+Indicates that the entry is opening.
 
-## "appendBinary" constexpr data member:
+## "open" constexpr data member:
 
-Indicates a write-only and append-only mode. 
-The file is created if it does not exists.
+Indicates that the entry is open.
 
-## "readUpdateBinary" constexpr data member:
+## "close" constexpr data member:
 
-Indicates a read-write mode. The file is not 
-not created if it does not exists.
-
-## "writeUpdateBinary" constexpr data member:
-
-Indicates a read-write mode. The file is 
-created if it does not exists. If the file 
-exists, an empty file is used instead.
-
-## "appendUpdateBinary" constexpr data member:
-
-Indicates a read and append-only write mode. 
-The file is created if it does not exists.
+Indicates that the entry is closing.
 
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -104,7 +88,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2024-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

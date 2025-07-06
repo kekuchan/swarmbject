@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021-2023 SWARMBJECT contributors
+Copyright (c) 2021-2023, 2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -193,6 +194,7 @@ class Parse {
 		rootNs->insertNamespace(stdNs);
 		main->rootNamespace = rootNs;
 		main->currentParseClass = classType;
+		main->savedClassType = classType;
 		main->currentParseDataMember = nullptr;
 		main->currentParseFunction = nullptr;
 		main->currentParseParameter = nullptr;
@@ -201,56 +203,74 @@ class Parse {
 		main->nestedBlocks = 0;
 		main->needAsyncStaticObject = false;
 		main->onlyConst = false;
-
-		main->classOrMemberPath.trim(main->rootPath);
-		main->classOrMemberPath.addCString(
+		main->file.path.setDString(
+			&main->rootPath);
+		main->file.path.addCString(
 			"src/std/ApplicationInstance.scf");
-		app.fileSystem.openFile(
-			main->classOrMemberPath.data,
-			parseApplicationInstance,
-			std::fs::OpenFileModes::readBinary);
+		Main::startRead(app, appOrBaseOpened);
 	}
 	
-	static void parseApplicationInstance(
+	static void doReadExists(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* file){
+		void(std::ApplicationInstance aexcl,
+			std::fs::Entry*, unsigned int) callback,
+		unsigned int error){
 		Main* main = &app.main;
-		main->savedClassType = main->currentParseClass;
-		continueParseApplicationInstance(app, file);
+		data::ClassType* classType =
+			main->currentParseClass;
+		if (error != std::fs::ErrorTypes::none){
+			classNotExists(main, classType);
+			return;
+		}
+		main->parameters.data = 
+			classType->code.create(main->file.cursor);
+		Main::doRead(app, callback, error);
 	}
 	
+	static void appOrBaseOpened(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		doReadExists(app, appOrBaseRead, error);
+	}
+	
+	static void appOrBaseRead(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		Main::closeFile(app, parseAppOrBase, error);
+	}
+	
+	static void classNotExists(Main* main,
+		data::ClassType* classType){
+		std::str::DString error;
+		error.addCString("Class: ");
+		error.addString(&classType->name);
+		error.addCString(" does not exists.");
+		logError(main, 0, &error);
+	}
+		
 	static bool readAndParseClass(
 		std::ApplicationInstance aexcl app,
 		data::ClassType* classType,
-		std::fs::File* file,
 		void(std::ApplicationInstance,
-			std::fs::File*) onOpenFile){
+			std::fs::Entry*, unsigned int) onOpenFile){
 		Main* main = &app.main;
-		if (file == nullptr){
-			std::str::DString error;
-			error.addCString("Class: ");
-			error.addString(&classType->name);
-			error.addCString(" does not exists.");
-			logError(main, 0, &error);
-			return false;
-		}
-		unsigned int len = file->getSize();
-		std::str::String* code = &classType->code;
-		file->read(code->create(len), 0, len);
 		parseClass(app, classType, onOpenFile);
 		return !main->compileError &&
 			main->currentParseClass !=
 				classType->base;
 	}
 	
-	static void continueParseApplicationInstance(
+	static void parseAppOrBase(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* file){
+		std::fs::Entry* file,
+		unsigned int error){
 		Main* main = &app.main;
 		data::ClassType* classType =
 			main->currentParseClass;
-		if (!readAndParseClass(app, classType, file,
-			continueParseApplicationInstance)) {return;}
+		if (!readAndParseClass(app, classType, 
+			appOrBaseOpened)) {return;}
 		classType = main->savedClassType;
 		if (!classType->isAsync()){
 			logErrorCString(main, 0,
@@ -284,7 +304,7 @@ class Parse {
 		std::ApplicationInstance aexcl app,
 		data::ClassType* classType,
 		void(std::ApplicationInstance,
-			std::fs::File*) onOpenFile){
+			std::fs::Entry*, unsigned int) onOpenFile){
 		Main* main = &app.main;
 		std::str::DString info;
 		info.add("Parsing class: ", 0, 15);
@@ -374,12 +394,9 @@ class Parse {
 
 		if (parseBase){
 			main->currentParseClass = classType->base;
-			main->classOrMemberPath.trim(main->rootPath);
-			classType->base->getPath(
-				&main->classOrMemberPath);
-			app.fileSystem.openFile(
-				main->classOrMemberPath.data, onOpenFile,
-				std::fs::OpenFileModes::readBinary);
+			main->file.path.trim(main->rootPath.length);
+			classType->base->getPath(&main->file.path);
+			Main::nextRead(app, onOpenFile);
 			return;
 		}
 	}
@@ -1275,13 +1292,10 @@ class Parse {
 			if (dataType == nullptr){
 				return nullptr;
 			} else if (main->currentParseClass == dataType){
-				main->classOrMemberPath.trim(main->rootPath);
+				main->file.path.trim(main->rootPath.length);
 				(data::ClassType*)dataType->getPath(
-					&main->classOrMemberPath);
-				app.fileSystem.openFile(
-					main->classOrMemberPath.data,
-					onClassOpenedToParse,
-					std::fs::OpenFileModes::readBinary);
+					&main->file.path);
+				Main::nextRead(app, onClassOrBaseOpened);
 				return dataType;
 			}
 			compileCursor = main->compileCursor;
@@ -1611,14 +1625,29 @@ class Parse {
 				classType, compileCursor);
 		}
 	}
-
-	static void onClassOpenedToParse(
+	
+	static void onClassOrBaseOpened(
 		std::ApplicationInstance aexcl app,
-		std::fs::File* file){
+		std::fs::Entry* file,
+		unsigned int error){
+		doReadExists(app, onClassOrBaseRead, error);
+	}
+	
+	static void onClassOrBaseRead(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
+		Main::closeFile(app, parseClassOrBase, error);
+	}
+	
+	static void parseClassOrBase(
+		std::ApplicationInstance aexcl app,
+		std::fs::Entry* file,
+		unsigned int error){
 		Main* main = &app.main;
 		data::ClassType* classType = main->currentParseClass;
-		if (!readAndParseClass(app, classType, file,
-			onClassOpenedToParse)) {return;}
+		if (!readAndParseClass(app, classType, 
+			onClassOrBaseOpened)) {return;}
 		main->currentParseClass = nullptr;
 		lexical::DataMember* dataMember =
 			main->currentParseDataMember;

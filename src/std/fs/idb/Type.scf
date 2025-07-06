@@ -1,0 +1,1339 @@
+/*
+Copyright (c) 2021-2025 SWARMBJECT contributors
+
+Redistribution and use in source and binary forms,
+with or without modification, are permitted
+provided that the following conditions are met:
+
+1. Redistributions of source code must
+retain the above copyright notice, this list
+of conditions and the following disclaimer.
+
+2. Redistributions in binary form must
+reproduce the above copyright notice,
+this list of conditions and the following
+disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Subject to the terms and conditions of this
+license, each copyright holder and contributor
+hereby grants to those receiving rights under this
+license a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except for
+failure to satisfy the conditions of this license)
+patent license to make, have made, use, offer to
+sell, sell, import, and otherwise transfer this
+software, where such license applies only to
+those patent claims, already acquired or hereafter
+acquired, licensable by such copyright holder or
+contributor that are necessarily infringed by:
+
+(a) their Contribution(s) (the licensed
+copyrights of copyright holders and
+non-copyrightable additions of contributors,
+in source or binary form) alone; or
+
+(b) combination of their Contribution(s)
+with the work of authorship to which such
+Contribution(s) was added by such copyright
+holder or contributor, if, at the time the
+Contribution is added, such addition causes
+such combination to be necessarily infringed.
+The patent license shall not apply to any other
+combinations which include the Contribution.
+
+Except as expressly stated above, no rights or
+licenses from any copyright holder or contributor
+is granted under this license, whether expressly,
+by implication, estoppel or otherwise.
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+*/
+class Type : std::fs::Type {
+
+	bool create;
+	unsigned int cursorId;
+	std::js::Object database;
+	std::js::Object folderObject;
+	unsigned int newEntryId;
+	unsigned int moveIntoFolderId;
+	std::str::View moveName;
+	std::str::View next;
+	std::str::View after;
+	
+	Type(){
+		(std::fs::Type*)this->info = 
+			std::fs::idb::Type::info;
+		name.set("idb", 0, 3);
+		(std::fs::Type*)this->run = 
+			std::fs::idb::Type::run;
+	}
+	
+	static void addEntryOnSuccess(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::Entry* entry = 
+			app.fileSystem.queueStart;
+		std::fs::idb::Type* type =
+			(std::fs::idb::Type*)
+			(entry->fileSystem);
+		unsigned int id;
+		constwrite "	id = e.target.result;\n";
+		type->newEntryId = id;
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		type->insertEntry(transaction, entry);
+	}
+	
+	static void call(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n"
+			"	var callStart = _objectsToCallStart;\n";
+		std::fs::FileSystem* fileSystem =
+			&app.fileSystem;
+		close(fileSystem->queueStart);
+		fileSystem->next(app, 
+			std::fs::ErrorTypes::none);
+		constwrite "	if (callStart === 0) _callObjects();\n";
+	}
+	
+	static void callEach(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry, 
+		void* folder){
+		app.fileSystem.
+			popFromfileSystemQueue(app);
+		entry->state =
+			std::fs::FolderStates::open;
+		std::js::Object folderObject;
+		folderObject.setJsObject(folder);
+		entry->entryObject = &folderObject;
+		unsigned int entries = 
+			std::fs::idb::Folder::entries(folder);
+		while (entry->cursor < entries){
+			entry->callback(app, entry, 
+				std::fs::ErrorTypes::none);
+			if (entry->state != 
+				std::fs::FolderStates::open) {return;}
+			entry->cursor = entry->cursor + 1;
+		}
+		close(entry);
+		entry->callback(app, entry, 
+			std::fs::ErrorTypes::none);
+	}
+	
+	static void callNext(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n"
+			"	var callStart = _objectsToCallStart;\n";
+		std::fs::FileSystem* fileSystem =
+			&app.fileSystem;
+		std::fs::Entry* entry = fileSystem->queueStart;
+		std::fs::idb::Type* type =
+			(std::fs::idb::Type*)
+			(entry->fileSystem);
+		std::str::View* next = &(type->next);
+		void* folder = getContentView(e);
+		unsigned int i = 
+			std::fs::idb::Folder::getEntryCursor(
+				folder, next->data, next->start, next->length);
+		entry->path.trim(next->start);
+		if (i != 0){
+			entry->cursor = i;
+			callEach(app, entry, folder);
+		} else {
+			close(entry);
+			fileSystem->next(app, 
+				std::fs::ErrorTypes::none);
+		}
+		constwrite "	if (callStart === 0) _callObjects();\n";
+	}
+	
+	static void callOpenFolder(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n"
+			"	var callStart = _objectsToCallStart;\n";
+		void* folder = getContentView(e);
+		std::fs::Entry* entry = 
+			app.fileSystem.queueStart;
+		entry->cursor = 0;
+		callEach(app, entry, folder);
+		constwrite "	if (callStart === 0) _callObjects();\n";
+	}
+	
+	static void close(
+		std::fs::Entry* entry){
+		entry->entryObject = nullptr;
+		entry->fileSystem = nullptr;
+		entry->state =
+			std::fs::EntryStates::none;
+	}
+	
+	void createFolder(
+		std::fs::Entry* entry, 
+		void* transaction){
+		entry->nextPathEntry(&next);
+		if (next.length == 0){
+			getEntry(transaction, 
+				cursorId, call);
+		} else {
+			getEntry(transaction, 
+				cursorId, onOpenFolder);
+		}
+	}
+	
+	void* createTransaction(bool readwrite){
+		void* databaseObject = database.getJsObject();
+		create = readwrite;
+		constwrite
+			"	return databaseObject.transaction(\n"
+			"		'entries', readwrite ? 'readwrite' : 'readonly');\n";
+	}
+	
+	void each(std::fs::Entry* entry, 
+		void* transaction){
+		entry->nextPathEntry(&next);
+		if (next.length == 0){
+			getEntry(transaction, 
+				cursorId, callOpenFolder);
+		} else {
+			getEntry(transaction, 
+				cursorId, onOpenFolder);
+		}
+	}
+	
+	void erase(std::fs::Entry* entry, 
+		void* transaction){
+		next.setView(&after);
+		entry->nextPathEntry(&after);
+		if (after.length == 0){
+			getEntry(transaction, 
+				cursorId, onDeleteFileFolder);
+		} else {
+			getEntry(transaction, 
+				cursorId, onOpenFolder);
+		}
+	}
+	
+	static void* getContentArray(void* e){
+		void* result;
+		constwrite "	result = e.target.result;\n";
+		return result;
+	}
+	
+	static void* getContentView(void* e){
+		void* result;
+		constwrite "	result = e.target.result;\n";
+		if (std::js::Object::isNullObject(result))
+			{return result;}
+		return std::js::DataView::create(result);
+	}
+	
+	static void getEntry(void* transaction,
+		unsigned int id, void(void*) callback){
+		constwrite
+			"	transaction.objectStore('entries').get(id).\n"
+			"		onsuccess = _getFunctionById(callback);\n";
+	}
+	
+	static std::fs::idb::Type* getType(
+		std::ApplicationInstance aexcl app){
+		std::str::View string;
+		string.set("idb", 0, 3);
+		return (std::fs::idb::Type*)
+			(app.fileSystem.getType(&string));
+	}
+	
+	static unsigned int gui(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry){
+		unsigned int error;
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		std::bom::Window appWindow;
+		app.getWindow(&appWindow);
+		std::dom::Node document;
+		appWindow.getDocumentNode(&document);
+		std::dom::Node element;
+		std::dom::Node textNode;
+		if (entry->isFile()){
+			gui->addSelect(&document, &element, 
+				&textNode, true);
+			gui->addMove(&document, 
+				&element, &textNode);
+			gui->addRow(&document, &element, 
+				&textNode, "Download", 8);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickDownloadFile);
+			gui->addDelete(&document, 
+				&element, &textNode);
+		} else {
+			gui->addSelect(&document, &element, 
+				&textNode, false);
+			gui->addNewFolder(&document, 
+				&element, &textNode);
+			gui->addNewFile(&document, 
+				&element, &textNode);
+			gui->addRow(&document, &element, 
+				&textNode, "Upload file", 11);
+			std::dom::MouseEvent::setOnClick(
+				&element, onClickUploadFile);
+			if (!isRoot(entry)){
+				gui->addDelete(&document, 
+					&element, &textNode);
+				gui->addMove(&document, 
+					&element, &textNode);
+			}
+			gui->addDownloadFolder(&document, 
+				&element, &textNode);
+			gui->addUploadFolder(&document, 
+				&element, &textNode);
+		}
+		error = std::fs::ErrorTypes::none;
+		entry->state =
+			std::fs::EntryStates::none;
+		return error;
+	}
+	
+	static unsigned int info(
+		std::fs::Entry* entry, unsigned char[] str,
+		unsigned int i, unsigned char mode){
+		unsigned int j;
+		if (entry->isFolder()){
+			void* folder = (std::js::Object*)
+				(entry->entryObject)->getJsObject();
+			switch (mode){
+				case std::fs::InfoModes::name:
+					j = std::fs::idb::Folder::getName(
+						folder, entry->cursor, str, i);
+					if (std::fs::idb::Folder::getType(
+						folder, entry->cursor) == 
+						std::fs::idb::EntryTypes::folder){
+						if (str != nullptr) {str[j] = '/';}
+						j = j + 1;
+					}
+					break;
+			}
+		}
+		return j;
+	}
+	
+	void insertEntry(void* transaction, 
+		std::fs::Entry* entry){
+		void* content = folderObject.getJsObject();
+		folderObject.clear();
+		unsigned int substringEnd =
+			next.start + next.length;
+		unsigned int entryType;
+		if (entry->path.length == substringEnd ||
+			next.data[substringEnd] != '/'){
+			entryType = std::fs::idb::EntryTypes::file;
+		} else {
+			entryType = std::fs::idb::EntryTypes::folder;
+		}
+		content = std::fs::idb::Folder::insertEntry(
+			content, next.data, next.start, next.length, 
+			newEntryId, entryType);
+		unsigned int folderId = cursorId;
+		cursorId = newEntryId;
+		void* buffer = setContentView(content);
+		constwrite
+			"	transaction.objectStore('entries')\n"
+			"		.put(buffer, folderId).onsuccess =\n"
+			"			";
+		constwrite putEntryOnSuccess;
+		constwrite ";\n";
+	}
+	
+	static bool isRoot(
+		std::fs::Entry* entry){
+		return entry->path.length == 6;
+	}
+	
+	static bool isSubPath(unsigned char[] src, 
+		unsigned char[] dst){
+		unsigned char srcChar = src[0];
+		unsigned char dstChar = dst[0];
+		unsigned int i = 0;
+		while (srcChar == dstChar){
+			if (srcChar == 0) {return true;}
+			i = i + 1;
+			srcChar = src[i];
+			dstChar = dst[i];
+		}
+		return (srcChar == 0 || dstChar == 0);
+	}
+	
+	static void mount(
+		std::ApplicationInstance aexcl app){
+		std::fs::idb::Type* type =
+			new std::fs::idb::Type;
+		if (!app.fileSystem.mount(type))
+			{delete type;}
+	}
+	
+	static void swapPath(
+		std::fs::Entry* entry, 
+		std::str::DString* str){
+		std::str::DString string;
+		string.move(&entry->path);
+		entry->path.move(str);
+		str->move(&string);
+	}
+	
+	void move(std::fs::Entry* entry, 
+		void* transaction){
+		if (moveIntoFolderId == 0){
+			next.setView(&after);
+			entry->nextPathEntry(&after);
+			if (after.length == 0){
+				getEntry(transaction, cursorId, onMoveDst);
+			} else {
+				getEntry(transaction, 
+					cursorId, onOpenFolder);
+			}
+		} else if (newEntryId == 0){
+			next.setView(&after);
+			entry->nextPathEntry(&after);
+			if (after.length == 0){
+				getEntry(transaction, cursorId, onMoveSrc);
+			} else {
+				getEntry(transaction, 
+					cursorId, onOpenFolder);
+			}
+		} else {
+			call(std::js::Object::getNull());
+		}
+	}
+	
+	void nextEntry(std::fs::Entry* entry, 
+		void* transaction){
+		next.setView(&after);
+		entry->nextPathEntry(&after);
+		if (after.length == 0){
+			getEntry(transaction, 
+				cursorId, callNext);
+		} else {
+			getEntry(transaction, 
+				cursorId, onOpenFolder);
+		}
+	}
+	
+	static void onClickDownloadFile(
+		std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		if ((gui->bools & 
+			std::fs::GUI::operationPending) == 0){
+			std::dom::Node element;
+			gui->setDownload(app, &element);
+			std::fs::Entry* entry = &gui->entry;
+			std::str::DString* path = &entry->path;
+			unsigned char[] data = path->data;
+			unsigned int length = path->length;
+			unsigned int start = std::arr::Uchar::findLast(
+				data, 0, length - 1, '/');
+			std::html::AElement::setDownload(&element,
+				data, start, length - start);
+			gui->folderCursor = 0;
+			gui->setDownloadFile(onDownloadFileOpened);
+			entry->open(app);
+			gui->browseContainer.appendChild(&element);
+		}
+	}
+	
+	static void onClickUploadFile(
+		std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		app.fileSystem.gui.onClickUpload(
+			app, onChangeFileUpload);
+	}
+	
+	static void onChangeFileUpload(
+		std::dom::Event* e,
+		std::ApplicationInstance aexcl app){
+		app.fileSystem.gui.onChangeUpload(
+			e, setLoadFile);
+	}
+	
+	static void onDeleteFileFolder(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::FileSystem* fileSystem =
+			&app.fileSystem;
+		std::fs::Entry* entry = fileSystem->queueStart;
+		std::fs::idb::Type* type =
+			(std::fs::idb::Type*)
+			(entry->fileSystem);
+		std::str::View* next = &type->next;
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		void* content = getContentView(e);
+		unsigned int offset = 
+			std::fs::idb::Folder::getEntryOffset(
+				content, next->data, next->start, next->length);
+		if (offset != 0){
+			bool isFolder = entry->isFolder();
+			unsigned char entryType = std::fs::idb::
+				Folder::getEntryType(content, offset);
+			if ((isFolder && entryType ==
+					std::fs::idb::EntryTypes::folder)
+				|| (!isFolder && entryType ==
+					std::fs::idb::EntryTypes::file)){
+				unsigned int entryId = std::fs::idb::
+					Folder::getEntryId(content, offset);
+				unsigned int id = type->cursorId;
+				void* newContent = 
+					std::fs::idb::Folder::deleteEntry(
+						content, offset, next->length);
+				void* buffer = setContentView(newContent);
+				constwrite
+					"			transaction.objectStore('entries')\n"
+					"				.put(buffer, id);\n";
+				if (isFolder){
+					/* Works, since requests on the transaction are
+						processed in order by the specification. */
+					getEntry(transaction, entryId, onOpenDeleteFolder);
+				}
+				constwrite
+					"			transaction.objectStore('entries')\n"
+					"				.delete(entryId);\n"
+					"			transaction.oncomplete = ";
+				constwrite call;
+				constwrite ";\n";
+			} else {
+				constwrite 
+					"			var callStart = _objectsToCallStart;\n";
+				entry->state =
+					std::fs::FolderStates::none;
+				fileSystem->next(app, 
+					std::fs::ErrorTypes::notOpen);
+				constwrite 
+					"			if (callStart === 0) _callObjects();\n";
+			}
+		} else {
+			call(std::js::Object::getNull());
+		}
+	}
+	
+	static void onDownloadFileClosed(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry, 
+		unsigned int error){
+		app.fileSystem.gui.bools = 0;
+	}
+	
+	static void onDownloadFileOpened(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry, 
+		unsigned int error){
+		app.fileSystem.gui.setDownloadLink(
+			(std::fs::idb::File*)
+				(entry->entryObject)->getJsBlob());
+		entry->callback = onDownloadFileClosed;
+		if (!entry->close(app)){
+			onDownloadFileClosed(app, entry, error);
+		}
+	}
+	
+	static void setLoadFile(void* fileReader){
+		constwrite 
+			"				fileReader.onload = ";
+		constwrite onLoadFileUpload;
+		constwrite ";\n";
+	}
+	
+	static void onLoadFileUpload(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n"
+			"	var callStart = _objectsToCallStart;\n";
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		void* jsObject;
+		constwrite "			jsObject = e.target.result;\n";
+		if (!std::js::Object::isNullObject(jsObject)){
+			gui->callJS.file.setJsObject(
+				std::js::Array::create(jsObject));
+		}
+		gui->setFileUploadPath();
+		gui->setCreateJs(onUploadFileOpened);
+		gui->entry.open(app);
+		constwrite "	if (callStart === 0) _callObjects();\n";
+	}
+	
+	static void onMoveDst(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::FileSystem* fileSystem =
+			&app.fileSystem;
+		std::fs::Entry* entry = fileSystem->queueStart;
+		std::fs::idb::Type* type =
+			(std::fs::idb::Type*)
+			(entry->fileSystem);
+		std::str::View* next = &type->next;
+		void* content = getContentView(e);
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		unsigned int offset = 
+			std::fs::idb::Folder::getEntryOffset(
+				content, next->data, next->start, next->length);
+		if (offset == 0){
+			type->folderObject.setJsObject(content);
+			type->moveName.setView(next);
+			type->moveIntoFolderId = type->cursorId;
+			type->newEntryId = 0;
+			swapPath(entry, 
+				(std::str::DString*)(entry->parameters));
+			type->setRoot(entry, &type->after);
+			entry->nextPathEntry(&type->after);
+			type->move(entry, transaction);
+		} else {
+			constwrite 
+				"			var callStart = _objectsToCallStart;\n";
+			entry->state =
+				std::fs::FolderStates::none;
+			fileSystem->next(app, 
+				std::fs::ErrorTypes::notOpen);
+			constwrite 
+				"			if (callStart === 0) _callObjects();\n";
+		}
+	}
+	
+	static void onMoveSrc(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::FileSystem* fileSystem =
+			&app.fileSystem;
+		std::fs::Entry* entry = fileSystem->queueStart;
+		std::fs::idb::Type* type =
+			(std::fs::idb::Type*)
+			(entry->fileSystem);
+		std::str::View* next = &type->next;
+		void* content = getContentView(e);
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		unsigned int offset = 
+			std::fs::idb::Folder::getEntryOffset(
+				content, next->data, next->start, next->length);
+		bool isFolder = entry->isFolder();
+		if (offset != 0){
+			unsigned char entryType = std::fs::idb::
+				Folder::getEntryType(content, offset);
+			if ((isFolder && entryType ==
+					std::fs::idb::EntryTypes::folder)
+				|| (!isFolder && entryType ==
+					std::fs::idb::EntryTypes::file)){
+				unsigned int id = type->cursorId;
+				type->newEntryId = std::fs::idb::
+					Folder::getEntryId(content, offset);
+				void* newContent = 
+					std::fs::idb::Folder::deleteEntry(
+						content, offset, next->length);
+				if (id == type->moveIntoFolderId){
+					type->folderObject.setJsObject(
+						newContent);
+					setMoveDst(e);
+				} else {
+					void* buffer = setContentView(newContent);
+					constwrite
+						"			transaction.objectStore('entries')\n"
+						"				.put(buffer, id).onsuccess =\n"
+						"					";
+					constwrite setMoveDst;
+					constwrite ";\n";
+				}
+				return;
+			}
+		}
+		constwrite 
+			"			var callStart = _objectsToCallStart;\n";
+		entry->state =
+			std::fs::FolderStates::none;
+		fileSystem->next(app, 
+			std::fs::ErrorTypes::notOpen);
+		constwrite 
+			"			if (callStart === 0) _callObjects();\n";
+	}
+	
+	static void onOpenDeleteFolder(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		void* content = getContentView(e);
+		unsigned int i = 4;
+		unsigned int j = std::fs::idb::Folder::
+			entries(content) * 4;
+		while (i <= j){
+			unsigned int offset = 
+				std::js::DataView::getU32LE(content, i);
+			unsigned int id = std::fs::idb::
+				Folder::getEntryId(content, offset);
+			unsigned int type = std::fs::idb::
+				Folder::getEntryType(content, offset);
+			if (type == std::fs::idb::EntryTypes::folder){
+				getEntry(transaction, id, onOpenDeleteFolder);
+			}
+			constwrite
+				"		transaction.objectStore('entries')\n"
+				"			.delete(id);\n";
+			i = i + 4;
+		}
+	}
+	
+	static void onOpenFileFolder(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n"
+			"	var callStart = _objectsToCallStart;\n";
+		std::fs::FileSystem* fileSystem =
+			&app.fileSystem;
+		std::fs::Entry* entry = fileSystem->queueStart;
+		std::fs::idb::Type* type =
+			(std::fs::idb::Type*)
+			(entry->fileSystem);
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		void* content = getContentView(e);
+		std::str::View* next = &type->next;
+		unsigned int offset = 
+			std::fs::idb::Folder::getEntryOffset(
+				content, next->data, next->start, next->length);
+		if (offset != 0){
+			if (std::fs::idb::Folder::getEntryType(
+					content, offset) ==
+				std::fs::idb::EntryTypes::file){
+				unsigned int id = std::fs::idb::Folder::
+					getEntryId(content, offset);
+				std::fs::idb::File* file = 
+					(std::fs::idb::File*)
+					(entry->entryObject);
+				if (file == nullptr){
+					if (entry->mode !=
+							std::fs::FileModes::write && 
+						entry->mode !=
+							std::fs::FileModes::writeUpdate){
+						getEntry(transaction, id, onOpenFile);
+					} else {
+						entry->entryObject =
+							std::fs::idb::File::create(
+								std::js::Object::getNull(), false);
+						fileSystem->next(app, 
+							std::fs::idb::Type::run(app, entry));
+					}
+				} else {
+					void* array = setContentArray(file);
+					constwrite
+						"				transaction.objectStore('entries')\n"
+						"					.put(array, id).onsuccess =\n"
+						"						";
+					constwrite putEntryOnSuccess;
+					constwrite ";\n";
+				}
+			} else {
+				entry->state =
+					std::fs::FolderStates::none;
+				fileSystem->next(app, 
+					std::fs::ErrorTypes::notOpen);
+			}
+		} else if (type->create){
+			std::fs::idb::File* file = 
+				(std::fs::idb::File*)
+				(entry->entryObject);
+			if (file == nullptr){
+				entry->entryObject = 
+					std::fs::idb::File::create(
+						std::js::Object::getNull(), false);
+				fileSystem->next(app, 
+					std::fs::idb::Type::run(app, entry));
+			} else {
+				type->folderObject.setJsObject(content);
+				void* array = setContentArray(file);
+				constwrite
+					"		transaction.objectStore('entries')\n"
+					"			.add(array).onsuccess =\n"
+					"				";
+				constwrite addEntryOnSuccess;
+				constwrite ";\n";
+			}
+		} else {
+			entry->state =
+				std::fs::FolderStates::none;
+			fileSystem->next(app, 
+				std::fs::ErrorTypes::notOpen);
+		}
+		constwrite "	if (callStart === 0) _callObjects();\n";
+	}
+	
+	static void onOpenFile(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n"
+			"	var callStart = _objectsToCallStart;\n";
+		std::fs::FileSystem* fileSystem =
+			&app.fileSystem;
+		std::fs::Entry* entry = fileSystem->queueStart;
+		void* content = getContentArray(e);
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		entry->entryObject = 
+			std::fs::idb::File::create(content, true);
+		fileSystem->next(app, 
+			std::fs::idb::Type::run(app, entry));
+		constwrite "	if (callStart === 0) _callObjects();\n";
+	}
+	
+	static void onOpenFolder(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n"
+			"	var callStart = _objectsToCallStart;\n";
+		std::fs::FileSystem* fileSystem =
+			&app.fileSystem;
+		std::fs::Entry* entry = fileSystem->queueStart;
+		std::fs::idb::Type* type =
+			(std::fs::idb::Type*)
+			(entry->fileSystem);
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		void* content = getContentView(e);
+		std::str::View* next = &type->next;
+		unsigned int offset = 
+			std::fs::idb::Folder::getEntryOffset(
+				content, next->data, next->start, next->length);
+		if (offset != 0){
+			if (std::fs::idb::Folder::getEntryType(
+					content, offset) ==
+				std::fs::idb::EntryTypes::folder){
+				type->cursorId = std::fs::idb::Folder::
+					getEntryId(content, offset);
+				type->onTransaction(entry, transaction);
+			} else {
+				entry->state =
+					std::fs::FolderStates::none;
+				fileSystem->next(app, 
+					std::fs::ErrorTypes::notOpen);
+			}
+		} else if (type->create){
+			type->folderObject.setJsObject(content);
+			constwrite
+				"		transaction.objectStore('entries')\n"
+				"			.add(null).onsuccess =\n"
+				"				";
+			constwrite addEntryOnSuccess;
+			constwrite ";\n";
+		} else {
+			entry->state =
+				std::fs::FolderStates::none;
+			fileSystem->next(app, 
+				std::fs::ErrorTypes::notOpen);
+		}
+		constwrite "	if (callStart === 0) _callObjects();\n";
+	}
+	
+	void onTransaction(std::fs::Entry* entry, 
+		void* transaction){
+		if (entry->isFile()){
+			switch (entry->mode){
+				case std::fs::FileModes::read:
+				case std::fs::FileModes::readUpdate:
+				case std::fs::FileModes::write:
+				case std::fs::FileModes::writeUpdate:
+				case std::fs::FileModes::append:
+				case std::fs::FileModes::appendUpdate:
+					openFile(entry, transaction);
+					break;
+				case std::fs::FileModes::next:
+					nextEntry(entry, transaction);
+					break;
+				case std::fs::FileModes::erase:
+					erase(entry, transaction);
+					break;
+				case std::fs::FileModes::move:
+					move(entry, transaction);
+					break;
+			}
+		} else {
+			switch (entry->mode){
+				case std::fs::FolderModes::create:
+					createFolder(entry, transaction);
+					break;
+				case std::fs::FolderModes::each:
+					each(entry, transaction);
+					break;
+				case std::fs::FolderModes::next:
+					nextEntry(entry, transaction);
+					break;
+				case std::fs::FolderModes::erase:
+					erase(entry, transaction);
+					break;
+				case std::fs::FolderModes::move:
+					move(entry, transaction);
+					break;
+			}
+		}
+	}
+	
+	static void onUploadFileOpened(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry, 
+		unsigned int error){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::GUI* gui = &app.fileSystem.gui;
+		std::fs::CallJS* callJS = &gui->callJS;
+		void* array = callJS->file.getJsObject();
+		if (!std::js::Object::isNullObject(array)){
+			std::fs::idb::File* file = 
+				(std::fs::idb::File*)
+				(entry->entryObject);
+			file->setJsObject(array);
+			file->flushed = false;
+			file->size = 
+				std::js::Array::length(array);
+		}
+		callJS->cursor = 0;
+		entry->callback = 
+			std::fs::GUI::onUploadFileClosed;
+		if (!entry->close(app)){
+			std::fs::GUI::onUploadFileClosed(
+				app, entry, error);
+		}
+	}
+	
+	static void onObjectStoreCreated(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n"
+			"	var callStart = _objectsToCallStart;\n";
+		app.fileSystem.next(app, 
+			run(app, app.fileSystem.queueStart));
+		constwrite "	if (callStart === 0) _callObjects();\n";
+	}
+	
+	static void openDB(){
+		constwrite
+			"	var openDBRequest = "
+					"window.indexedDB.open('FileSystem', 1);\n"
+			"	openDBRequest.onerror = ";
+					constwrite openDBOnError;
+					constwrite ";\n"
+			"	openDBRequest.onsuccess = ";
+					constwrite openDBOnSuccess;
+					constwrite ";\n"
+			"	openDBRequest.onupgradeneeded = ";
+					constwrite openDBOnUpgrade;
+					constwrite ";\n";
+	}
+
+	static void openDBOnError(void* e){
+		constwrite "	alert('openDBOnError');\n";
+	}
+
+	static void openDBOnSuccess(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n"
+			"	var callStart = _objectsToCallStart;\n";
+		void* databaseObject;
+		constwrite "	databaseObject = e.target.result;\n";
+		getType(app)->database.setJsObject(
+			databaseObject);
+		app.fileSystem.next(app, 
+			run(app, app.fileSystem.queueStart));
+		constwrite "	if (callStart === 0) _callObjects();\n";
+	}
+
+	static void openDBOnUpgrade(void* e){
+		void* databaseObject;
+		constwrite
+			"	databaseObject = e.target.result;\n"
+			"	var entries = databaseObject.createObjectStore(\n"
+			"		'entries', { autoIncrement : true });\n"
+				/* Create root folder. */
+			"	entries.add(null);\n"
+			"	var transaction = e.target.transaction;\n"
+			"	transaction.oncomplete = ";
+		constwrite onObjectStoreCreated;
+		constwrite ";\n";
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		getType(app)->database.setJsObject(
+			databaseObject);
+	}
+	
+	void openFile(std::fs::Entry* entry, 
+		void* transaction){
+		if (after.length != 0){
+			next.setView(&after);
+			entry->nextPathEntry(&after);
+			if (after.length == 0){
+				getEntry(transaction, 
+						cursorId, onOpenFileFolder);
+			} else {
+				getEntry(transaction, 
+					cursorId, onOpenFolder);
+			}
+		} else {
+			if (entry->state == 
+				std::fs::FileStates::close){
+				delete (std::fs::idb::File*)
+					(entry->entryObject);
+				close(entry);
+			}
+			std::ApplicationInstance aexcl app;
+			constwrite "	app = _appObject;\n";
+			app.fileSystem.next(app, 
+				std::fs::ErrorTypes::none);
+		}
+	}
+	
+	static void putEntryOnSuccess(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n"
+			"	var callStart = _objectsToCallStart;\n";
+		std::fs::Entry* entry = 
+			app.fileSystem.queueStart;
+		std::fs::idb::Type* type =
+			(std::fs::idb::Type*)
+			(entry->fileSystem);
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		type->onTransaction(entry, transaction);
+		constwrite "	if (callStart === 0) _callObjects();\n";
+	}
+	
+	static unsigned int read(
+		std::fs::Entry* entry){
+		unsigned int error;
+		std::fs::idb::File* file = 
+			(std::fs::idb::File*)(entry->entryObject);
+		void* data;
+		unsigned int start;
+		unsigned int* len;
+		void(void*, unsigned int, unsigned char) call;
+		switch (entry->state){
+			case std::fs::FileStates::read:
+				{
+					std::ds::BufferView* parameters = 
+						(std::ds::BufferView*)
+							(entry->parameters);
+					data = (void*)(parameters->data);
+					start = parameters->start;
+					len = &(parameters->size);
+				}
+				break;
+			case std::fs::FileStates::readCall:
+				{
+					std::fs::Call* parameters = 
+						(std::fs::Call*)(entry->parameters);
+					len = &(parameters->size);
+					call = (void(void*, unsigned int, 
+						unsigned char))(parameters->call);
+				}
+				break;
+		}
+		if (file != nullptr){
+			unsigned int size = file->size;
+			unsigned int cursor = entry->cursor;
+			if (cursor > size) {cursor = size;}
+			if (size - cursor < *len){
+				*len = size - cursor;
+			}
+			void* jsObject;
+			switch (entry->state){
+				case std::fs::FileStates::read:
+					if (data != nullptr){
+						file->read((unsigned char[])
+							data, start, *len, cursor);
+					}
+					break;
+				case std::fs::FileStates::readCall:
+					if (call != nullptr){
+						file->readCall(
+							(std::fs::Call*)(entry->parameters), 
+							*len, cursor);
+					}
+					break;
+			}
+			entry->cursor = cursor + *len;
+			error = std::fs::ErrorTypes::none;
+			entry->state =
+				std::fs::FileStates::open;
+		} else {
+			entry->cursor = 0;
+			*len = 0;
+			error = std::fs::ErrorTypes::notOpen;
+			entry->state =
+				std::fs::FileStates::none;
+		}
+		return error;
+	}
+	
+	static unsigned int run(
+		std::ApplicationInstance aexcl app, 
+		std::fs::Entry* entry){
+		std::fs::idb::Type* type =
+			(std::fs::idb::Type*)
+			(entry->fileSystem);
+		if (type->database.isNull()){
+			openDB();
+			return std::fs::ErrorTypes::noPop;
+		}
+		
+		unsigned int error;
+		std::str::View name;
+		std::fs::idb::File* file;
+		if (entry->isFile()){
+			while (true){
+				switch (entry->state){
+					case std::fs::FileStates::opening:
+						switch (entry->mode){
+							case std::fs::FileModes::read:
+							case std::fs::FileModes::readUpdate:
+								error = type->setOpenFile(entry, 
+									std::fs::FileStates::read, false);
+								break;
+							case std::fs::FileModes::write:
+							case std::fs::FileModes::writeUpdate:
+								error = type->setOpenFile(entry, 
+									std::fs::FileStates::write, true);
+								break;
+							case std::fs::FileModes::append:
+								error = type->setOpenFile(entry, 
+									std::fs::FileStates::write, true);
+								break;
+							case std::fs::FileModes::appendUpdate:
+								error = type->setOpenFile(entry, 
+									std::fs::FileStates::read, true);
+								break;
+							case std::fs::FileModes::next:
+								type->setRoot(entry, &type->after);
+								entry->nextPathEntry(&type->after);
+								type->nextEntry(entry, 
+									type->createTransaction(false));
+								error = std::fs::ErrorTypes::noPop;
+								break;
+							case std::fs::FileModes::gui:
+								error = gui(app, entry);
+								break;
+							case std::fs::FileModes::erase:
+								type->setRoot(entry, &type->after);
+								entry->nextPathEntry(&type->after);
+								type->erase(entry, 
+									type->createTransaction(true));
+								error = std::fs::ErrorTypes::noPop;
+								break;
+							case std::fs::FileModes::move:
+								error = type->setMove(entry);
+								break;
+						}
+						break;
+					case std::fs::FileStates::close:
+						file = (std::fs::idb::File*)
+							(entry->entryObject);
+						if (file->flushed){
+							delete file;
+							close(entry);
+							error = std::fs::ErrorTypes::none;
+						} else {
+							error = type->setOpenFile(entry, 
+								std::fs::FileStates::close, true);
+						}
+						break;
+					case std::fs::FileStates::read:
+					case std::fs::FileStates::readCall:
+						error = read(entry);
+						break;
+					case std::fs::FileStates::write:
+					case std::fs::FileStates::writeCall:
+					case std::fs::FileStates::writeMove:
+						error = write(entry);
+						break;
+				}
+				break;
+			}
+		} else {
+			while (true){
+				switch (entry->state){
+					case std::fs::FolderStates::opening:
+						switch (entry->mode){
+							case std::fs::FolderModes::create:
+								type->setRoot(entry, &type->next);
+								type->createFolder(entry, 
+									type->createTransaction(true));
+								error = std::fs::ErrorTypes::noPop;
+								break;
+							case std::fs::FolderModes::each:
+								type->setRoot(entry, &type->next);
+								type->each(entry, 
+									type->createTransaction(false));
+								error = std::fs::ErrorTypes::noPop;
+								break;
+							case std::fs::FolderModes::next:
+								type->setRoot(entry, &type->after);
+								entry->nextPathEntry(&type->after);
+								type->nextEntry(entry, 
+									type->createTransaction(false));
+								error = std::fs::ErrorTypes::noPop;
+								break;
+							case std::fs::FolderModes::gui:
+								error = gui(app, entry);
+								break;
+							case std::fs::FolderModes::erase:
+								type->setRoot(entry, &type->after);
+								entry->nextPathEntry(&type->after);
+								if (type->after.length > 0){
+									type->erase(entry, 
+										type->createTransaction(true));
+									error = std::fs::ErrorTypes::noPop;
+								} else {
+									entry->state = std::fs::EntryStates::none;
+									error = std::fs::ErrorTypes::notOpen;
+								}
+								break;
+							case std::fs::FolderModes::move:
+								error = type->setMove(entry);
+								break;
+						}
+						break;
+					case std::fs::FolderStates::close:
+						close(entry);
+						error = std::fs::ErrorTypes::none;
+						break;
+				}
+				break;
+			}
+		}
+		return error;
+	}
+	
+	static void* setContentArray(
+		std::fs::idb::File* file){
+		return file->getJsArray();
+	}
+	
+	static void* setContentView(void* content){
+		if (std::js::Object::isNullObject(content))
+			{return content;}
+		return std::js::DataView::getBuffer(content);
+	}
+	
+	unsigned int setMove(
+		std::fs::Entry* entry){
+		std::str::DString* dstString = 
+			(std::str::DString*)(entry->parameters);
+		if (std::arr::Uchar::starts(
+			dstString->data, 0, dstString->length, 
+			"idb://", 0, 6) == std::Compare::equal){
+			if (entry->isFolder()){
+				if (std::fs::Entry::isFilePath(
+					dstString) || isSubPath(
+					entry->path.data, dstString->data)){
+					entry->state = std::fs::EntryStates::none;
+					return std::fs::ErrorTypes::notOpen;
+				}
+			}
+			swapPath(entry, dstString);
+			setRoot(entry, &after);
+			entry->nextPathEntry(&after);
+			moveIntoFolderId = 0;
+			move(entry, createTransaction(true));
+			return std::fs::ErrorTypes::noPop;
+		} else {
+			entry->state = std::fs::EntryStates::none;
+			return std::fs::ErrorTypes::unsupported;
+		}
+	}
+	
+	static void setMoveDst(void* e){
+		std::ApplicationInstance aexcl app;
+		constwrite "	app = _appObject;\n";
+		std::fs::FileSystem* fileSystem =
+			&app.fileSystem;
+		std::fs::Entry* entry = fileSystem->queueStart;
+		std::fs::idb::Type* type =
+			(std::fs::idb::Type*)
+			(entry->fileSystem);
+		void* transaction;
+		constwrite "	transaction = e.target.transaction;\n";
+		type->next.setView(&type->moveName);
+		type->moveName.clear();
+		type->cursorId = type->moveIntoFolderId;
+		swapPath(entry, (std::str::DString*)
+			(entry->parameters));
+		type->insertEntry(transaction, entry);
+	}
+	
+	unsigned int setOpenFile(std::fs::Entry* entry, 
+		unsigned int state, bool create){
+		setRoot(entry, &after);
+		entry->nextPathEntry(&after);
+		openFile(entry, createTransaction(create));
+		entry->state = state;
+		return std::fs::ErrorTypes::noPop;
+	}
+	
+	void setRoot(std::fs::Entry* entry, 
+		std::str::View* next){
+		cursorId = 1;
+		next->set(entry->path.data, 0, 5);
+	}
+	
+	static unsigned int write(
+		std::fs::Entry* entry){
+		unsigned int error;
+		std::fs::idb::File* file = 
+			(std::fs::idb::File*)(entry->entryObject);
+		if (file != nullptr){
+			unsigned int size = file->size;
+			unsigned int cursor;
+			if (entry->isAppend()){
+				cursor = size;
+			} else {
+				cursor = entry->cursor;
+				if (cursor > size) {cursor = size;}
+			}
+			unsigned int len;
+			switch (entry->state){
+				case std::fs::FileStates::write:
+					len = file->write(
+						(std::ds::BufferView*)
+							(entry->parameters), cursor);
+					break;
+				case std::fs::FileStates::writeCall:
+					len = file->writeCall(
+						(std::fs::Call*)(entry->parameters), 
+						cursor);
+					break;
+				case std::fs::FileStates::writeMove:
+					len = file->writeMove(
+						(std::ds::Buffer*)(entry->parameters), 
+						cursor);
+					break;
+			}
+			entry->cursor = cursor + len;
+			error = std::fs::ErrorTypes::none;
+			entry->state =
+				std::fs::FileStates::open;
+		} else {
+			entry->cursor = 0;
+			error = std::fs::ErrorTypes::notOpen;
+			entry->state =
+				std::fs::FileStates::none;
+		}
+		return error;
+	}
+	
+}

@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -68,18 +69,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 SUCH DAMAGE.
 */
 class Folder {
-
-	std::js::Object folderObject;
-	unsigned int iterator;
-	std::str::String path;
-
+	
 	unsigned char constexpr idOffset = 0;
 	unsigned char constexpr typeOffset = 4;
 	unsigned char constexpr nameOffset = typeOffset + 1;
-
-	Folder(){
-		iterator = 0;
-	}
 
 	static void debugContent(void* content){
 		constwrite
@@ -105,35 +98,34 @@ class Folder {
 			"	alert(string);\n";
 	}
 
-	static void* deleteEntry(void* folderContent,
+	static void* deleteEntry(void* folderContent, 
 		unsigned int offset, unsigned int len){
-		unsigned int entries;
-		constwrite "	entries = folderContent.getUint32(0);\n";
-		unsigned int contentLen;
-		constwrite "	contentLen = folderContent.byteLength;\n";
-		void* newContent;
-		constwrite
-			"	newContent = new DataView(new ArrayBuffer(\n"
-			"		contentLen - 4 - ";
-					constwrite nameOffset;
-					constwrite " - len - 1));\n"
-			"	newContent.setUint32(0, entries - 1);\n";
+		unsigned int entries = 
+			std::fs::idb::Folder::entries(folderContent);
+		if (entries == 1){
+			return std::js::Object::getNull();
+		}
+		unsigned int contentLen = 
+			std::js::DataView::length(folderContent);
+		void* newContent = 
+			std::js::DataView::create(
+				std::js::Array::createBuffer(
+					contentLen - 4 - nameOffset - len - 1));
+		std::js::DataView::setU32LE(newContent, 
+			0, entries - 1);
 		unsigned int deletedOffset = offset;
 		unsigned int deleteOffset = 4;
 		unsigned int j = entries * 4;
 		while (j >= 4){
-			constwrite
-				"		offset = folderContent.getUint32(j);\n";
+			offset = std::js::DataView::getU32LE(
+				folderContent, j);
 			if (offset > deletedOffset){
-				constwrite
-					"		newContent.setUint32(j - deleteOffset,\n"
-					"			offset - 4 - ";
-								constwrite nameOffset;
-								constwrite " - len - 1);\n";
+				std::js::DataView::setU32LE(
+					newContent, j - deleteOffset, 
+					offset - 4 - nameOffset - len - 1);
 			} else if (offset < deletedOffset){
-				constwrite
-					"		newContent.setUint32(j - deleteOffset,\n"
-					"			offset - 4);\n";
+				std::js::DataView::setU32LE(newContent, 
+					j - deleteOffset, offset - 4);
 			} else {
 				deleteOffset = 0;
 			}
@@ -147,163 +139,167 @@ class Folder {
 			offset, deletedOffset - 4, contentLen - offset);
 		return newContent;
 	}
+	
+	static unsigned int entries(void* folderContent){
+		if (std::js::Object::isNullObject(folderContent))
+			{return 0;}
+		return std::js::DataView::getU32LE(
+			folderContent, 0);
+	}
 
 	static unsigned int getEntryId(void* folderContent,
 		unsigned int offset){
-		unsigned int id;
-		constwrite
-			"	id = folderContent.getUint32(offset + ";
-					constwrite idOffset;
-					constwrite ");\n";
-		return id;
+		return std::js::DataView::getU32LE(
+			folderContent, offset + idOffset);
 	}
 
+	static unsigned int getEntryCursor(
+		void* folderContent, unsigned char[] string,
+		unsigned int start, unsigned int len){
+		unsigned int i = 1;
+		unsigned int offset;
+		unsigned int max = std::fs::idb::Folder::
+			entries(folderContent);
+		unsigned int mid;
+		while (max >= i){
+			mid = (max + i) >> 1;
+			offset = std::js::DataView::getU32LE(
+				folderContent, mid * 4);
+			switch (
+				std::js::DataView::compareRange(
+					folderContent, offset + nameOffset,
+					string, start, len)){
+				case std::Compare::less:
+					i = mid + 1;
+					break;
+				case std::Compare::equal:
+					if (std::js::DataView::getU8(
+						folderContent, offset + 
+						nameOffset + len) == 0) {return mid;}
+					max = mid - 1;
+					break;
+				case std::Compare::greater:
+					max = mid - 1;
+					break;
+			}
+		}
+		return 0;
+	}
+	
 	static unsigned int getEntryOffset(
 		void* folderContent, unsigned char[] string,
 		unsigned int start, unsigned int len){
-		unsigned int entries;
-		constwrite "	entries = folderContent.getUint32(0);\n";
-		unsigned int i = 4;
-		unsigned int offset;
-		unsigned char nameChar;
-		unsigned int j = entries * 4;
-		while (i <= j){
-			constwrite "		offset = folderContent.getUint32(i);\n";
-			switch (std::js::DataView::compareRange(
-				folderContent, offset + nameOffset,
-				string, start, len)){
-				case std::Compare::less:
-					i = i + 4;
-					continue;
-				case std::Compare::equal:
-					constwrite "				nameChar = "
-						"folderContent.getUint8(offset + ";
-							constwrite nameOffset;
-							constwrite " + len);\n";
-					if (nameChar == 0) {return offset;}
-					break;
-			}
-			break;
+		unsigned int i = getEntryCursor(
+			folderContent, string, start, len);
+		if (i != 0){
+			i = std::js::DataView::getU32LE(
+				folderContent, i * 4);
 		}
-		return 0;
+		return i;
 	}
 
 	static unsigned char getEntryType(void* folderContent,
 		unsigned int offset){
-		unsigned char type;
-		constwrite
-			"	type = folderContent.getUint8(offset + ";
-					constwrite typeOffset;
-					constwrite ");\n";
-		return type;
+		return std::js::DataView::getU8(
+			folderContent, offset + typeOffset);
 	}
-
+	
+	static unsigned int getName(void* folderContent,
+		unsigned int i, unsigned char[] string,
+		unsigned int start){
+		unsigned int offset = 
+			std::js::DataView::getU32LE(
+				folderContent, 4 + i * 4) + nameOffset;
+		unsigned int j = 0;
+		if (string == nullptr){
+			while (std::js::DataView::getU8(
+				folderContent, offset + j) != 0){
+				j = j + 1;
+			}
+		} else {
+			unsigned char nameChar;
+			while (true){
+				nameChar = std::js::DataView::getU8(
+					folderContent, offset + j);
+				if (nameChar == 0) {break;}
+				string[start + j] = nameChar;
+				j = j + 1;
+			}
+		}
+		return j;
+	}
+	
+	static unsigned char getType(
+		void* folderContent, unsigned int i){
+		return getEntryType(folderContent,
+			std::js::DataView::getU32LE(
+				folderContent, 4 + i * 4));
+	}
+	
 	static void* insertEntry(
 		void* folderContent, unsigned char[] string,
 		unsigned int start, unsigned int len,
 		unsigned int id, unsigned char type){
-		unsigned int entries;
-		constwrite "	entries = folderContent.getUint32(0);\n";
-		unsigned int i = 4;
+		unsigned int entries = 
+			std::fs::idb::Folder::entries(folderContent);
+		unsigned int i = 1;
 		unsigned int offset;
 		unsigned char nameChar;
-		unsigned int j = entries * 4;
-		while (i <= j){
-			constwrite "		offset = folderContent.getUint32(i);\n";
-			if (std::js::DataView::compareRange(
-					folderContent, offset + nameOffset,
-					string, start, len) != 
-				std::Compare::less) {break;}
-			i = i + 4;
-		}
 		unsigned int contentLen;
-		constwrite "	contentLen = folderContent.byteLength;\n";
-		void* newContent;
-		constwrite
-			"	newContent = new DataView(new ArrayBuffer(\n"
-			"		contentLen + 4 + ";
-					constwrite nameOffset;
-					constwrite " + len + 1));\n"
-			"	newContent.setUint32(0, entries + 1);\n"
-			"	newContent.setUint32(i, contentLen + 4);\n"
-			"	newContent.setUint32(contentLen + 4 +";
-					constwrite idOffset;
-					constwrite ", id);\n"
-			"	newContent.setUint8(contentLen + 4 +";
-					constwrite typeOffset;
-					constwrite ", type);\n";
-		while (j >= i){
-			constwrite
-				"		newContent.setUint32(j + 4,\n"
-				"			folderContent.getUint32(j) + 4);\n";
-			j = j - 4;
+		if (entries > 0){
+			unsigned int mid;
+			unsigned int max = entries;
+			while (true){
+				mid = (max + i) >> 1;
+				offset = std::js::DataView::getU32LE(
+					folderContent, mid * 4);
+				if (std::js::DataView::compareRange(
+						folderContent, offset + nameOffset,
+						string, start, len) ==
+					std::Compare::less){
+					i = mid + 1;
+				} else {max = mid - 1;}
+				if (i > max) {break;}
+			}
+			contentLen = 
+				std::js::DataView::length(folderContent);
+		} else {
+			contentLen = 4;
 		}
-		while (j >= 4){
-			constwrite
-				"		newContent.setUint32(j,\n"
-				"			folderContent.getUint32(j) + 4);\n";
-			j = j - 4;
+		i = i * 4;
+		void* newContent = 
+			std::js::DataView::create(
+				std::js::Array::createBuffer(
+					contentLen + 4 + nameOffset + len + 1));
+		std::js::DataView::setU32LE(newContent, 
+			0, entries + 1);
+		std::js::DataView::setU32LE(newContent, 
+			i, contentLen + 4);
+		std::js::DataView::setU32LE(newContent, 
+			contentLen + 4 + idOffset, id);
+		std::js::DataView::setU8(newContent, 
+			contentLen + 4 + typeOffset, type);
+		if (entries > 0){
+			unsigned int j = entries * 4;
+			while (j >= i){
+				std::js::DataView::setU32LE(newContent, 
+					j + 4, std::js::DataView::getU32LE(
+						folderContent, j) + 4);
+				j = j - 4;
+			}
+			while (j >= 4){
+				std::js::DataView::setU32LE(newContent, 
+					j, std::js::DataView::getU32LE(
+						folderContent, j) + 4);
+				j = j - 4;
+			}
+			i = entries * 4 + 4;
+			std::js::DataView::copyViews(
+				folderContent, newContent, i, i + 4, contentLen - i);
 		}
-		i = entries * 4 + 4;
-		std::js::DataView::copyViews(
-			folderContent, newContent, i, i + 4, contentLen - i);
 		std::js::DataView::set(string, start, newContent,
 			contentLen + 4 + nameOffset, len);
 		return newContent;
-	}
-	
-	void set(void* content){
-		folderObject.setJsObject(content);
-		start();
-	}
-
-	/* Public member functions */
-
-	unsigned int entries(){
-		void* content = folderObject.getJsObject();
-		unsigned int len;
-		constwrite "	len = content.getUint32(0);";
-		return len;
-	}
-
-	void getName(std::str::DString* name){
-		unsigned int i = iterator;
-		if (i == 0) {return;}
-		void* content = folderObject.getJsObject();
-		unsigned int offset = nameOffset;
-		constwrite "	offset += content.getUint32(i);";
-		unsigned int j = offset;
-		while (true){
-			unsigned char nameChar;
-			constwrite "		nameChar = content.getUint8(j);";
-			if (nameChar == 0) {break;}
-			j = j + 1;
-		}
-		name->addJsSubview(content, offset, j - offset);
-	}
-
-	unsigned char getType(){
-		unsigned int i = iterator;
-		if (i == 0){
-			return std::fs::EntryTypes::none;
-		}
-		void* content = folderObject.getJsObject();
-		unsigned int offset;
-		constwrite "	offset = content.getUint32(i);";
-		return getEntryType(content, offset);
-	}
-
-	void next(){
-		unsigned int i = iterator + 4;
-		if (i > 4){
-			unsigned int len = entries() * 4;
-			if (i <= len) {iterator = i;}
-			else {iterator = 0;}
-		}
-	}
-
-	void start(){
-		if (entries() != 0) {iterator = 4;}
 	}
 
 }
