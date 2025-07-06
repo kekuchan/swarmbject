@@ -212,26 +212,34 @@ An example was already given at the
 
 ## "setU8s" member function:
 
-Sets a sequence of unsigned char values
-to the buffer.
+Sets a sequence of unsigned char values to the 
+buffer, possibly growing the buffer, if needed.
+This might require creating a new array, making 
+the usage of the previous data member not valid.
 
 Parameters:
-* The starting index to set the values in the buffer.
+* The starting index to set the values in 
+the buffer. Must not be greater than the 
+size of the buffer.
 * An array to copy the values from.
-* The starting index in the array to copy the values from.
+Must not be 
+* The starting index in the array to 
+copy the values from.
 * The number of values to set.
 
 Returns: void.
 
 ```
-unsigned char[] values = new unsigned char[2];
-values[0] = 20;
-values[1] = 21;
+unsigned char[] values = new unsigned char[3];
+values[0] = 2;
+values[1] = 4;
 std::ds::Buffer buffer;
 buffer.create(2);
-buffer.setU8s(0, values, 0, 2);
-unsigned char value = buffer.getU8(0); /*20*/
-value = buffer.getU8(1); /*21*/
+buffer.setU8s(0, values, 0, 2); /*2, 4*/
+values[0] = 0;
+values[1] = 2;
+values[2] = 4;
+buffer.setU8s(1, values, 0, 3); /*2, 0, 2, 4*/
 ```
 
 ## "setU16BE" member function:
@@ -294,7 +302,7 @@ An example was already given at the
 
 # Software license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -364,7 +372,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted

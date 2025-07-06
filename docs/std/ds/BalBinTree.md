@@ -108,6 +108,10 @@ the root element.
 * A pointer to an "BalBinTree*(void*)" 
 function that returns a pointer to the 
 std::ds::BalBinTree data member of the given element.
+* A pointer to an "unsigned char(void*, void*)" 
+function that can compare any element of 
+the tree, with any element of the tree 
+and returns an std::Compare value.
 
 Returns: void.
 
@@ -121,8 +125,8 @@ year = new Year;
 year->value = 2022;
 std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
-std::ds::BalBinTree::erase(&root, 
-	root, Year::getTree);
+std::ds::BalBinTree::erase(&root, root, 
+	Year::getTree, Year::compare);
 /*root=2022*/
 ```
 
@@ -193,8 +197,8 @@ the root element.
 function that returns a pointer to the 
 std::ds::BalBinTree data member of the given element.
 * A pointer to an "unsigned char(void*, void*)" 
-function that can compare any element of the 
-tree, with the given element to insert,
+function that can compare any element of 
+the tree, with any element of the tree 
 and returns an std::Compare value.
 
 Returns: void.
@@ -301,23 +305,27 @@ Parameters:
 * A pointer to an "std::ds::BalBinTree*(void*)" 
 function that returns a pointer to the 
 std::ds::BalBinTree data member of the given element.
+* A pointer to an "unsigned char(void*, void*)" 
+function that can compare any element of 
+the tree, with any element of the tree 
+and returns an std::Compare value.
 
 Returns: void*.
 
 ```
 Year* root = nullptr;
 Year* year = new Year;
-year->value = 2021;
-std::ds::BalBinTree::insert(&root, year, 
-	Year::getTree, Year::compare);
-year = new Year;
 year->value = 2022;
 std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
+year = new Year;
+year->value = 2021;
+std::ds::BalBinTree::insert(&root, year, 
+	Year::getTree, Year::compare);
 year = (Year*)(std::ds::BalBinTree::next(
-	root, Year::getTree)); /*2022*/
+	year, Year::getTree, Year::compare)); /*2022*/
 ```
-	
+
 ## "previous" static function:
 
 Gets the previous element in the tree, as a void*.
@@ -327,6 +335,10 @@ Parameters:
 * A pointer to an "std::ds::BalBinTree*(void*)" 
 function that returns a pointer to the 
 std::ds::BalBinTree data member of the given element.
+* A pointer to an "unsigned char(void*, void*)" 
+function that can compare any element of 
+the tree, with any element of the tree 
+and returns an std::Compare value.
 
 Returns: void*.
 
@@ -341,12 +353,12 @@ year->value = 2022;
 std::ds::BalBinTree::insert(&root, year, 
 	Year::getTree, Year::compare);
 year = (Year*)(std::ds::BalBinTree::previous(
-	year, Year::getTree)); /*2021*/
+	year, Year::getTree, Year::compare)); /*2021*/
 ```
 
 # Software license
 
-Copyright (c) 2022 SWARMBJECT contributors
+Copyright (c) 2022, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -416,7 +428,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2022 SWARMBJECT contributors
+Copyright (c) 2022, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
