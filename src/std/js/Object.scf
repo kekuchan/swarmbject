@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021, 2024 SWARMBJECT contributors
+Copyright (c) 2021, 2024-2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -83,9 +84,7 @@ class Object {
 	}
 	
 	void clear(){
-		void* jsObject;
-		constwrite "	jsObject = null;\n";
-		setJsObject(jsObject);
+		setJsObject(getNull());
 	}
 	
 	void copyFromObject(std::js::Object* src){
@@ -93,7 +92,7 @@ class Object {
 		if (src != nullptr){
 			srcObject = src->getJsObject();
 		} else {
-			constwrite "		srcObject = null;\n";
+			srcObject = getNull();
 		}
 		setJsObject(srcObject);
 	}
@@ -107,15 +106,20 @@ class Object {
 		}
 	}
 	
+	static bool equalObjects(
+		void* srcObject, void* jsObject){
+		constwrite "	return (jsObject === srcObject);\n";
+	}
+	
 	bool equals(std::js::Object* src){
 		void* jsObject = getJsObject();
 		void* srcObject;
 		if (src != nullptr){
 			srcObject = src->getJsObject();
 		} else {
-			constwrite "		srcObject = null;\n";
+			srcObject = getNull();
 		}
-		constwrite "	return (jsObject === srcObject);\n";
+		return equalObjects(srcObject, jsObject);
 	}
 
 	void* getJsObject(){
@@ -127,8 +131,18 @@ class Object {
 		return jsObject;
 	}
 	
+	static void* getNull(){
+		void* nullObject;
+		constwrite "	nullObject = null;\n";
+		return nullObject;
+	}
+	
 	bool isNull(){
 		return id == 0;
+	}
+	
+	static bool isNullObject(void* jsObject){
+		return equalObjects(jsObject, getNull());
 	}
 	
 	void move(std::js::Object* src){
