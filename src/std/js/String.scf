@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021, 2023 SWARMBJECT contributors
+Copyright (c) 2021, 2023, 2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -72,12 +73,12 @@ class String {
 	/* Used only for JS, so no need to create
 		platform independent code. */
 	
-	static void* decode(unsigned char* string,
-		unsigned int len){
+	static void* decode(unsigned char[] string,
+		unsigned int start, unsigned int len){
 		void* stringObject;
 		constwrite
 			"	stringObject = _textDecoder.decode(new Uint8Array(\n"
-			"		_memory, string, len));\n";
+			"		_memory, string + start, len));\n";
 		return stringObject;
 	}
 

@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021-2022, 2024 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2024-2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -181,11 +182,18 @@ class Array {
 	
 	static void* getBlob(void* array){
 		void* blob;
-		constwrite 
-			"	if (array !== null)\n"
-			"		blob = new Blob([array]);\n"
-			"	else blob = new Blob([]);\n";
+		if (std::js::Object::isNullObject(array)){
+			constwrite "		blob = new Blob([]);\n";
+		} else {
+			constwrite "		blob = new Blob([array]);\n";
+		}
 		return blob;
+	}
+	
+	static void* getBuffer(void* array){
+		void* buffer;
+		constwrite "	buffer = array.buffer;\n";
+		return buffer;
 	}
 	
 	static unsigned char getU8(void* src,
@@ -197,7 +205,11 @@ class Array {
 	
 	static unsigned int length(void* array){
 		unsigned int len;
-		constwrite "	len = array.byteLength;\n";
+		if (std::js::Object::isNullObject(array)){
+			len = 0;
+		} else {
+			constwrite "		len = array.byteLength;\n";
+		}
 		return len;
 	}
 	
@@ -222,9 +234,9 @@ class Array {
 	static void* setRange(unsigned char[] src, 
 		unsigned int srcStart, void* dst, 
 		unsigned int dstStart, unsigned int len){
+		dst = addSetRange(dst, dstStart, len);
 		std::js::Array::set(src, srcStart, 
-			addSetRange(dst, dstStart, len), 
-			dstStart, len);
+			dst, dstStart, len);
 		return dst;
 	}
 	
@@ -233,5 +245,13 @@ class Array {
 		unsigned char setChar){
 		constwrite "	dst[start] = setChar;\n";
 	}
-
+	
+	static void* sub(void* buffer, 
+		unsigned int i, unsigned int len){
+		void* array;
+		constwrite "	array = "
+			"new Uint8Array(buffer, i, len);\n";
+		return array;
+	}
+	
 }

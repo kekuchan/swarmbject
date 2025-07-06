@@ -1,5 +1,6 @@
 /*
-Copyright (c) 2021, 2024 SWARMBJECT contributors
+Copyright (c) 2021, 2024-2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -143,6 +144,12 @@ class DataView {
 		}
 	}
 	
+	static void* getBuffer(void* view){
+		void* buffer;
+		constwrite "	buffer = view.buffer;\n";
+		return buffer;
+	}
+	
 	static unsigned char getU8(void* src,
 		unsigned int start){
 		unsigned char srcChar;
@@ -193,4 +200,19 @@ class DataView {
 		constwrite "	dst.setUint8(start, setChar);\n";
 	}
 
+	static void setU32LE(void* dst, 
+		unsigned int start, 
+		unsigned int setInt){
+		constwrite 
+			"	dst.setUint32(start, setInt, true);\n";
+	}
+	
+	static void* sub(void* buffer, 
+		unsigned int i, unsigned int len){
+		void* view;
+		constwrite "	view = "
+			"new DataView(buffer, i, len);\n";
+		return view;
+	}
+	
 }
