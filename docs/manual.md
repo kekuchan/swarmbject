@@ -1980,7 +1980,7 @@ of an operator, it can be parenthesized.
 
 ## DOM (dom) reference:
 
-* [/CharacterData](/docs/std/dom/CharacterData.md)
+* [CharacterData](/docs/std/dom/CharacterData.md)
 * [ClipboardEvent](/docs/std/dom/ClipboardEvent.md)
 * [Element](/docs/std/dom/Element.md)
 * [Event](/docs/std/dom/Event.md)
@@ -1994,6 +1994,7 @@ of an operator, it can be parenthesized.
 
 ## File system (fs) reference:
 
+* [Call](/docs/std/fs/Call.md)
 * [Entry](/docs/std/fs/Entry.md)
 * [EntryStates](/docs/std/fs/EntryStates.md)
 * [ErrorTypes](/docs/std/fs/ErrorTypes.md)
