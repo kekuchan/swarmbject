@@ -17,7 +17,48 @@ class Main {
 		node.appendChild(&input);
 	}
 }
+```
 
+## "getClientX" static function:
+
+Gets the mouse's vertical position.
+
+Parameters:
+* A pointer to the event as an std::dom::Event.
+
+Returns: unsigned int.
+
+```
+/*In Main.*/
+static void onClick(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+	unsigned int x = 
+		std::dom::MouseEvent::getClientX(e);
+}
+/*In Main::main.*/
+std::dom::MouseEvent::setOnClick(
+	&node, onClick);
+```
+
+## "getClientY" static function:
+
+Gets the mouse's horizontal position.
+
+Parameters:
+* A pointer to the event as an std::dom::Event.
+
+Returns: unsigned int.
+
+```
+/*In Main.*/
+static void onClick(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+	unsigned int y = 
+		std::dom::MouseEvent::getClientY(e);
+}
+/*In Main::main.*/
+std::dom::MouseEvent::setOnClick(
+	&node, onClick);
 ```
 
 ## "setOnClick" static function:
@@ -66,9 +107,56 @@ std::dom::MouseEvent::setOnMouseDown(
 	&input, onMouseDown);
 ```
 
+## "setOnMouseMove" static function:
+
+Sets a function to be called each 
+time a mouse is moved.
+
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* Either nullptr to unset, or a 
+pointer to a "void(std::dom::Event*, 
+std::ApplicationInstance)" function to call.
+
+Returns: void.
+
+```
+/*In Main.*/
+static void onMouseMove(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+}
+/*In Main::main.*/
+std::dom::MouseEvent::setOnMouseMove(
+	&node, onMouseMove);
+```
+
+## "setOnMouseUp" static function:
+
+Sets a function to be called each 
+time a mouse button is released.
+
+Parameters:
+* A pointer to the element, as an std::dom::Node.
+* Either nullptr to unset, or a 
+pointer to a "void(std::dom::Event*, 
+std::ApplicationInstance)" function to call.
+
+Returns: void.
+
+```
+/*In Main.*/
+static void onMouseUp(std::dom::Event* e,
+	std::ApplicationInstance aexcl app){
+}
+/*In Main::main.*/
+std::dom::MouseEvent::setOnMouseUp(
+	&input, onMouseUp);
+```
+
 # Software license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -138,7 +226,8 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
