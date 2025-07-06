@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -168,6 +168,38 @@ class DBuffer {
 	void clear(){
 		size = 0;
 	}
+	
+	void copyRange(
+		unsigned int start, unsigned char[] src, 
+		unsigned int i, unsigned int len){
+		unsigned char[] previousData = data;
+		unsigned int dataLen = size;
+		if (start + len > dataLen){
+			addSize(start + len - dataLen, false, false);
+			if (previousData != data){
+				if (start < dataLen) {dataLen = start;}
+				std::arr::Uchar::copy(data, 0,
+					previousData, 0, dataLen);
+			}
+		}
+		std::arr::Uchar::copy(data, start,
+			src, i, len);
+		if (previousData != data){
+			delete[] previousData;
+		}
+	}
+	
+	unsigned char[] create(unsigned int len){
+		unsigned char[] newData;
+		if (len > capacity){
+			delete[] data;
+			newData = addSize(len - size, false, false);
+		} else {
+			newData = data;
+			size = len;
+		}
+		return newData;
+	}
 
 	unsigned char getU8(unsigned int start){
 		return data[start];
@@ -195,6 +227,19 @@ class DBuffer {
 		return std::arr::Uchar::getU32LE(data, start);
 	}
 
+	unsigned char[] grow(unsigned int len){
+		unsigned char[] previousData = data;
+		unsigned int previousSize = size;
+		unsigned char[] newData = 
+			addSize(len, false, false);
+		if (newData != previousData){
+			std::arr::Uchar::copy(newData, 0,
+				previousData, 0, previousSize);
+			delete[] previousData;
+		}
+		return newData;
+	}
+	
 	void move(std::ds::DBuffer* src){
 		if (src == this) {return;}
 		size = src->size;
@@ -203,6 +248,15 @@ class DBuffer {
 		data = src->data;
 		src->size = 0;
 		src->capacity = 0;
+		src->data = nullptr;
+	}
+	
+	void moveBuffer(std::ds::Buffer* src){
+		size = src->size;
+		capacity = size;
+		delete[] data;
+		data = src->data;
+		src->size = 0;
 		src->data = nullptr;
 	}
 
@@ -244,4 +298,9 @@ class DBuffer {
 		}
 	}
 
+	void trim(unsigned int len){
+		if (len < size){
+			size = len;
+		}
+	}
 }
