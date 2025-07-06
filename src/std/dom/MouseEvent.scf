@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 SWARMBJECT contributors
+Copyright (c) 2021, 2024 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -71,6 +71,24 @@ class MouseEvent {
 	
 	/* Public member functions. */
 	
+	static unsigned int getClientX(
+		std::dom::Event* event){
+		if (event->jsObject.isNull()) {return 0;}
+		void* eventObject = event->jsObject.getJsObject();
+		unsigned int clientX;
+		constwrite "	clientX = eventObject.clientX;\n";
+		return clientX;
+	}
+	
+	static unsigned int getClientY(
+		std::dom::Event* event){
+		if (event->jsObject.isNull()) {return 0;}
+		void* eventObject = event->jsObject.getJsObject();
+		unsigned int clientY;
+		constwrite "	clientY = eventObject.clientY;\n";
+		return clientY;
+	}
+	
 	static void setOnClick(
 		std::dom::Node* node, void(std::dom::Event*,
 			std::ApplicationInstance) callback){
@@ -89,6 +107,26 @@ class MouseEvent {
 		void* jsCallback = 
 			std::dom::Event::getJsCallback(callback);
 		constwrite "	nodeObject.onmousedown = jsCallback;\n";
+	}
+	
+	static void setOnMouseMove(
+		std::dom::Node* node, void(std::dom::Event*,
+			std::ApplicationInstance) callback){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* jsCallback = 
+			std::dom::Event::getJsCallback(callback);
+		constwrite "	nodeObject.onmousemove = jsCallback;\n";
+	}
+	
+	static void setOnMouseUp(
+		std::dom::Node* node, void(std::dom::Event*,
+			std::ApplicationInstance) callback){
+		if (node->isNull()) {return;}
+		void* nodeObject = node->jsObject.getJsObject();
+		void* jsCallback = 
+			std::dom::Event::getJsCallback(callback);
+		constwrite "	nodeObject.onmouseup = jsCallback;\n";
 	}
 
 }
