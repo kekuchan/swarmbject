@@ -180,6 +180,51 @@ buffer.clear();
 unsigned int size = buffer.size; /*0*/
 ```
 
+## "copyRange" member function:
+
+Copy a subarray to the buffer, by 
+replacing the values.
+
+Parameters:
+* The index in the buffer to copy to.
+* The array of the subarray to copy from.
+* The starting index of the subarray to 
+copy from with in its array.
+* The size of the subarray to copy from.
+
+Returns: void.
+
+```
+std::ds::DBuffer buffer;
+buffer.addU8(21);
+buffer.addU8(20);
+unsigned char years = new unsigned char[2];
+years[0] = 20;
+years[1] = 21;
+buffer.copyRange(0, years, 0, 2);
+/*20,21*/
+```
+
+## "create" member function:
+
+Sets the buffer with empty space to set 
+manually. This might require creating a 
+new array due to the capacity, making the 
+usage of the previous data member not valid.
+
+Parameters:
+* The size of the buffer to create.
+
+Returns: the buffer data as unsigned char[].
+
+```
+std::ds::DBuffer buffer;
+unsigned char[] years = buffer.create(2);
+years[0] = 20;
+years[1] = 21;
+/*20,21*/
+```
+
 ## "getU8" member function:
 
 Gets an unsigned char value from the buffer.
@@ -271,6 +316,26 @@ Returns: unsigned int.
 An example was already given at the 
 "addU32LE" member function.
 
+## "grow" member function:
+
+Grows the buffer, with empty space to set manually.
+This might require creating a new array and copy 
+all the elements due to the capacity, making 
+the usage of the previous data member not valid.
+
+Parameters:
+* The ammount to grow with.
+
+Returns: the buffer data as unsigned char[].
+
+```
+std::ds::DBuffer buffer;
+buffer.addU8(20);
+unsigned char[] years = buffer.grow(1);
+years[1] = 21;
+/*20,21*/
+```
+
 ## "move" member function:
 
 Moves the data from another std::ds::DBuffer.
@@ -286,6 +351,26 @@ std::ds::DBuffer first;
 first.addU16LE(2020);
 std::ds::DBuffer second;
 second.addU16LE(2021);
+first.move(&second);
+/*first=2021, second=*/
+```
+
+## "moveBuffer" member function:
+
+Moves the data from another std::ds::Buffer.
+The previous data is deleted.
+
+Parameters:
+* A pointer to the Buffer to move from.
+
+Returns: void.
+
+```
+std::ds::DBuffer first;
+first.addU16LE(2020);
+std::ds::Buffer second;
+buffer.create(2);
+second.setU16LE(0, 2021);
 first.move(&second);
 /*first=2021, second=*/
 ```
@@ -330,9 +415,27 @@ unsigned int capacity = buffer.capacity; /*1*/
 unsigned int size = buffer.size; /*1 as 20.*/
 ```
 
+## "trim" member function:
+
+Decreases the size of the buffer.
+
+Parameters:
+* The new size.
+
+Returns: void.
+	
+```
+std::ds::DBuffer buffer;
+buffer.addU8(20);
+buffer.addU8(21);
+buffer.trim(1);
+unsigned int size = buffer.size; /*1 as 20.*/
+```
+
 # Software license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -402,7 +505,8 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021-2022 SWARMBJECT contributors
+Copyright (c) 2021-2022, 2025 
+SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
