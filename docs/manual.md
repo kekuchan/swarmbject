@@ -26,22 +26,30 @@ has to wait, making data races not possible.
 
 # Tutorial
 
-Note: This tutorial presents a short, but still a
-more complex example, to show a rough overview of a
+Note: This tutorial presents a short, but still a 
+more complex example, to show a rough overview of a 
 SWARMBJECT application. It is okay, if you don't fully 
-grasp all the details, as the language and the API
+grasp all the details, as the language and the API 
 references after it will explain the building blocks.
 
 Lets create an application that models a situation, where
 a manager gives a calculating task to a scientist, and
 expects the result back when it is done, and instructs
 a marketeer to display it to us, the Boss.
-
-Download SWARMBJECT.html, SWARMBJECT.js and std.saf from the
-releases to a folder on your device, and open the html.
-To access the menu, tap or click the top colored header bar.
-Create a folder for the tutorial with "Browse", "/",
+	
+Download SWARMBJECT.html, SWARMBJECT.js and std.saf 
+from the releases to a folder on your device, 
+and open the html. To access the menu, tap or click 
+the top colored header bar, then with "Browse" 
+choose a file system type like "idb://" (permanent 
+storage in the browser, unless it gets cleared so be 
+sure to make backups as detailed below). From now on, 
+this tutorial will shorthand "idb://" as a leading 
+"/" for simplicity purposes (though in the 
+application it will still be written out fully). 
+Create a folder for the tutorial with 
 "New folder", name it "tut", and choose "Create".
+
 In the same way create a folder named "src" ("/tut/",
 "New folder", Name: "src", "Create"). Upload the 
 downloaded "std.saf" file to it ("/tut/src/",
@@ -1907,123 +1915,133 @@ of an operator, it can be parenthesized.
 
 # Standard (std) reference:
 
-* [/docs/std/ApplicationInstance.md](std/ApplicationInstance.md)
-* [/docs/std/NumberBases.md](std/NumberBases.md)
+* [ApplicationInstance](/docs/std/ApplicationInstance.md)
+* [NumberBases](/docs/std/NumberBases.md)
 
 ## Array (arr) reference:
 
-* [/docs/std/arr/Char.md](std/arr/Char.md)
-* [/docs/std/arr/Float.md](std/arr/Float.md)
-* [/docs/std/arr/Int.md](std/arr/Int.md)
-* [/docs/std/arr/Ptr.md](std/arr/Ptr.md)
-* [/docs/std/arr/Short.md](std/arr/Short.md)
-* [/docs/std/arr/Uchar.md](std/arr/Uchar.md)
-* [/docs/std/arr/Uint.md](std/arr/Uint.md)
-* [/docs/std/arr/Ushort.md](std/arr/Ushort.md)
-* [/docs/std/arr/Void.md](std/arr/Void.md)
+* [Char](/docs/std/arr/Char.md)
+* [Float](/docs/std/arr/Float.md)
+* [Int](/docs/std/arr/Int.md)
+* [Ptr](/docs/std/arr/Ptr.md)
+* [Short](/docs/std/arr/Short.md)
+* [Uchar](/docs/std/arr/Uchar.md)
+* [Uint](/docs/std/arr/Uint.md)
+* [Ushort](/docs/std/arr/Ushort.md)
+* [Void](/docs/std/arr/Void.md)
 
 ## BOM (bom) reference:
 
-* [/docs/std/bom/Window.md](std/bom/Window.md)
+* [Window](/docs/std/bom/Window.md)
 
 ## Compile (cmpl) reference:
 
-* [/docs/std/color/Default.md](std/color/Default.md)
-* [/docs/std/color/Platforms.md](std/color/Platforms.md)
-* [/docs/std/color/Verbosity.md](std/color/Verbosity.md)
+* [Default](/docs/std/cmpl/Default.md)
+* [Platforms](/docs/std/cmpl/Platforms.md)
+* [Verbosity](/docs/std/cmpl/Verbosity.md)
 
 ## Color (color) reference:
 
-* [/docs/std/color/RGB.md](std/color/RGB.md)
+* [RGB](/docs/std/color/RGB.md)
 
 ## CSS (css) reference:
 
-* [/docs/std/css/AlignTypes.md](std/css/AlignTypes.md)
-* [/docs/std/css/BorderStyles.md](std/css/BorderStyles.md)
-* [/docs/std/css/Declaration.md](std/css/Declaration.md)
-* [/docs/std/css/DisplayTypes.md](std/css/DisplayTypes.md)
-* [/docs/std/css/Keyword.md](std/css/Keyword.md)
-* [/docs/std/css/MarginTypes.md](std/css/MarginTypes.md)
-* [/docs/std/css/OverflowTypes.md](std/css/OverflowTypes.md)
-* [/docs/std/css/RGB.md](std/css/RGB.md)
-* [/docs/std/css/Short.md](std/css/Short.md)
-* [/docs/std/css/TextAlignTypes.md](std/css/TextAlignTypes.md)
-* [/docs/std/css/Units.md](std/css/Units.md)
-* [/docs/std/css/Value.md](std/css/Value.md)
-* [/docs/std/css/ValueTypes.md](std/css/ValueTypes.md)
-* [/docs/std/css/WhiteSpaceTypes.md](std/css/WhiteSpaceTypes.md)
+* [AlignTypes](/docs/std/css/AlignTypes.md)
+* [BorderStyles](/docs/std/css/BorderStyles.md)
+* [Declaration](/docs/std/css/Declaration.md)
+* [DisplayTypes](/docs/std/css/DisplayTypes.md)
+* [Keyword](/docs/std/css/Keyword.md)
+* [MarginTypes](/docs/std/css/MarginTypes.md)
+* [OverflowTypes](/docs/std/css/OverflowTypes.md)
+* [RGB](/docs/std/css/RGB.md)
+* [Short](/docs/std/css/Short.md)
+* [TextAlignTypes](/docs/std/css/TextAlignTypes.md)
+* [Units](/docs/std/css/Units.md)
+* [Value](/docs/std/css/Value.md)
+* [ValueTypes](/docs/std/css/ValueTypes.md)
+* [WhiteSpaceTypes](/docs/std/css/WhiteSpaceTypes.md)
 
 ## Data structures (ds) reference:
 
-* [/docs/std/ds/Array.md](std/ds/Array.md)
-* [/docs/std/ds/BalBinTree.md](std/ds/BalBinTree.md)
-* [/docs/std/ds/BinTree.md](std/ds/BinTree.md)
-* [/docs/std/ds/Buffer.md](std/ds/Buffer.md)
-* [/docs/std/ds/CircuralArray.md](std/ds/CircuralArray.md)
-* [/docs/std/ds/DArray.md](std/ds/DArray.md)
-* [/docs/std/ds/DBuffer.md](std/ds/DBuffer.md)
-* [/docs/std/ds/DLList.md](std/ds/DLList.md)
-* [/docs/std/ds/PtrArray.md](std/ds/PtrArray.md)
-* [/docs/std/ds/PtrCircuralArray.md](std/ds/PtrCircuralArray.md)
-* [/docs/std/ds/PtrDArray.md](std/ds/PtrDArray.md)
-* [/docs/std/ds/SLList.md](std/ds/SLList.md)
+* [Array](/docs/std/ds/Array.md)
+* [BalBinTree](/docs/std/ds/BalBinTree.md)
+* [BinTree](/docs/std/ds/BinTree.md)
+* [Buffer](/docs/std/ds/Buffer.md)
+* [BufferView](/docs/std/ds/BufferView.md)
+* [CircuralArray](/docs/std/ds/CircuralArray.md)
+* [DArray](/docs/std/ds/DArray.md)
+* [DBuffer](/docs/std/ds/DBuffer.md)
+* [DLList](/docs/std/ds/DLList.md)
+* [PtrArray](/docs/std/ds/PtrArray.md)
+* [PtrCircuralArray](/docs/std/ds/PtrCircuralArray.md)
+* [PtrDArray](/docs/std/ds/PtrDArray.md)
+* [SLList](/docs/std/ds/SLList.md)
+* [View](/docs/std/ds/View.md)
 
 ## DOM (dom) reference:
 
-* [/docs/std/dom/CharacterData.md](std/dom/CharacterData.md)
-* [/docs/std/dom/ClipboardEvent.md](std/dom/ClipboardEvent.md)
-* [/docs/std/dom/Element.md](std/dom/Element.md)
-* [/docs/std/dom/Event.md](std/dom/Event.md)
-* [/docs/std/dom/KeyboardEvent.md](std/dom/KeyboardEvent.md)
-* [/docs/std/dom/MouseEvent.md](std/dom/MouseEvent.md)
-* [/docs/std/dom/Node.md](std/dom/Node.md)
-* [/docs/std/dom/NodeTypes.md](std/dom/NodeTypes.md)
-* [/docs/std/dom/Range.md](std/dom/Range.md)
-* [/docs/std/dom/Selection.md](std/dom/Selection.md)
-* [/docs/std/dom/Text.md](std/dom/Text.md)
+* [/CharacterData](/docs/std/dom/CharacterData.md)
+* [ClipboardEvent](/docs/std/dom/ClipboardEvent.md)
+* [Element](/docs/std/dom/Element.md)
+* [Event](/docs/std/dom/Event.md)
+* [KeyboardEvent](/docs/std/dom/KeyboardEvent.md)
+* [MouseEvent](/docs/std/dom/MouseEvent.md)
+* [Node](/docs/std/dom/Node.md)
+* [NodeTypes](/docs/std/dom/NodeTypes.md)
+* [Range](/docs/std/dom/Range.md)
+* [Selection](/docs/std/dom/Selection.md)
+* [Text](/docs/std/dom/Text.md)
 
 ## File system (fs) reference:
 
-* [/docs/std/fs/EntryTypes.md](std/fs/EntryTypes.md)
-* [/docs/std/fs/File.md](std/fs/File.md)
-* [/docs/std/fs/FileSystem.md](std/fs/FileSystem.md)
-* [/docs/std/fs/Folder.md](std/fs/Folder.md)
-* [/docs/std/fs/GUI.md](std/fs/GUI.md)
-* [/docs/std/fs/OpenFileModes.md](std/fs/OpenFileModes.md)
+* [Entry](/docs/std/fs/Entry.md)
+* [EntryStates](/docs/std/fs/EntryStates.md)
+* [ErrorTypes](/docs/std/fs/ErrorTypes.md)
+* [FileModes](/docs/std/fs/FileModes.md)
+* [FileStates](/docs/std/fs/FileStates.md)
+* [FileSystem](/docs/std/fs/FileSystem.md)
+* [FolderModes](/docs/std/fs/FolderModes.md)
+* [FolderStates](/docs/std/fs/FolderStates.md)
+* [GUI](/docs/std/fs/GUI.md)
+* [InfoModes](/docs/std/fs/InfoModes.md)
+
+### Types 
+* [idb](/docs/std/fs/idb/Type.md)
+* [tmp](/docs/std/fs/tmp/Type.md)
 
 ## HTML (html) reference:
 
-* [/docs/std/html/AElement.md](std/html/AElement.md)
-* [/docs/std/html/BrElement.md](std/html/BrElement.md)
-* [/docs/std/html/DivElement.md](std/html/DivElement.md)
-* [/docs/std/html/Document.md](std/html/Document.md)
-* [/docs/std/html/Element.md](std/html/Element.md)
-* [/docs/std/html/InputElement.md](std/html/InputElement.md)
-* [/docs/std/html/InputTypes.md](std/html/InputTypes.md)
-* [/docs/std/html/PreElement.md](std/html/PreElement.md)
+* [AElement](/docs/std/html/AElement.md)
+* [BrElement](/docs/std/html/BrElement.md)
+* [DivElement](/docs/std/html/DivElement.md)
+* [Document](/docs/std/html/Document.md)
+* [Element](/docs/std/html/Element.md)
+* [InputElement](/docs/std/html/InputElement.md)
+* [InputTypes](/docs/std/html/InputTypes.md)
+* [PreElement](/docs/std/html/PreElement.md)
 
 ## String (str) reference:
 
-* [/docs/std/str/Compare.md](std/str/Compare.md)
-* [/docs/std/str/CString.md](std/str/CString.md)
-* [/docs/std/str/DString.md](std/str/DString.md)
-* [/docs/std/str/String.md](std/str/String.md)
-* [/docs/std/str/View.md](std/str/View.md)
+* [Compare](/docs/std/str/Compare.md)
+* [CString](/docs/std/str/CString.md)
+* [DString](/docs/std/str/DString.md)
+* [String](/docs/std/str/String.md)
+* [View](/docs/std/str/View.md)
 
 ## Value (val) reference:
 
-* [/docs/std/val/Char.md](std/val/Char.md)
-* [/docs/std/val/Float.md](std/val/Float.md)
-* [/docs/std/val/Int.md](std/val/Int.md)
-* [/docs/std/val/Ptr.md](std/val/Ptr.md)
-* [/docs/std/val/Short.md](std/val/Short.md)
-* [/docs/std/val/Uchar.md](std/val/Uchar.md)
-* [/docs/std/val/Uint.md](std/val/Uint.md)
-* [/docs/std/val/Ushort.md](std/val/Ushort.md)
+* [Char](/docs/std/val/Char.md)
+* [Float](/docs/std/val/Float.md)
+* [Int](/docs/std/val/Int.md)
+* [Ptr](/docs/std/val/Ptr.md)
+* [Short](/docs/std/val/Short.md)
+* [Uchar](/docs/std/val/Uchar.md)
+* [Uint](/docs/std/val/Uint.md)
+* [Ushort](/docs/std/val/Ushort.md)
 
 # Software license
 
-Copyright (c) 2021-2023 SWARMBJECT contributors
+Copyright (c) 2021-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
@@ -2093,7 +2111,7 @@ SUCH DAMAGE.
 
 # Documentation license
 
-Copyright (c) 2021-2023 SWARMBJECT contributors
+Copyright (c) 2021-2025 SWARMBJECT contributors
 
 Redistribution and use in source and binary forms,
 with or without modification, are permitted
